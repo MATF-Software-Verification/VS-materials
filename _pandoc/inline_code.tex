@@ -1,0 +1,8 @@
+\usepackage{fancyvrb,newverbs,xcolor}
+
+\definecolor{Light}{gray}{.95}
+
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{
+  \colorbox{Light}{\oldtexttt{#1}}
+}

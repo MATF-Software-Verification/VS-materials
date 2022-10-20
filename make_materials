@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e;
+
+source ./beautify_materials
+
+readme="README.md"
+materials="MATERIALS.md"
+installing="INSTALLING.md"
+
+rm $materials $installing
+touch $materials $installing
+
+materials_path=$(realpath "$materials")
+installing_path=$(realpath "$installing")
+
+function collect_materials ()
+{
+    if [ -f $readme ]; then
+        echo "including: $(realpath $readme)"
+        cat $readme >> $materials_path
+    fi
+    if [ -f $installing ]; then
+        echo "including: $(realpath $installing)"
+        if [ $(realpath $installing) != $installing_path ]; then
+            cat $installing >> $installing_path
+        fi
+    fi
+
+    for d in *; do
+        if [[ $d == _* ]]; then
+            echo "skipping: $(realpath $d)"
+            continue
+        fi 
+        if [ -d $d ]; then
+            echo "scanning $d..."
+            cd $d
+            collect_materials
+            cd ..
+        fi
+    done
+}
+
+echo "# Instalacije" >> $installing_path
+collect_materials
+cat $installing_path >> $materials_path
+
+set -x;
+pandoc \
+    -f gfm \
+    -N \
+    --variable "geometry=margin=1.2in" \
+    --variable fontsize=12pt \
+    --variable version=2.0 \
+    --pdf-engine=xelatex \
+    --include-in-header _pandoc/header.tex \
+    --include-in-header _pandoc/inline_code.tex \
+    --highlight-style _pandoc/pygments.theme \
+    --toc -V toc-title="Sadržaj" \
+    -o MATERIALS.pdf \
+    MATERIALS.md 

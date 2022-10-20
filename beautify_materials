@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e;
+
+function indent_file ()
+{
+    indent \
+        -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 \
+        -cli0 -d0 -di1 -nfc1 -i8 -ip0 -l80 -lp -npcs -nprs -npsl -sai \
+        -saf -saw -ncs -nsc -sob -nfca -cp33 -ss -ts8 -il1 \
+        $@
+}
+
+# Indent C files
+for f in $(fd -e c); do
+    echo "indenting: $f"
+    indent_file $f
+    rm "$f~"
+done
+
+# Ensure every md file has 2 trailing newlines
+for f in $(fd -e md); do
+    lastline=$(tail -n 1 $f; echo x); lastline=${lastline%x}
+    if [ "${lastline: -1}" != $'\n' ]; then
+        echo "styling: $f"
+        echo >> $f
+        echo >> $f
+    fi
+done
