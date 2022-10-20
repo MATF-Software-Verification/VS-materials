@@ -33,6 +33,8 @@ abstract: |
         - [`KLEE`](https://klee.github.io/)
         - [`CBMC`](https://www.cprover.org/cbmc/)
         - [`Clang` statički analizator](https://clang.llvm.org/)
+    - Alati i jezici za formalnu verifikaciju softvera
+        - [Dafny](https://dafny.org/)
 
 ...
 
