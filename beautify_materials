@@ -11,7 +11,7 @@ function indent_file ()
         $@
 }
 
-# Indent C files
+# Indent C files and remove temp files
 for f in $(fd -e c); do
     echo "indenting: $f"
     indent_file $f
