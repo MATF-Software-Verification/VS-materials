@@ -12,7 +12,7 @@ function indent_file ()
 }
 
 # Indent C files and remove temp files
-for f in $(fd -e c); do
+for f in $(fd -e c -e cpp -e h); do
     echo "indenting: $f"
     indent_file $f
     rm "$f~"

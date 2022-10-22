@@ -91,7 +91,11 @@ main () at ../01_buffer_overflow/main.c:43
 ```
 
 Komandom `info` možemo dobiti informacije o lokalnim promenljivim, registrima itd. (npr. `info locals` tj. `info registers`).
+Komandom `info breakpoints` možemo videti spisak tačaka prekida.
 
-Alternativno, moguće je iskoristiti drugačiji korisnički interfejs, komandom `tui` npr. `tui enable`. Tako dobijamo pogled na izvorni kod na jednoj polovini korisničkog interfejsa. Komandom `tui reg` možemo dobiti i prikaz registara, npr. `tui reg all`.
+Alternativno, moguće je iskoristiti drugačiji korisnički interfejs, komandom `tui` npr. `tui enable`. Tako dobijamo pogled na izvorni kod na jednoj polovini korisničkog interfejsa. Komandom `tui reg` možemo dobiti i prikaz registara sa `tui reg all`.
 
-Koristeći gdb možemo dodati i uslovne tačke prekida, npr. `b grant_privilege:12 if ok != "no"`. Komandom `info breakpoints` možemo videti spisak tačaka prekida.
+Koristeći gdb možemo dodati i uslovne tačke prekida, npr.: 
+```txt
+(gdb) b grant_privilege:12 if ok != "no"
+```
