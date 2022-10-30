@@ -34,7 +34,7 @@ abstract: |
         - [`CBMC`](https://www.cprover.org/cbmc/)
         - [`Clang` statički analizator](https://clang.llvm.org/)
     - Alati i jezici za formalnu verifikaciju softvera
-        - [Dafny](https://dafny.org/)
+        - [`Dafny`](https://dafny.org/)
 
 ...
 
