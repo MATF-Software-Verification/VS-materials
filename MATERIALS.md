@@ -256,6 +256,279 @@ async Task<Forecast?> GetForecastAsync(string query);
 Metod `IsDisabled` može lako da se testira kreiranjem servisa bez ključa. Druge metode, međutim, nisu toliko jednostavne pošto u sebi rade više od jednog posla - kreiranje HTTP zahteva, slanje zahteva, primanje odgovora i deserijalizacija odgovora. Ukoliko bismo testirali ove metode bez ikakve izmene, onda bismo stalno slali HTTP zahteve servisu u našim testovima - što je sporo i nepovoljno. Štaviše, nemoguće je ovako testirati ponašanje naše implementacije u slučaju da server vrati nevalidan ili nekompletan odgovor. Čak i da možemo nekako rešiti sve te problema, ne možemo znati unapred koje odgovore servera da očekujemo - temperaturu i prognozu ne možemo znati unapred. Možemo pokrenuti lokalnu instancu OpenWeather servera modifikovanu za naše potrebe ali to nije optimalno rešenje. Oba ova problema (nedeterminističnost rada servisa i testiranje višestrukih funkcionalnosti jednog metoda) možemo rešiti tako što ručno ubrizgamo odgovor servera. Trenutna implementacija nam to ne dozvoljava, tako da hajde da je modifikujemo, ali ujedno i proširimo.
 
 Pre svega, preimenujmo `WeatherService` u `OpenWeatherService` i apstrahujmo interfejs ove klase `IWeatherService`. Kontaktiranje servera možemo apstrahovati u logiku klase `WeatherHttpService`. U našim testovima, možemo koristiti implementaciju nalik na onu u klasi `TestWeatherHttpService`. Ne želimo da `OpenWeatherService` direktno koristi `WeatherHttpService` pošto nam to ne omogućava zamenu implementacije klase `WeatherHttpService` klasom `TestWeatherHttpService` u našim testovima. Stoga kreirajmo interfejs `IWeatherHttpService` koji će implementirati klase `WeatherHttpService` i `TestWeatherHttpService`. Sada klasa `OpenWeatherService` može da ima zavisnost na interfejs u konstruktoru (što dodatno omogućava druge povoljnosti kao što je [ubrizgavanje zavisnosti](https://www.digitalocean.com/community/tutorials/java-dependency-injection-design-pattern-example-tutorial)). 
+# Testiranje jedinica koda metodom bele kutije
+
+Jedinični testovi (engl. *Unit tests*) treba da budu kreirani za sve  __javne__ metode klasa, uključujući konstruktore i operatore. Trebalo bi da pokriju sve glavne putanje kroz funkcije, uključujuču različite grane uslova, petlji itd. Jedinični testovi bi trebali da pokriju i trivijalne i granične slučajeve, kao i situacije izvršavanja metoda nad pogrešnim podacima da bi se testiralo i reagovanje na greške.
+
+## C++ primer - kalkulator
+
+### Pisanje testova jedinica koda pomoću QtTest radnog okvira
+
+QtCreator kao razvojno okruženje pruža mogućnost pisanja jediničnih testova. To je moguće učiniti pisanjem projekta tipa `Qt Unit Test` na više načina, u zavisnosti od toga da kako želimo da organizujemo stvarni i test projekat.
+
+#### Uključivanjem biblioteke
+
+Prvi način kako možemo kreirati test projekat koji testira već postojeći projekat je tako što kreiramo novi projekat tipa `Qt Unit Test`:
+```txt
+New Project -> Other Project -> Qt Unit Test
+```
+Pošto želimo da pišemo testove za već postojeći projekat, treba da dodamo lokaciju projekta opcijom `Add Existing Directory`.
+
+Unutar test projekta će se kreirati klasa koja nasleduje `QObject`. Ispod modifikatora `private Q_SLOTS` pišemo bar jednu test funkciju. Trebalo bi da su nam već ponuđene funkcije npr. `testCase1()`.
+
+Dodatno, postoje i četiri privatne metode koje se ne tretiraju kao test funkcije, ali će ih test radni okvir izvršavati bilo kada inicijalizuje ili čisti za celim testom ili trenutnom test funkcijom:
+* `initTestCase()` će biti pozvana pre izvršavanja prve test funkcije
+* `cleanupTestCase()` će biti pozvana nakon izvršavanja poslednje test funkcije
+* `init()` će biti pozvana pre svakog poziva test funkcije
+* `cleanup()` će biti pozvana nakon svakog izvrašavanja test funkcije
+
+Ukoliko se `initTestCase()` ne izvrši uspešno, nijedna test funkcija neće biti izvrašavana. Ako `init()` funkcija ne prode, njena prateća test funkcija se neće izvršiti, ali će se nastaviti sa sledećom.
+
+#### Qt Subdirs projekat
+Drugi način da testiramo projekat je da kreiramo nov `Qt Subdirs` projekat u koji ćemo uključiti postojeći i novi `Qt Unit Test` projekat. Ovaj način organizacije je koristan ukoliko pišemo projekat od nule i želimo da usput pišemo i testove.
+
+### Pisanje testova
+
+QtTest radni okvir pruža makroe za testiranje, i neke od njih ćemo koristiti da testiramo naš kalkulator:
+- `QCOMPARE`
+- `QVERIFY`
+- `QVERIFY_EXCEPTION_THROWN`
+
+### Analiza pokrivenosti
+
+Uz `gcc` kompajler dolazi i `gcov` alat za odredivanje pokrivenosti koda prilikom izvršavanja programa (engl. *code coverage*). Koristi se zajedno sa `gcc` kompajlerom da bi se analizirao program i utvrdilo kako se može kreirati efikasniji, brži kod i da bi se testovima pokrili delovi programa.
+
+Alat `gcov` se može koristiti kao alat za profajliranje u cilju otkrivanja dela koda čija bi optimizacija najviše doprinela efikasnosti programa. Korišćenjem `gcov`-a možemo saznati koje su naredbe, linije, grane, funkcije itd. izvršene i koliko puta. Zarad lepše reprezentacije rezultata detekcije pokrivenosti koda izvršavanjem test primera, koristimo alat `lcov`.
+
+Prilikom kompilacije neophodno je koristiti dodatne opcije kompajlera koje omogućavaju snimanje koliko je puta koja linija, grana i funkcija izvršena. Ti podaci se čuvaju u datotekama ekstenzije `.gcno` za svaku datoteku sa izvornim kodom. One će kasnije biti korišćene za kreiranje izveštaja o pokrivenosti koda.
+```sh
+$ g++ -g -Wall -fprofile-arcs -ftest-coverage -O0 main.cpp -o test
+```
+Alternativno:
+```sh
+g++ -g -Wall --coverage -O0 main.cpp -o test
+```
+
+Nakon izvršavanja test programa, informacije o pokrivenosti prilikom izvršavanja će biti u sačuvane u datoteci tipa `.gcda`, ponovo za svaku datoteku sa izvornim kodom. Pokrenimo alat `lcov` da bismo dobili čitljiviju reprezentaciju rezultata:
+```sh
+$ lcov --rc lcov_branch_coverage=1 -c -d . -o coverage-test.info
+```
+Opcija:
+* `--rc lcov_branch_coverage=1` uključuje odredivanje pokrivenosti grana, koje podrazumevano nije uključeno
+* `-c` kreiranje pokrivenosti
+* `-d .` koristi tekući direktorijum, jer u našem slučaju on sadrži potrebne `.gcda` i `.gcno` datoteke
+* `-o coverage-test.info` zadaje naziv izlazne datoteke sa izveštajem koji treba da ima ekstenziju `.info`
+
+Možemo neke datoteke isključiti iz analize pokrivenosti. Na primer, biblioteke jezika koje ne testiramo mogu nam samo zamagliti pokrivenost koja nas zanima - pokrivenost funkcionalnosti koje testiramo.
+```sh
+$ lcov --rc lcov_branch_coverage=1 \
+    -r coverage.info ’/usr/*’ ’/opt/*’ ’*.moc’ \
+    -o coverage-filtered.info
+```
+
+Opcija `-r coverage.info` uklanja iz prethodno dobijenog izveštaja `coverage.info` izvorne fajlove koji odgovaraju nekom od šablona koji su navedeni kao argumenti opcije.
+
+Alat `lcov` ima podalat `genhtml` koji na osnovu prethodno generisanog izveštaja pravi `.html` datototeke za jednostavniji pregled. Potrebno je izvršiti naredbu:
+```sh
+$ genhtml --rc lcov_branch_coverage=1 -o Reports coverage-filtered.info
+```
+Opcija `-o Reports` određuje naziv direktorijuma koji će biti kreiran i popunjen generisanim `.html` dokumentima.
+
+Izveštaj možemo otvoriti u Web pretraživaču, npr. 
+```sh
+$ firefox Reports/index.html
+```
+Ukoliko ne obrišemo `.gcda` datoteke od prethodnih pokretanja programa, prikaz pokrivenosti će uključiti sve, zbirno.
+
+### Kreiranje izveštaja uz pomoć skripte
+
+Postupak kreiranja izveštaja, nakon kompilacije programa se može automati zovati pokretanjem bash skripte [`generateCodeCoverageReport.sh`](generateCodeCoverageReport.sh):
+```sh
+$ ./generateCodeCoverageReport.sh . test data
+```
+
+Argumenti:
+* `.` - Direktorijum u kom se nalaze potrebne `.gcda` i `.gcno` datoteke i izvršni program. U našem slučaju to je tekući direktorijum.Inače bismo navodili relativnu ili apsolutnu putanju do potrebnog direktorijuma 
+* `test` - Drugi argument treba da je naziv izvršne verzije programa koja će se pokretati.
+* `data` - Naziv direktorijuma u koji će alati `lcov` i `genhtml `upisivati svoje rezultate. Ukoliko se ne navede, sve će se upisivati u tekući direktorijum skripta. Ukoliko navedeni direktorijum ne postoji, biće kreiran. 
+
+Skript briše `.gcda` datoteke od prethodnih pokretanja programa. Prikazana pokrivenost je samo za poslednje pokretanje programa.
+
+### Integracija pokrivenosti u QtCreator
+
+Ukoliko želimo da kreiramo pokrivenost koda prilikom izvršavanja postojećeg Qt projekta, potrebno je da definiciji projekta (fajl tipa `.pro`) dopišemo:
+```sh
+QMAKE_CXXFLAGS += -g -Wall -fprofile-arcs -ftest-coverage -O0
+QMAKE_LFLAGS += -g -Wall -fprofile-arcs -ftest-coverage -O0
+
+LIBS += \
+    -lgcov
+```
+
+Opcije `-fprofile-arcs -ftest-coverage` i linkovanje sa `-lgcov` menja opcija kompajlera `--coverage`. Nakon pokretanja projekta, `.gcda` i `.gcno` datoteke i izvršivi program biće u direktorijumu gde se nalaze ostali artifakti prevođenja (podrazumevano u direktorijumu sa prefiksom `build_`). Izveštaj možemo potom napraviti prema ranije prikazanom postupku.
+
+- `@Test` - marks a test method in a class. This method will be treated like a test, it'll get executed by the test engine, get a row in the reporting, and so on.
+- `@TestFactory` - a method marked with the @TestFactory will be used to create test cases at runtime. Use it to run the randomized tests or test based on the external data.
+- `@DisplayName` - makes reports readable with proper test names
+- `@BeforeAll`/`@BeforeEach` - lifecycle methods executed prior running tests
+- `@AfterAll`/`@AfterEach` - lifecycle methods for cleanup, executed after the tests
+- `@Tag` - tags a method to separate tests into suites, for example - `@Tag`("fast") can be used to distinguish quick tests from the ones that take longer.
+- `@Disabled` - makes JUnit skip this test, don't overuse it. In general disabled tests should be deleted and kept just in the VCS history.
+- `@Nested` - Use on an inner class to control the order of tests.
+- `@ExtendWith` - Use to enhance the execution: provide mock parameter resolvers and specify conditional execution.
+
+```java
+import org.junit.jupiter.api.*;
+public class AppTest {
+    @BeforeAll
+    static void setup(){
+        System.out.println("Executes a method Before all tests");
+    }
+    @BeforeEach
+    void setupThis(){
+        System.out.println("Executed Before each @Test method in the current test class");
+    }
+    @AfterEach
+    void tearThis(){
+        System.out.println("Executed After each @Test method in the current test class");
+    }
+    @AfterAll
+    static void tear(){
+        System.out.println("Executes a method After all tests");
+    }
+}
+```
+
+```java
+Assertions.assertAll("heading", 
+  () -> assertTrue(true), 
+  () -> assertEquals("expected", objectUnderTest.getSomething());
+```
+
+```java
+@TestFactory
+Stream dynamicTests(MyContext ctx) {
+  // Generates tests for every line in the file
+  return Files.lines(ctx.testDataFilePath).map(l -> dynamicTest("Test:" + l, () -> assertTrue(runTest(l)));
+}
+```
+
+```java
+@Test
+void exampleTest() {
+    Assertions.assertTrue(trueBool);
+    Assertions.assertFalse(falseBool);
+    Assertions.assertNotNull(notNullString);
+    Assertions.assertNull(notNullString);
+    Assertions.assertNotSame(originalObject, otherObject);
+    Assertions.assertEquals(4, 4);
+    Assertions.assertNotEquals(3, 2);
+    Assertions.assertArrayEquals(new int[]{1,2,3}, new int[]{1,2,3}, "Array Equal Test");
+    Iterable<Integer> listOne = new ArrayList<>(Arrays.asList(1,2,3,4));
+    Iterable<Integer> listTwo = new ArrayList<>(Arrays.asList(1,2,3,4));
+    Assertions.assertIterableEquals(listOne, listTwo);
+    Assertions.assertTimeout(Duration.ofMillis(100), () -> {
+    Thread.sleep(50);
+    return "result";
+    });
+    Throwable exception = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+    throw new IllegalArgumentException("error message");
+    });
+    Assertions.fail("not found good reason to pass");
+}
+```
+
+```java
+@Test
+void testAssumption() {
+    System.setProperty("myproperty", "foo");
+    Assumptions.assumeTrue("foo".equals(System.getProperty("myproperty")));
+         
+}
+```
+
+```java
+public class AppTest 
+{
+    @Test
+    @EnabledForJreRange(min = JRE.JAVA_8, max = JRE.JAVA_11)
+    public void test1()
+    {
+         System.out.println("Will run only on JRE between 8 and 11");
+    }
+    
+    @Test
+    @EnabledOnJre({JRE.JAVA_8, JRE.JAVA_11})
+    public void test2()
+    {
+         System.out.println("Will run only on JRE 8 and 11");
+    }
+    @Test
+    @DisabledForJreRange(min = JRE.JAVA_8, max = JRE.JAVA_11)
+    public void test3()
+    {
+        System.out.println("Will NOT run on JRE between 8 and 11");
+    }
+    
+    @Test
+    @DisabledOnJre({JRE.JAVA_8, JRE.JAVA_11})
+    public void test4()
+    {
+        System.out.println("Will NOT run on JRE 8 and 11");
+    }
+}
+```
+
+```java
+public class OperatingSystemTest {
+    @Test
+    @EnabledOnOs({OS.LINUX, OS.WINDOWS})
+    void onLinuxOrWindows() {
+        System.out.println("Will run on Linux or Windows.");
+    }
+    @Test
+    @DisabledOnOs({OS.WINDOWS, OS.AIX, OS.SOLARIS, OS.MAC})
+    void notOnWindowsOrAixOrSolarisOrMac() {
+        System.out.println("Will not run on Windows, AIX, Solaris or MAC!");
+    }
+}
+```
+
+```java
+@Test
+@EnabledIf("myfunction")
+void enabled() {
+    assertTrue(true);
+}
+
+@Test
+@DisabledIf("myfunction")
+void disabled() {
+    assertTrue(true);
+}
+
+boolean myfunction() {
+    return true;
+}
+```
+
+```java
+@Test
+@EnabledIfEnvironmentVariable(named = "ENV", matches = ".*oracle.*")
+public void executeOnlyInDevEnvironment() {
+    return true;
+}
+@Test
+@DisabledIfEnvironmentVariable(named = "ENV", matches = ".*mysql.*")
+public void disabledOnProdEnvironment() {
+    return true;
+}
+@Test
+@EnabledIfSystemProperty(named = "my.property", matches = "prod*")
+public void onlyIfMyPropertyStartsWithProd() {
+    return true;
+}
+```
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -268,4 +541,11 @@ Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
 ### gdb
 
 Za većinu Linux distribucija je dostupan paket `gdb`. `gdb` je za neke distribucije deo paketa za razvoj (npr. `build-essential` za Ubuntu).
+
+## Alati/Biblioteke za testiranje jedinica koda i pokrivenosti koda
+
+### gcov, lcov
+
+`gcov` dolazi podrazumevano uz `gcc` kompajler. Alat `lcov` je obično dostupan u okviru paketa sa istim imenom. Instalacija na Ubuntu distribuciji bi, na primer, izgledala ovako:
+```sudo apt-get install lcov```
 
