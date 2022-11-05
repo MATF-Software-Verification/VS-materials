@@ -1,8 +1,38 @@
 #!/bin/bash
 
-set -e;
+function indent_file ()
+{
+    indent \
+        -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 \
+        -cli0 -d0 -di1 -nfc1 -i8 -ip0 -l80 -lp -npcs -nprs -npsl -sai \
+        -saf -saw -ncs -nsc -sob -nfca -cp33 -ss -ts8 -il1 \
+        $@
+}
 
-source ./beautify_materials
+function ensure_md_trailing_newline ()
+{
+    # Ensure every md file has 2 trailing newlines
+    for f in $(fd -e md -d 1) ; do
+        lastline=$(tail -n 1 $f; echo x); lastline=${lastline%x}
+        if [ "${lastline: -1}" != $'\n' ]; then
+            echo "styling: $f"
+            echo >> $f
+            echo >> $f
+        fi
+    done
+}
+
+function indent_c_cpp_files_recursively ()
+{
+    # Indent C files and remove temp files
+    for f in $(fd -e c -e cpp -e h -e hpp); do
+        echo "indenting: $f"
+        indent_file $f
+        rm "$f~"
+    done
+}
+
+set -e;
 
 readme="README.md"
 materials="MATERIALS.md"
@@ -13,6 +43,7 @@ touch $materials $installing
 
 materials_path=$(realpath "$materials")
 installing_path=$(realpath "$installing")
+beautify_script="$(pwd)/beautify_materials"
 
 function collect_materials ()
 {
@@ -27,24 +58,20 @@ function collect_materials ()
         fi
     fi
 
-    if [ -f .mignore ]; then
-        return
+    if [ ! -f .mignore ]; then
+        ensure_md_trailing_newline
+        for d in *; do
+            if [ -d $d ]; then
+                echo "scanning $d..."
+                cd $d
+                collect_materials
+                cd ..
+            fi
+        done
     fi
-
-    for d in *; do
-        if [[ $d == _* ]]; then
-            echo "skipping: $(realpath $d)"
-            continue
-        fi 
-        if [ -d $d ]; then
-            echo "scanning $d..."
-            cd $d
-            collect_materials
-            cd ..
-        fi
-    done
 }
 
+indent_c_cpp_files_recursively
 echo "# Instalacije" >> $installing_path
 collect_materials
 cat $installing_path >> $materials_path
