@@ -23,9 +23,9 @@ abstract: |
         - [`lcov`](https://github.com/linux-test-project/lcov) (C, C++)
         - [`JaCoCo`](https://www.jacoco.org/jacoco/) (Java)
         <!--- - [`dotnet-coverage`](https://learn.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-coverage) (C#) --->
-    - "Mock" testiranje
-        - Ručno pisanje *mock* klasa (C++)
-        - *Mock* testiranje baza podataka (C#)
+    - Testiranje pomoću objekata imitatora
+        - Ručno pisanje imitator klasa (C++)
+        - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
