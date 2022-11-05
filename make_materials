@@ -27,6 +27,10 @@ function collect_materials ()
         fi
     fi
 
+    if [ -f .mignore ]; then
+        return
+    fi
+
     for d in *; do
         if [[ $d == _* ]]; then
             echo "skipping: $(realpath $d)"
@@ -46,7 +50,8 @@ collect_materials
 cat $installing_path >> $materials_path
 
 set -x;
-pandoc \
+pandoc MATERIALS.md \
+    -o MATERIALS.pdf \
     -f gfm \
     -N \
     --variable "geometry=margin=1.2in" \
@@ -57,5 +62,7 @@ pandoc \
     --include-in-header _pandoc/inline_code.tex \
     --highlight-style _pandoc/pygments.theme \
     --toc -V toc-title="Sadržaj" \
-    -o MATERIALS.pdf \
-    MATERIALS.md 
+    -V 'monofont:DejaVuSansMono.ttf' \
+    # -V 'mainfont:DejaVuSerif.ttf' \
+    # -V 'sansfont:DejaVuSans.ttf' \
+    # -V 'mathfont:texgyredejavu-math.otf' \

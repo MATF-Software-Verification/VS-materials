@@ -1,0 +1,6 @@
+[submodule "03_unittest/03_csharp_xunit_nunit/samples-xunit"]
+	path = 03_unittest/03_csharp_xunit_nunit/samples-xunit
+	url = https://github.com/xunit/samples.xunit.git
+[submodule "03_unittest/03_csharp_xunit_nunit/samples-nunit"]
+	path = 03_unittest/03_csharp_xunit_nunit/samples-nunit
+	url = https://github.com/nunit/nunit-csharp-samples

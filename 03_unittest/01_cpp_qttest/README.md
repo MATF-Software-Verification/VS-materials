@@ -1,4 +1,4 @@
-## C++ primer - kalkulator
+## C++ - QtTest, gcov, lcov
 
 ### Pisanje testova jedinica koda pomoću QtTest radnog okvira
 
