@@ -24,7 +24,7 @@ public class ParameterizedTests
     // Regular xUnit test case
     // Sub-optimal (repeated asserts)
     [Fact]
-    public void SampleFact(int a, int b, int c, int d)
+    public void SampleFact()
     {
         Assert.True(SampleAssert1(4, 4, 4, 4));
         Assert.True(SampleAssert2(4, 4, 4, 4));
@@ -42,7 +42,7 @@ public class ParameterizedTests
     // Regular xUnit test case
     // No repeated asserts but requires a local method
     [Fact]
-    public void SampleFact(int a, int b, int c, int d)
+    public void SampleFact()
     {
         Assert.True(PerformAsserts(4, 4, 4, 4));
         Assert.True(PerformAsserts(3, 2, 2, 3));
