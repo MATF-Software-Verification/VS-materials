@@ -37,8 +37,7 @@ public class TestDbProvider
     public void SetupAlterAndVerify(
         Action<SampleDbContext>? setup,
         Action<SampleDbContext>? alter,
-        Action<SampleDbContext>? verify,
-        bool ensureSave = false)
+        Action<SampleDbContext>? verify)
     {
         DatabaseConnection.Open();
         try {
@@ -54,8 +53,7 @@ public class TestDbProvider
             if (alter is not null) {
                 using SampleDbContext context = this.CreateContext();
                 alter(context);
-                if (ensureSave)
-                    context.SaveChanges();
+                context.SaveChanges();
             }
 
             if (verify is not null) {
@@ -70,8 +68,7 @@ public class TestDbProvider
     public async Task SetupAlterAndVerifyAsync(
         Func<SampleDbContext, Task>? setup,
         Func<SampleDbContext, Task>? alter,
-        Func<SampleDbContext, Task>? verify,
-        bool ensureSave = false)
+        Func<SampleDbContext, Task>? verify)
     {
         DatabaseConnection.Open();
         try {
@@ -87,8 +84,7 @@ public class TestDbProvider
             if (alter is not null) {
                 await using SampleDbContext context = this.CreateContext();
                 await alter(context);
-                if (ensureSave)
-                    await context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
 
             if (verify is not null) {

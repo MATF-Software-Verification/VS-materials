@@ -30,3 +30,18 @@ Na primer:
 ```sh
 $ sdk install gradle 7.5.1
 ```
+### xUnit / NUnit
+
+`xUnit` i `NUnit` se jednostavno instaliraju sa NuGet repozitorijuma ([xUnit](https://www.nuget.org/packages/xUnit), [NUnit](https://www.nuget.org/packages/xUnit)) ili uz pomoć IDE-a, ili kroz komande:
+```sh
+$ dotnet add package xunit --version 2.4.2
+$ dotnet add package NUnit --version 3.13.3
+```
+## Alati/Biblioteke za Mock testiranje
+
+### Moq
+
+`Moq` se jednostavno instalira sa [NuGet repozitorijuma](https://www.nuget.org/packages/Moq) ili uz pomoć IDE-a, ili kroz komandu:
+```sh
+$ dotnet add package Moq --version 4.18.2
+```

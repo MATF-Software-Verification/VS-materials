@@ -14,13 +14,13 @@ public class SampleDbTests
     {
         this.DbProvider.SetupAlterAndVerify(
             // setup
-            ctx => ctx.Students.Clear();
+            ctx => ctx.Students.Clear(),
             
             // alter
-            ctx => Service.PerformLogic(ctx.Students);
+            ctx => Service.PerformLogic(ctx.Students),
 
             // verify
-            ctx => Assert.That(ctx.Students, Is.Not.Empty);
+            ctx => Assert.That(ctx.Students, Is.Not.Empty)
         );
     }
 }

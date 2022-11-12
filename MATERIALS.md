@@ -23,9 +23,9 @@ abstract: |
         - [`lcov`](https://github.com/linux-test-project/lcov) (C, C++)
         - [`JaCoCo`](https://www.jacoco.org/jacoco/) (Java)
         <!--- - [`dotnet-coverage`](https://learn.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-coverage) (C#) --->
-    - "Mock" testiranje
-        - Ručno pisanje *mock* klasa (C++)
-        - *Mock* testiranje baza podataka (C#)
+    - Testiranje pomoću objekata imitatora
+        - Ručno pisanje imitator klasa (C++)
+        - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
@@ -614,7 +614,7 @@ public class ParameterizedTests
     // Regular xUnit test case
     // Sub-optimal (repeated asserts)
     [Fact]
-    public void SampleFact(int a, int b, int c, int d)
+    public void SampleFact()
     {
         Assert.True(SampleAssert1(4, 4, 4, 4));
         Assert.True(SampleAssert2(4, 4, 4, 4));
@@ -632,7 +632,7 @@ public class ParameterizedTests
     // Regular xUnit test case
     // No repeated asserts but requires a local method
     [Fact]
-    public void SampleFact(int a, int b, int c, int d)
+    public void SampleFact()
     {
         Assert.True(PerformAsserts(4, 4, 4, 4));
         Assert.True(PerformAsserts(3, 2, 2, 3));
@@ -686,6 +686,312 @@ Assert.That(myString, Is.Not.EqualTo("Bello"));
 
 Primeri korišćenja NUnit radnog okvira su preuzeti iz zvaničnog repozitorijuma sa primerima i mogu se naći kao git podmodul u okviru repozitorijuma sa materijalima.
 
+# Testiranje pomoću objekata imitatora (engl. Mock testing)
+
+Prilikom pisanja jediničnih testova fokusiramo se samo na jednu funkciju
+i ispitujemo njeno ponašanje u kontrolisanom okruženju. Sadržaj testa je uvek skup inicijalizacija okruženja, pokretanje funkcije koju testiramo i zatim poredenje dobijenog i očekivanog rezultata. Nekada je kod takav da je nemoguće napraviti kontrolisano okruženje za testiranje, npr. korišćenje sistemskih poziva, podataka iz baze podataka, mrežna komunikacija i sl. U tim situacijama pribegava se pisanju klasa koje imitiraju realne objekte u svrhu testiranja. 
+
+Na primer, funkcija može da odbrađuje podatke iz datoteke i uzima naziv datoteke kao ulazni parametar. Superiornije rešenje je prepraviti funkciju tako da radi sa ulaznim tokom do fajla koji treba da obradi. Funkcija potom neće raditi sve stvari kao ranije - otvarati datoteku i obradivati podatke. 
+
+U jediničnom testu, objekti imitatori mogu da imitiraju ponašanje kompleksnog stvarnog objekta. Vrlo su korisni u situacijama kada stvarni objekat nije praktično ili je nemoguće uklopiti u jedinični test. Objekat imitator se obično koristi ukoliko stvarni objekat ima neki od narednih karakteristika:
+- obezbeđuje nedeterministički rezultat (npr. trenutno vreme, trenutnu temperaturu, ...)
+- ima stanja koja je teško kreirati ili reprodukovati, (npr. greška u mrežnoj komunikaciji)
+- spor je (npr. baza podataka, koja bi pre svakog testa morala biti inicijalizovana)
+- ne postoji još uvek, ili može promeniti ponašanje u budućnosti
+- morao bi da dobije nove informacije i metode da bismo mogli da ga koristimo za testiranje, a inače mu nisu potrebne
+
+Objekti imitatori treba da imaju isti interfejs kao stvarni objekti koje imitiraju. Tako omogućavaju da objekat koji ih koristi ne pravi razliku izmedu stvarnog ili imitator objekta. Mnogi radni okviri za objekte imitatore omogućavaju da se samo naglasi objekti koje klase se imitiraju i potom da programer zada koji metodi se pozivaju na objektu imitatoru, kojim redom i sa kojim parametrima, kao i koja vrednost se očekuje kao povratna. Na taj način se mogu imitirati ponašanja kompleksnih objekata (npr. socket) i omogućiti da programer testira da li se objekat ponaša korektno sa svim različitim stanjima. To je daleko jednostavniji postupak nego izazivanje svih situacija na stvarnom
+objektu.
+
+Rad sa objektima imitatorima obično obuhvata sledeće korake:
+- kreiranje interfejsa za klasu koju bi trebalo testirali
+- kreiranje klase imitatora ručno ili pomoću nekog radnog okvira:
+    - C++ - `FakeIt`, `CppUMock` (unutar `CppUnit`), `GoogleMock`
+    - Java - `Mockito`, `JMock`, `EasyMock`, `PowerMock`
+    - .NET - `Moq`
+- priprema koda koji će se testirati na objektu imitatoru;
+- pisanje testa koji će koristiti objekat imitator umesto stvarnog objekta
+
+Unutar testa je potrebno:
+– kreirati instancu objekta klase imitatora
+– podesiti ponašanje i očekivanja od objekta imitatora
+– pokrenuti kod koji će koristiti objekat imitator
+– po izvršavanju, porediti dobijene i očekivane vrednosti (ovaj korak obično izvršava radni okvir prilikom uništavanja objekta imitatora)
+## C++ - ručno kreiranje objekata imitatora
+
+Dobili smo zadatak da u igru koju razvijamo dodamo novu funkcionalnost koja meri koliko je igrač aktivno igrao igru. Vreme provedeno u glavnom meniju i pauze ne treba da se uključe u vreme igranja. U tu svrhu kreiramo jednostavnu klasu `play_time` koja ima metode za pokretanje i zaustavljanje sesije i vraća ukupno vreme igranja.
+
+Testiranje ove jednostavne klase zahteva par koraka:
+1. kreiranje instance klase `play_time`
+2. započinjanje sesije
+3. uspavljivanje programa na neko vreme
+4. zaustavljanje sesije
+5. pozivanje metoda za dobijanje ukupno vreme igranja
+6. poređenje dobijene vrednosti sa vremenom uspavljivanja programa
+
+Problem je u tome što program treba da spava neko vreme. Nije test sam po sebi problem, klasa `play_time` koja zavisi od sistemskog sata. Rešenje je da generalizujemo konstruktor klase i da eksplicitno naglasimo zavisnost klase od sistemskog sata. Sve dok `play_time` dobija trenutno vreme nekako, pravi izvor nam nije presudno bitan.
+
+Kreirajmo interfejs `second_clock`. Menjamo konstruktor klase `play_time` tako da kao argument dobija instancu `second_clock` interfejsa. Time je svakom jasno da naša klasa zavisi od sata. Menjamo i metode za pokretanje i zaustavljanje sesije, jer sada treba da zavise od parametra klase, sata. 
+
+Kreirajmo klasu `system_clock` koja će implementirati već kreiran interfejs `second_clock`. Kada želimo da objekat klase `play_time` koristi sistemski sat, konstruktoru ćemo slati objekat klase `system_clock`.
+
+Kreirajmo sada klasu imitatora `mock_clock` koja će da odgovara ponašanju sata bez baterija. Uvek će pokazivati podešeno vreme. Implementiramo konstruktor, metode `get` i `set` za postavljanje vremena.
+
+Prilikom testiranja, koristimo instancu `mock_clock` prilikom konstrukcije instance klase `play_time`. Umesto da uspavamo program, pomerićemo vreme na satu za neki interval i očekujemo da isti interval vrati i metoda `played_time`.
+## C# - Moq
+
+[Moq](https://github.com/moq/) (izgovara se _Mock-you_ ili jednostavno _Mok_) je vodeći radni okvir za pisanje objekata imitatora u .NET ekosistemu. Dizajniran je da bude veoma praktičan i bezbedan. Neke od osobina:
+- Jako tipiziran (ne koriste se niske za definisanje očekivanja, povratne vrednosti metoda su specifični tipovi a ne opšti `object` tip)
+- Jednostavni idiomi - konstrukcija imitatora, podešavanje ponašanja imitatora, očekivanja
+- Granularna kontrola ponašanja imitatora
+- Imitira i interfejse i klase
+- Presretanje događaja nad imitatorima
+
+U fajlu `MockExamples.cs` imamo definicije nekoliko interfejsa i klasa:
+- `IBookService` - predstavlja interfejs servisa koji koristimo da dovučemo informacije o knjigama na osnovu kategorije ili ISBN
+- `IEmailSender` - predstvlja interfejs servisa koji koristimo da pošaljemo e-mail
+- `AccountsService` - koristi navedene servise
+- `SampleAccountsServiceTests` - testovi za `AccountsService`
+
+Pošto `IBookService` može na proizvoljan način da dovlači informacije o knjigama (REST-ful API, baza podataka itd.), jasno je da ne želimo da je testiramo direktno. Štaviše, naši testovi se tiču `AccountsService` klase, a ne klasa koje ona koristi, dakle podrazumevamo da se implementacije `IBookService` i `IEmailSender` ispravno ponašaju. Tu pretpostavku implementiramo pomoću objekata imitatora.
+
+Posmatrajmo klasu `SampleAccountsServiceTests`. Naredni primer prikazuje jednostavan idiom za korišćenje Moq radnog okvira:
+```cs
+public void GetAllBooksForCategory_returns_list_of_available_books()
+{
+    // 1
+    var bookServiceStub = new Mock<IBookService>();
+    
+    // 2
+    bookServiceStub
+        .Setup(x => x.GetBooksForCategory("UnitTesting"))
+        .Returns(new List<string> {
+            "The Art of Unit Testing",
+            "Test-Driven Development",
+            "Working Effectively with Legacy Code"
+        });
+    
+    // 3
+    var accountService = new AccountService(bookServiceStub.Object, null);
+    var result = accountService.GetAllBooksForCategory("UnitTesting");
+    
+    // 4
+    Assert.Equal(3, result.Count());
+}
+```
+
+Sličan imitator možemo napisati i za `IEmailService`, ukoliko želimo da testiramo metod `SendEmail`:
+```cs
+public void SendEmail_sends_email_with_correct_content()
+{
+    // 1
+    var emailSenderMock = new Mock<IEmailSender>();
+    
+    // 2
+    var accountService = new AccountService(null, emailSenderMock.Object);
+    // 3
+    
+    accountService.SendEmail("test@gmail.com", "Test - Driven Development");
+    // 4
+    emailSenderMock.Verify(
+        x => x.SendEmail(
+            "test@gmail.com", 
+            "Awesome Book", 
+            $"Hi,\n\nThis book is awesome: Test - Driven Development"
+        ),
+        Times.Once
+    );
+}
+```
+
+Moguće je modelirati višestruke pozive. U primeru koji sledi zadajemo povratne vrednosti za prva četiri poziva metoda `GetISBNFor`, poziv metoda `GetBooksForCategory` podešavamo tako da baca izuzetak:
+```cs
+bookServiceStub
+    .SetupSequence(x => x.GetISBNFor(It.IsAny<string>()))
+    .Returns("0-9020-7656-6")   //returned on 1st call
+    .Returns("0-9180-6396-5")   //returned on 2nd call
+    .Returns("0-3860-1173-7")   //returned on 3rd call
+    .Returns("0-5570-1450-6")   //returned on 4th call
+    ;
+    
+bookServiceStub
+    .Setup(x => x.GetBooksForCategory(It.IsAny<string>()))
+    .Throws<InvalidOperationException>();
+```
+
+Za poznavaoce asinhronog šablona zasnovanog na zadacima (engl. [Task-Based Asynchronous Pattern, skr. TAP](https://learn.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap)) u programskom jeziku C#, mogu od značaja biti i asinhroni primeri korišćenja Moq radnog okvira:
+```cs
+httpClientMock
+    .Setup(x => x.GetAsync(It.IsAny<string>()))
+    .ReturnsAsync(true);
+```
+
+## C# - "imitatori" baza podataka
+
+Objekti imitatori, iako korisni, ne mogu zameniti ponašanje pravih sistema za upravljanje bazama podataka. Iako je testove potrebno izvršiti nad produkcijskom bazom podataka pre isporučivanja aplikacije, neefikasno je te testove pokretati tokom razvoja aplikacije. Želeli bismo da testove pokrenemo u okruženju što sličnijem pravoj bazi podataka, ali ne bismo da gubimo na efikasnosti - potrebno je bazu pripremiti za svaki test posebno, što uključuje veliki broj upita. S druge strane, možda smo već napisali imitatore i zadovoljni smo ponašanjem naših servisa, ali bismo da testiramo logiku ostvarivanja odnosno raskidanja veze sa bazom. U ovakvim slučajevima, ali i mnogim drugim, izvršavanje testova nad "pravom" bazom podataka je nešto što bismo voleli da imamo. Međutim, voleli bismo da to sve bude transparentno i da ne zahteva nikakve izmene u kodu, ali i takođe dovoljno efikasno tako da ne odlazi dosta vremena na izvršavanje testova.
+
+Objektno-relacioni maperi (engl. Object Relational Mappers, skr. ORM) se često koriste radi apstrahovanja specifilnosti konkretnog sistema za upravljanje bazama podataka. Neki poznati ORM radni okviri su [Hibernate](https://hibernate.org/) (Java), [Entity Framework](https://learn.microsoft.com/en-us/ef/) (.NET). U ovom primeru ćemo iskoristiti pogodnosti koje Entity Framework i SUBP [SQLite](https://www.sqlite.org/) pružaju, kako bismo testove izvršili nad privremenom bazom podataka lociranoj u radnoj memoriji.
+
+Postoje sistemi za upravljanje bazama podataka koji mogu da operišu sa privremenim bazama podataka skladištenim u radnoj memoriji. Jedan od takvih SUBP je [SQLite](https://www.sqlite.org/), koji pruža tzv. *in-memory database provider* upravo za ove svrhe. SQLite čuva baze podataka u fajlovima na fajl sistemu. Da bismo kreirali bazu podataka u memoriji, potrebno je da u nisku za konekciju na bazu ubacimo `:memory:` na mesto gde bi inače išla putanja do fajla na fajl sistemu gde bi se baza čuvala. Privremena baza živi u radnoj memoriji sve dok postoji otvorena veza ka njoj, drugim rečima raskid veze povlači brisanje baze podataka - što je idealno za naše testove jer svakako bismo da testove pokrećemo u izolovanom okruženju.
+
+Klasa `SampleDbContext` predstavlja kontekst veze s bazom podataka. Taj kontekst u sebi ima svojstva tipa `DbSet<T>` koja će se mapirati u odgovarajuće tabele. Pošto koristimo Entity Framework, možemo ga konfigurisati tako da, na osnovu konfiguracije koju korisnik navodi, koristimo odgovarajući zadnji deo (engl. back-end) koji će komunicirati sa odgovarajućim SUBP. Recimo da želimo da podržimo naredne SUBP:
+```cs
+public enum Provider
+{
+    Sqlite = 0,
+    PostgreSql = 1,
+    SqlServer = 2,
+    SqliteInMemory = 3
+}
+```
+
+Prilikom konfigurisanja EF radnog okvira, možemo odabrati odgovarajući zadnji deo:
+```cs
+switch (this.Provider) {
+    case Provider.PostgreSql:
+        optionsBuilder.UseNpgsql(this.ConnectionString);
+        break;
+    case Provider.Sqlite:
+    case Provider.SqliteInMemory:
+        optionsBuilder.UseSqlite(this.ConnectionString);
+        break;
+    case Provider.SqlServer:
+        optionsBuilder.UseSqlServer(this.ConnectionString);
+        break;
+    default:
+        throw new NotSupportedException("Provider not supported!");
+}
+```
+
+Možemo implementirati provajder baze za testove tako što prosledimo odgovarajuču nisku za konekciju ka bazi podataka:
+```cs
+public class TestDbProvider
+{
+    public readonly string ConnectionString { get; }
+    public readonly SqliteConnection DatabaseConnection { get; }
+
+    public TestDbProvider()
+    {
+        ConnectionString = "DataSource=:memory:;foreign keys=true;";
+        DatabaseConnection = new SqliteConnection(ConnectionString);
+    }
+
+    private void CreateContext() 
+    {
+        var options = new DbContextOptionsBuilder<SampleDbContext>()
+            .UseSqlite(DatabaseConnection)
+            .Options;
+
+        return new SampleDbContext(
+            SampleDbContext.Provider.SqliteInMemory, 
+            ConnectionString, 
+            options
+        );
+    }
+
+    // ...
+}
+```
+
+Za izvršavanje testova je neophodno da: 
+- ostvarimo konekciju ka bazi
+- ubacimo podatke u bazu (pošto se baza uvek briše nakon raskidanja konekcije)
+- odradimo logiku koju test treba da proveri
+- proverimo rezultat
+- raskinemo vezu sa bazom
+
+Da bismo smanjili ponavljanje koda, dodaćemo metod `SetupAlterAndVerify` koji će da primi funkcije:
+- `void Setup(SampleDbContext ctx)` - priprema bazu podataka za test
+- `void Alter(SampleDbContext ctx)` - izvršava logiku koju test treba da proveri
+- `void Verify(SampleDbContext ctx)` - testira rezultujuće stanje baze podataka
+```cs
+
+public void SetupAlterAndVerify(
+    Action<SampleDbContext>? setup,
+    Action<SampleDbContext>? alter,
+    Action<SampleDbContext>? verify)
+{
+    DatabaseConnection.Open();
+    try {
+        this.CreateDatabase();
+        this.SeedDatabase();
+
+        if (setup is not null) {
+            using SampleDbContext context = this.CreateContext();
+            setup(context);
+            context.SaveChanges();
+        }
+
+        if (alter is not null) {
+            using SampleDbContext context = this.CreateContext();
+            alter(context);
+            context.SaveChanges();
+        }
+
+        if (verify is not null) {
+            using SampleDbContext context = this.CreateContext();
+            verify(context);
+        }
+    } finally {
+        DatabaseConnection.Close();
+    }
+}
+```
+
+Primetimo da, iako kontekst kreiramo više puta, veza ka bazi i dalje ostaje aktivna dok se ne pozove `DatabaseConnection.Close()` metod. Kreiranje zasebnih konteksta je poželjno pošto bismo da sačuvamo stanje baze nakon svakog koraka (setup, alter, verify). Tip `Action<T1, T2, ..., Tn>` u programskom jeziku C# predstavlja funkciju: `void f(T1, T2, ... Tn)`. Oznaka `?` je skraćenica za tip `Nullable<T>` koji predstavlja opcioni tip. Drugim rečima, metodi `SetupAlterAndVerify` prosleđujemo opcione akcije, i možemo da odlučimo da naš test ne mora da ima neku od njih (tako što prosledimo `null`, stoga provere u telu funkcije pre poziva funkcija `setup`, `alter` i `verify`). Ključna reč `using` je deo upravljanja resursa nad objektima koji implementiraju `IDisposable` interfejs u programskom jeziku C#, sa ciljem da se automatski počisti objekat nakon što kontrola toka izađe iz opsega u kojem je vidljiv (nešto nalik na _try-with-resources_ šablon u programskom jeziku Java). Drugim rečima, automatski će se pozvati metod `IDisposable.Dispose()` nad kontekstom koji je definisan naredbom koja je kvalifikovana ključnom rečju `using` (interfejs `IDisposable` je implementiran u natklasi klase `SampleDbContext` koja dolazi iz EF radnog okvira).
+
+Testove onda možemo veoma jednostavno pisati:
+```cs
+[Test]
+public void SampleTest()
+{
+    this.DbProvider.SetupAlterAndVerify(
+        // setup
+        ctx => ctx.Students.Clear(),
+        
+        // alter
+        ctx => Service.PerformLogic(ctx.Students),
+
+        // verify
+        ctx => Assert.That(ctx.Students, Is.Not.Empty)
+    );
+}
+```
+
+Za poznavaoce asinhronog šablona zasnovanog na zadacima (engl. [Task-Based Asynchronous Pattern, skr. TAP](https://learn.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap)) u programskom jeziku C#, mogu od značaja biti i asinhrona varijanta metoda `SetupAlterAndVerify`:
+```cs
+public async Task SetupAlterAndVerifyAsync(
+    Func<SampleDbContext, Task>? setup,
+    Func<SampleDbContext, Task>? alter,
+    Func<SampleDbContext, Task>? verify)
+{
+    DatabaseConnection.Open();
+    try {
+        this.CreateDatabase();
+        this.SeedDatabase();
+
+        if (setup is not null) {
+            await using SampleDbContext context = this.CreateContext();
+            await setup(context);
+            await context.SaveChangesAsync();
+        }
+
+        if (alter is not null) {
+            await using SampleDbContext context = this.CreateContext();
+            await alter(context);
+            await context.SaveChangesAsync();
+        }
+
+        if (verify is not null) {
+            await using SampleDbContext context = this.CreateContext();
+            await verify(context);
+        }
+    } finally {
+        DatabaseConnection.Close();
+    }
+}
+```
+
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -717,4 +1023,19 @@ $ sdk install gradle <verzija>
 Na primer:
 ```sh
 $ sdk install gradle 7.5.1
+```
+### xUnit / NUnit
+
+`xUnit` i `NUnit` se jednostavno instaliraju sa NuGet repozitorijuma ([xUnit](https://www.nuget.org/packages/xUnit), [NUnit](https://www.nuget.org/packages/xUnit)) ili uz pomoć IDE-a, ili kroz komande:
+```sh
+$ dotnet add package xunit --version 2.4.2
+$ dotnet add package NUnit --version 3.13.3
+```
+## Alati/Biblioteke za Mock testiranje
+
+### Moq
+
+`Moq` se jednostavno instalira sa [NuGet repozitorijuma](https://www.nuget.org/packages/Moq) ili uz pomoć IDE-a, ili kroz komandu:
+```sh
+$ dotnet add package Moq --version 4.18.2
 ```

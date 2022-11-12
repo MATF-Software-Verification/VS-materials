@@ -88,8 +88,9 @@ pandoc MATERIALS.md \
     --include-in-header _pandoc/header.tex \
     --include-in-header _pandoc/inline_code.tex \
     --highlight-style _pandoc/pygments.theme \
+    -V colorlinks=true \
     --toc -V toc-title="Sadržaj" \
-    -V 'monofont:DejaVuSansMono.ttf' \
+    -V 'monofont:DejaVuSansMono' \
     # -V 'mainfont:DejaVuSerif.ttf' \
     # -V 'sansfont:DejaVuSans.ttf' \
     # -V 'mathfont:texgyredejavu-math.otf' \

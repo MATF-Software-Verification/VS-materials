@@ -4,19 +4,18 @@
 #include "mock_clock.h"
 using namespace std;
 
-
 int main()
 {
-    play_time game(make_shared<system_clock>());
+	play_time game(make_shared < system_clock > ());
 
-    game.start_session();
-    cout << "Let's play for a while!"<< endl;
+	game.start_session();
+	cout << "Let's play for a while!" << endl;
 
-    sleep(12);
+	sleep(12);
 
-    cout << "It's enough...for now..."<< endl;
-    game.stop_session();
+	cout << "It's enough...for now..." << endl;
+	game.stop_session();
 
-    cout << game.played_time()<<  endl;
-    return 0;
+	cout << game.played_time() << endl;
+	return 0;
 }

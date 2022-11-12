@@ -4,6 +4,10 @@
 \usepackage{enumitem}
 \usepackage{amsfonts}
 
+% new page for each section
+\usepackage{titlesec}
+\newcommand{\sectionbreak}{\clearpage}
+
 % level one
 \setlist[itemize,1]{label=$\bullet$}
 % level two
@@ -13,7 +17,6 @@
 
 
 \usepackage{hyperref}
-
 \hypersetup{
   pdftitle={Verifikacija softvera - vežbe},
   pdfauthor={Ivan Ristović},
