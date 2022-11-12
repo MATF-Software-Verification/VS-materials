@@ -1,6 +1,6 @@
 ---
 title: "Verifikacija softvera - Vežbe"
-author: [Ivan Ristović]
+author: [Ivan Ristović, Ana Vulović]
 date: "2022-10-10"
 keywords: [Software Verification]
 abstract: |
@@ -992,6 +992,264 @@ public async Task SetupAlterAndVerifyAsync(
 }
 ```
 
+# Profajliranje
+
+_Profajliranje_ je vrsta dinamičke analize programa (program se analizira tokom izvršavanja) koja se sprovodi kako bi se izmerila, npr. količina memorije koju program zauzima, vreme koje program provodi u određenim funkcijama, iskorišćenost keša itd. Programi koji vrše profajliranje se zovu _profajleri_. Na ovom kursu će biti reči o popularnim profajlerima, njihovim prednosima i manama, uz primere upotrebe.
+
+## Valgrind
+
+[Valgrind](https://valgrind.org/) je platforma za pravljenje alata za dinamičku analizu mašinskog koda, snimljenog ili kao objektni modul (nepovezan) ili kao izvršivi program (povezan). Postoje Valgrind alati koji mogu automatski da detektuju probleme sa memorijom i procesima. 
+
+Valgrind se može koristiti i kao alat za pravljenje novih alata. Valgrind distribucija, između ostalih, uključuje sledeće alate: detektor memorijskih grešaka (Memcheck), detektor grešaka u višenitnim programima (Hellgrind i DRD), optimizator keš memorije i skokova (Cachegrind), generator grafa skrivene memorije i predikcije skoka (Callgrind) i optimizator korišćenja dinamičke memorije (Massif).
+
+### Struktura i upotreba Valgrind alata
+
+Alat Valgrind se sastoji od alata za dinamičku analizu koda koji se kreira kao dodatak pisan u C programskom jeziku na jezgro Valgrinda. Jezgro Valgrinda omogućuje izvršavanje klijentskog programa, kao i snimanje izveštaja koji su nastali prilikom analize samog programa. Alati Valgrinda koriste metodu bojenja vrednosti. Oni svaki registar i memorijsku vrednost boje (zamenjuju) sa vrednošću koja govori nešto dodatno o originalnoj vrednosti. Proces rada svakog alata Valgrinda je u osnovi isti.
+
+Valgrind deli originalni kod u sekvence koje se nazivaju osnovni blokovi. Osnovni blok je pravolinijska sekvenca mašinskog koda, na čiji se početak skače, a koja se završava skokom, pozivom funkcije ili povratkom u funkciju pozivaoca. Svaki kod programa koji se analizira ponovo se prevodi na zahtev, pojedinačno po osnovnim blokovima, neposredno pre izvršavanja samog bloka. Veličina osnovnog bloka je ograničena na maksimalno šezdeset mašinskih instrukcija.
+
+Alat analizira dobijen kod i vrši translaciju - proces koji se sastoji od sledećih koraka:
+1. Disasembliranje (razgradnja) - prevodenje mašinskog koda u ekvivalentni interni skup instrukcija koje se nazivaju međukod instrukcije. U ovoj fazi međukod je predstavljen stablom. Ova faza je zavisna od arhitekture na kojoj se program izvršava.
+2. Optimizacija 1 - prva faza optimizacije linearizuje prethodno izgradeni međukod. Primenjuju se neke standardne optimizacije programskih prevodilaca kao što su uklanjanje redudantnog koda, eliminacija podizraza itd.
+3. Instrumentacija - Blok međukoda se prosleduje alatu, koji može proizvoljno da ga transformiše. Prilikom instrumentacije alat u zadati blok dodaje dodatne međukod operacije, kojima proverava ispravnost rada programa. Treba napomenuti da ubačene instrukcije ne narušavaju konzistentno izvršavanje originalnog koda.
+4. Optimizacija 2 - jednostavnija faza optimizacije od prve. Uključuje izračunavanje matematičkih izraza koji se mogu izvršiti pre faze izvršavanja i uklanjanje mrtvog koda.
+5. Izgradnja stabla - linearizovani međukod se konvertuje natrag u stablo radi lakšeg izbora instrukcija.
+6. Odabir instrukcija - Stablo međukoda se konvertuje u listu instrukcija koje koriste virtualne registre. Ova faza se takode razlikuje u zavisnosti od arhitetkure na kojoj se izvršava.
+7. Alokacija registara - zamena virtualnih registara stvarnim. Po potrebi se uvode prebacivanja u memoriju. Ne zavisi od platforme. Koristi se poziv funkcija koje pronalaze iz kojih se registara vrši čitanje i u koje se vrši upis.
+8. Asembliranje - kodiranje izabranih instrukcija na odgovarajući način i smeštaju u blok memorije. Ova faza se
+takode razlikuje u zavisnosti od arhitekture na koji se izršava. 
+
+Jezgro Valgrinda troši najviše vremena na sam proces pravljenja, pronalaženja i izvršavanja translacije (originalni kod se nikad ne izvršava). Treba napomenuti da sve ove korake osim instrumentacije izvršava jezgro Valgrinda dok samu instrumentaciju izvršava odredeni alat koji smo koristili za analizu izvornog koda. 
+
+Sve međukod instrukcije, originalne i dodate translacijom, prevode se u mašinske reči ciljne platforme i snimaju u prevedeni osnovni blok. Alat u originalni kod umeće operacije u svrhu instrumentalizacije, zatim se takav kod prevodi. 
+
+Prilikom analize programa alatom Valgrind izvršavanje programa traje 20-100 puta duže nego inače. Analiza prevedenog programa Valgrindom, vrši sledećom naredbom:
+```sh
+valgrind --tool=alat [argumenti alata] ./a.out [argumenti za a.out]
+```
+ili pokretanjem Valgrind memory analizer-a iz QtCreator-a za aktivan projekat.
+
+Ukoliko se ne zada vrednost argumenta `--tool` podrazumeva se `memcheck`.
+
+Prve tri linije izlazne poruke štampaju se prilikom pokretanja bilo kog alata koji je u sklopu Valgrinda. U nastavku se prikazuju poruke o greškama koje je alat pronašao u programu. Zatim sledi izlaz samog programa, praćen sumiranim izveštajem o greškama.
+
+Nekada informacija koja se dobije o grešci nije dovoljno detaljna da se u hiljadama linija koda nade pravo mesto. Da bismo u okviru poruke o grešci imali i informaciju o liniji koda u kojoj je detektovana potrebno je da program prevedemo sa debug simbolima (opcija `-g` za `gcc`). Da se ne bi dogodilo da se ne prijavljuje tačna linija u kojoj je detektovana greška preporučuje se da se isključe optimizacije (opcija `-O0` za `gcc`).
+### Memcheck
+
+Memcheck detektuje memorijske greške korisničkog programa. Kako ne vrši analizu izvornog koda već mašinskog, Memcheck ima mogućnost analize programa pisanom u bilo kom programskom jeziku. Za programe pisane u jezicima C i C++ detektuje sledeće probleme:
+- Korišćenje nedefinisanih vrednosti, vrednosti koje nisu inicijalizovane ili koje su izvedene od drugih nedefinisanih.
+vrednosti. Problem se detektuje tek kada su upotrebljene.
+- Čitanje ili pisanje u nedopuštenu memoriju na hipu, steku, bilo da je potkoračenje ili prekoračenje dozvoljene
+memorije ili pristupanje već oslobodenoj memoriji.
+- Neispravno oslobadanje memorije na hipu, npr. duplo oslobadanje memorije na hipu ili neupareno korišćenje funkcija `malloc/new/new[]` i `free/delete/delete[]`.
+- Poklapanje argumenata `src` i `dest` funkcije `memcpy` i njoj sličnim.
+- Prosledivanje loših vrednosti za veličinu memorijskog prostora funkcijama za alokaciju memorije, npr. negativnih.
+- Curenje memorije, npr. gubitak pokazivača na alociran prostor.
+
+#### Korišćenje nedefinisanih vrednosti
+
+Program `01_uninitialized.c` koristi nedefinisanu promenljivu `x`. Prevedimo kod i pokrenimo `memcheck`:
+```sh
+$ gcc -g -O0 -Wall 01_uninitialized.c -o 1
+$ valgrind ./1
+```
+
+Nedefinisana promenljiva može više puta da se kopira. Memcheck prati i beleži podatke o tome, ali ne prijavljuje grešku. U slučaju da se nedefinisane vrednosti koriste tako da od te vrednosti zavisi dalji tok programa ili ako je potrebno prikazati vrednosti nedefinisane promeljive, Memcheck prijavljuje grešku.
+
+```txt
+==11003== Memcheck, a memory error detector
+==11003== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==11003== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==11003== Command: ./1
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Use of uninitialised value of size 8
+==11003== at 0x48C332E: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48C3339: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DF48B: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEB5A: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+x = -16778112
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Use of uninitialised value of size 8
+==11003== at 0x48C332E: _itoa_word (_itoa.c:179)
+3
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48C3339: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DF48B: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEB5A: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+t = 0
+==11003==
+==11003== HEAP SUMMARY:
+==11003== in use at exit: 4 bytes in 1 blocks
+==11003== total heap usage: 2 allocs, 1 frees, 1,028 bytes allocated
+==11003==
+==11003== LEAK SUMMARY:
+==11003== definitely lost: 4 bytes in 1 blocks
+==11003== indirectly lost: 0 bytes in 0 blocks
+==11003== possibly lost: 0 bytes in 0 blocks
+==11003== still reachable: 0 bytes in 0 blocks
+==11003== suppressed: 0 bytes in 0 blocks
+==11003== Rerun with --leak-check=full to see details of leaked memory
+==11003==
+==11003== For counts of detected and suppressed errors, rerun with: -v
+==11003== Use --track-origins=yes to see where uninitialised values come from
+==11003== ERROR SUMMARY: 24 errors from 10 contexts (suppressed: 0 from 0)
+```
+
+Da bi nam bilo lakše da pronademo glavni izvor greške sa korišćenjem nedefinisanih promenljivih koristimo opciju `--track-origins=yes`.
+
+```sh
+$ valgrind --track-origins=yes ./1
+```
+
+Tada uz poruku o upotrebi neinicijalizovane promenljive dobijamo i informaciju o liniji u kojoj je deklarisana:
+```txt
+==18060== Conditional jump or move depends on uninitialised value(s)
+==18060== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==18060== by 0x48C98D7: printf (printf.c:33)
+==18060== by 0x109162: main (01_uninitialized.c:7)
+==18060== Uninitialised value was created by a stack allocation
+==18060== at 0x109145: main (01_uninitialized.c:5)
+==18060==
+==18060== Use of uninitialised value of size 8
+==18060== at 0x48C332E: _itoa_word (_itoa.c:179)
+==18060== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==18060== by 0x48C98D7: printf (printf.c:33)
+==18060== by 0x109162: main (01_uninitialized.c:7)
+==18060== Uninitialised value was created by a stack allocation
+==18060== at 0x109145: main (01_uninitialized.c:5)
+```
+
+Primetimo da nemamo grešku da je promenljiva `y` inicijalizovana neinicijalizovanom promenljivom `x`. Tada se samo obelezava da ni `y` nije inicijalizovana. Tek prilikom prve upotrebe promenljive `y` biće detektovana greška, čiji uzrok je neinicijalizovano `x`.
+#### Prosleđivanje sistemskim pozivima neinicijalizovane ili neadresirane vrednosti
+
+Memcheck prati sve parametre sistemskih poziva. Proverava svaki pojedinačno, bez obzira da li je inicijalizovan ili ne. Ukoliko sistemski poziv treba da čita iz prosledenog bafera, Memcheck proverava da li je ceo bafer adresiran i inicijalizovan. Ako sistemski poziv treba da piše u memoriju, proverava se da li je adresirana. Posle sistemskog poziva Memcheck ažurira svoje informacije o praćenju stanja memorije tako da one precizno opisuju promene koje su nastale izvršavanjem sistemskog poziva.
+
+Program `02_undefined.c` sadrži dva sistemska poziva sa neinicijalizovanim parametrima. Memcheck je detektovao prvu grešku u prosledivanju neinicijalizovanog parametra `arr` sistemskom pozivu `write()`. Druga je u tome što sistemski poziv `read()` dobija neadresiran prostor. Tre ća greška je u tome što se sistemskom pozivu `exit()` prosleduje nedefinisan argument. Prikazane su nam i linije u samom programu koje sadrže detektovane greške.
+
+```sh
+$ valgrind --track-origins=yes ./a.out
+```
+
+```txt
+==3422== Memcheck, a memory error detector
+==3422== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==3422== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==3422== Command: ./a.out
+==3422==
+==3422== Syscall param write(buf) points to uninitialised byte(s)
+==3422== at 0x4978024: write (write.c:26)
+==3422== by 0x10919E: main (02_undefined.c:9)
+==3422== Address 0x4a59040 is 0 bytes inside a block of size 10 alloc’d
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109176: main (02_undefined.c:6)
+==3422== Uninitialised value was created by a heap allocation
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109176: main (02_undefined.c:6)
+==3422==
+==3422== Syscall param read(buf) contains uninitialised byte(s)
+==3422== at 0x4977F81: read (read.c:26)
+==3422== by 0x1091B4: main (02_undefined.c:10)
+==3422== Uninitialised value was created by a stack allocation
+==3422== at 0x109165: main (02_undefined.c:5)
+==3422==
+==3422== Syscall param read(buf) points to unaddressable byte(s)
+==3422== at 0x4977F81: read (read.c:26)
+==3422== by 0x1091B4: main (02_undefined.c:10)
+==3422== Address 0x0 is not stack’d, malloc’d or (recently) free’d
+==3422==
+==3422== Syscall param exit_group(status) contains uninitialised byte(s)
+==3422== at 0x494C926: _Exit (_exit.c:31)
+==3422== by 0x48B23A9: __run_exit_handlers (exit.c:132)
+==3422== by 0x48B23D9: exit (exit.c:139)
+==3422== by 0x1091C1: main (02_undefined.c:11)
+==3422== Uninitialised value was created by a heap allocation
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109184: main (02_undefined.c:8)
+5
+==3422==
+==3422==
+==3422== HEAP SUMMARY:
+==3422== in use at exit: 14 bytes in 2 blocks
+==3422== total heap usage: 2 allocs, 0 frees, 14 bytes allocated
+==3422==
+==3422== LEAK SUMMARY:
+==3422== definitely lost: 0 bytes in 0 blocks
+==3422== indirectly lost: 0 bytes in 0 blocks
+==3422== possibly lost: 0 bytes in 0 blocks
+==3422== still reachable: 14 bytes in 2 blocks
+==3422== suppressed: 0 bytes in 0 blocks
+==3422== Rerun with --leak-check=full to see details of leaked memory
+==3422==
+==3422== For counts of detected and suppressed errors, rerun with: -v
+==3422== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)
+```
+
+Takođe, Memcheck prilikom izvršavanja beleži podatke o svim dinamički alociranim blokovima memorija. Po završetku programa, ima sve informacije o neoslobodenim memorijskim blokovima. Opcijom `--leak-check=yes` za svaki neosloboden blok se odreduje da li mu je moguće pristupiti preko pokazivača (still reachable) ili ne (definitely lost).
+
+Opcijama `--leak-check=full --show-leak-kinds=all` tražimo da nam se prikaže detaljan izveštaj o svakom definitivno ili potencijalno izgubljenom bloku, kao i o tome gde je alociran u delu sa izveštajem sa hipa - `HEAP SUMMARY`.
+
+```txt
+==3439== HEAP SUMMARY:
+==3439== in use at exit: 14 bytes in 2 blocks
+==3439== total heap usage: 2 allocs, 0 frees, 14 bytes allocated
+==3439==
+==3439== 4 bytes in 1 blocks are still reachable in loss record 1 of 2
+==3439== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3439== by 0x109184: main (02_undefined.c:8)
+==3439==
+==3439== 10 bytes in 1 blocks are still reachable in loss record 2 of 2
+==3439== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3439== by 0x109176: main (02_undefined.c:6)
+==3439==
+==3439== LEAK SUMMARY:
+==3439== definitely lost: 0 bytes in 0 blocks
+==3439== indirectly lost: 0 bytes in 0 blocks
+==3439== possibly lost: 0 bytes in 0 blocks
+==3439== still reachable: 14 bytes in 2 blocks
+==3439== suppressed: 0 bytes in 0 blocks
+```
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -1039,3 +1297,11 @@ $ dotnet add package NUnit --version 3.13.3
 ```sh
 $ dotnet add package Moq --version 4.18.2
 ```
+## Profajleri
+### Valgrind
+
+Valgrind se na većini Linux distribucija može instalirati kroz paket `valgrind`. Npr., za Ubuntu:
+```sh
+$ sudo apt-get install valgrind
+```
+

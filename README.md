@@ -1,6 +1,6 @@
 ---
 title: "Verifikacija softvera - Vežbe"
-author: [Ivan Ristović]
+author: [Ivan Ristović, Ana Vulović]
 date: "2022-10-10"
 keywords: [Software Verification]
 abstract: |

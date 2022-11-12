@@ -45,3 +45,11 @@ $ dotnet add package NUnit --version 3.13.3
 ```sh
 $ dotnet add package Moq --version 4.18.2
 ```
+## Profajleri
+### Valgrind
+
+Valgrind se na većini Linux distribucija može instalirati kroz paket `valgrind`. Npr., za Ubuntu:
+```sh
+$ sudo apt-get install valgrind
+```
+
