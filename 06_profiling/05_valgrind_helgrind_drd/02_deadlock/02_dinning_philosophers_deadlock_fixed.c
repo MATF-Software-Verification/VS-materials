@@ -11,8 +11,7 @@ static pthread_t phil[5];
 static struct {
 	pthread_mutex_t m;
 	char pad[120 - sizeof(pthread_mutex_t)];
-}
-chop[5];
+} chop[5];
 
 void *dine(void *arg)
 {

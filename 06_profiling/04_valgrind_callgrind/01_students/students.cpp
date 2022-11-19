@@ -15,15 +15,18 @@ class student {
  public:
 	student(string _name, string _surname)
 	:name(_name), surname(_surname) {
-	} void addGrade(string subject, int grade) {
+	}
+	void addGrade(string subject, int grade) {
 		grades[subject].push_back(grade);
 	}
 
 	const map < string, vector < int >>&getGrades() const {
 		return grades;
-	} const vector < int >&getSubjectGrades(const string & subject) const {
+	}
+	const vector < int >&getSubjectGrades(const string & subject) const {
 		return grades.find(subject)->second;
-	} double getGPA(const string & subject) const {
+	}
+	double getGPA(const string & subject) const {
 		int num = 0;
 		double gpa = 0.0;
 
@@ -49,16 +52,20 @@ class student {
 				gpa += got;
 				num++;
 			}
-		} return num > 0.0 ? gpa / num : 0.0;
+		}
+		return num > 0.0 ? gpa / num : 0.0;
 	}
 
 	const string getName() const {
 		return name;
-	} const string getSurname() const {
+	}
+	const string getSurname() const {
 		return surname;
-	} bool operator ==(const student & other) const {
+	}
+	bool operator ==(const student & other) const {
 		return (name == other.name) && (surname == other.surname);
- } private:
+	}
+ private:
 
 	 string name;
 	string surname;
@@ -69,8 +76,8 @@ void printClassNames(const vector < student > Class)
 {
 
 	for (unsigned i = 0; i < Class.size(); i++)
-		cout << Class[i].getName() << " " << Class[i].
-		    getSurname() << endl;
+		cout << Class[i].
+		    getName() << " " << Class[i].getSurname() << endl;
 }
 
 void printStudentGrades(vector < student > Class, const string name,
