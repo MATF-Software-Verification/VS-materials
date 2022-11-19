@@ -9,12 +9,12 @@ $ kcachegrind cachegrind.out.*
 
 Na ekranu vidimo izveštaj na nivou celog programa i vidimo da program ima preko 125 000 promašaja prilikom čitanja podataka sa D1 i LL nivoa keša.
 
-![cachegrind_1](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_1.png)
+![cachegrind_1](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_1.png)
 
 Istaknute su nam konkretne linije u kojima je bilo promašaja, zajedno sa brojem promašaja. Uočavamo da imamo
 po 125 000 promašaja obe petlje, i u main i u array sum funkciji.
 
-![cachegrind_2](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_2.png)
+![cachegrind_2](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_2.png)
 
 Cela matrica ima `1000 x 1000 x 8B = 8MB`. Veličina keša [^1], npr:
 ```txt
@@ -130,7 +130,7 @@ Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
 
 ili otvaranjem u KCachegrind -u.
 
-![cachegrind_3](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_3.png)
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_3.png)
 
 
 U programu `loops_slow` se elementima matrice ne pristupa po vrstama već po kolonama.
@@ -142,7 +142,7 @@ Prilikom učitavanja podataka u keš, učitavaju se zajedno podaci koji su blizu
 
 [^2]: Pretpostavljamo da je politika zamene linija keša takva da se najranije ubačene linije izbace prve.
 
-![cachegrind_3](05_profiling/03_valgrind_cachegrind/01_loops/images/cache2_1.png)
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache2_1.png)
 
 Ukoliko povećamo D1 keš na 64KB, imaćemo sličnu situaciju kao sa prethodnim programom sa ∼125000 promašaja prilikom pisanja na kešu D1.
 

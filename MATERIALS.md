@@ -29,6 +29,7 @@ abstract: |
         - Ručno pisanje imitator klasa (C++)
         - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
+    - Fuzz testiranje (libFuzzer)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)
@@ -994,6 +995,237 @@ public async Task SetupAlterAndVerifyAsync(
 }
 ```
 
+# "Fuzz" testiranje
+
+Jedna od tehnika pronalaženja grešaka u programu koja se pokaza vrlo
+efikasna je tehnika *fuzz testiranja* (eng. *fuzzing*). Prilikom takvog
+testiranja, programu se šalju neočekivani i loši ulazni podaci, u cilju
+otkrivanja ulaza koji izaziva greške. Da bi se kreirali fuzz testovi,
+standardni fuzzer alati će ili mutirati postojeće testove ili generisati
+testove na osnovu definisane gramatike ili skupa pravila. Još efikasniji
+način je fuzz testiranje vođeno pokrivenošću kôda (eng. *coverage guided
+fuzzing*). Prate se putanje prilikom izvršavanja da bi se generisali još
+efikasniji testovi u cilju postizanja maksimalne pokrivenosti kôda, tako
+da svaka grana u kôdu bude pokrivena. Tako rade postojeći alati za fuzz
+testiranje, kao što su American Fuzzy Lop (AFL), LLVM libFuzzer i
+HonggFuzz.
+
+U najjednostavnijim slučajevima potrebno je da izolujemo funkcionalnost
+koju bismo da testiramo i ispišemo par pratećih linija kôda i
+kompajliramo i pokremo fuzzer. Fuzzer će izvršiti hiljade ili desetine
+hiljada testova po sekundi i sačuvaće one intersantne koji povećavaju
+pokrivenosti ili izazivaju određeno ponašanje.
+
+Prvi korak u upotrebi *libFuzzer*-a na nekoj biblioteci koju bi trebalo
+testirati je kreiranje funkcije koja se u literaturi zove *fuzz target*.
+Ta funkcija prihvata niz bajtova i na njih primenjuje neko funkcije iz
+biblioteke koju testiramo.
+
+```cpp
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    DoSomethingInterestingWithMyAPI(Data, Size);
+    return 0;  // Non-zero return values are reserved for future use.
+}
+```
+
+Ova funkcija ne zavisi ni u kojoj meri od *libFuzzer*-a, pa ju je moguće
+i poželjno koristiti i sa drugim alatima za fuzz testiranje npr. AFL i/ili Radamsa.
+
+Važne činjenice o fuzz funkciji (fuzz taget):
+
+-   Alat za fuzz testiranje će izvršiti ovu funkciju mnogo puta sa
+    različitim ulazima u okviru istog procesa.
+
+-   Mora tolerisati sve vrste ulaznih podataka (prazne, velike, loše
+    formatirane, itd.)
+
+-   Ni za jedan ulaz se ne sme pozivati `exit()`.
+
+-   Može koristiti niti, ali idealno bi bilo da sve niti budu spojene na
+    kraju funkcije.
+
+-   Mora biti deterministička, koliko god je moguće. Nedeterminizam, kao
+    što su nasumične odluke nezavisne od ulaznih bajtova, učiniće fuzz
+    testiranje neefikasnim.
+
+-   Mora biti brza. Pokušajte zaobići kubne i veće složenosti, logovanje
+    ili preveliko trošenje memorije.
+
+-   Idealno bi bilo da ne modifikuje nijedno globalno stanje (iako to
+    nije strogo neophodno).
+
+-   Obično je što uža funkcija to bolja, u smislu, ako funkcija može da
+    parsira više formata ulaza, treba je izdeliti na nekoliko fuzz
+    funkcija, po jedna po formatu.
+
+*LibFuzzer* koristi sanitajzer za pokrivenost kôda kojim se
+instumentalizuje kôd da bi fuzzer mogao da dobija informacije o
+pokriventosti koje navode dalje fuzz testiranje. Može se podešavati
+opcijom `-fsanitize-coverage` *clang* kompajlera.
+
+Trebalo bi uključiti još neki od sanitajzera, koji mogu pomoći u
+otkrivanju grešaka prilikom izvršavanja programa:
+
+- **AddressSanitizer (ASAN)** detektuje grešeke sa memorijom, uključuje se opcijom `-fsanitize=address`.
+
+- **UndefinedBehaviorSanitizer (UBSAN)** detektuje upotrebu različitih mogućnosti C/C++ koje su eksplicitno izdvojene jer uzrokuju nedefinisano ponašanje. Uključiti opcijom `-fsanitize=undefined` `-fno-sanitize-recover=undefined` ili nekom drugom *UBSAN* proverom, npr. `-fsanitize=signed-integer-overflow` `-fno-sanitize-recover=undefined`. Može se kombinovati sa *ASAN* u istom prevođenju.
+
+- **MemorySanitizer (MSAN)** detektuje upotrebu neinicijalizovanih vrednosti, kôd čije ponašanje zavisi od sadržaja neinicijalizovane memorijske lokacije. Uključuje se opcijom `-fsanitize=memory`. *MSAN* se ne sme kombinovati sa drugim sanitajzerima i treba ga koristiti u zasebnom prevođenju.
+
+## Korpus
+
+Fuzzeri, kao *libFuzzer*, koji koriste pokrivenost kôda za generisanje
+testova, oslanjaju se na korpus prethodno datih testova za test koji se
+testira. Korpus treba da bude idealno odemerena kolekcija validnih i
+nevalidnih ulaznih podataka. Fuzzer generiše nasumičnim mutacijama nove
+testove od datih iz trenutnog korpusa. Ako mutacija aktivira izvršavanje
+prethodno nepokrivene putanje u kôdu koji se testira, tada se mutacija
+čuva kao nov test u korpus i služi za buduće varijacije.
+
+*LibFuzzer* može da radi bez inicijalnog test primera, ali će biti manje
+efikasan ako bibilioteka koja se testira prihvata kompleksne i
+struktuirane ulaze. Korpus može da posluži i za proveru, da li svi
+ranije pronađeni testovi i dalje rade bez problema kada se propuste kroz
+kôd.
+
+Ako imamo veliki korpus, bilo da je dobijen faz testiranje ili
+drugačije, ukoliko želimo da ga smanjimo tako da zadržimo pokrivenost,
+to možemo uraditi upotrebom opcije `-merge=1`.
+```sh
+$ mkdir NEW_CORPUS_DIR  # Store minimized corpus here.
+$ ./my_fuzzer -merge=1 NEW_CORPUS_DIR FULL_CORPUS_DIR
+```
+
+Ista opcija se može koristiti da se doda još testova u postojeći korpus.
+Samo oni testovi koji povećavaju pokrivenost će biti dodati u prvi
+navedeni korpus.
+
+```sh
+$ ./my_fuzzer -merge=1 CURRENT_CORPUS_DIR NEW_POTENTIALLY_INTERESTING_INPUTS_DIR
+```
+
+Da bi se pokrenuo fuzzer sa korpusom testova, prvo treba kreirati
+direktorijum sa inicijalnim test primerima i potom ga pokrenuti:
+```sh
+$ mkdir CORPUS_DIR
+$ cp /some/input/samples/* CORPUS_DIR
+$ ./my_fuzzer CORPUS_DIR  # -max_len=1000 -jobs=20 ...
+```
+Novi testovi biće dodavani u direktorijum korpusa.
+
+Podrazumevano ponašanje je da fazer nastavlja da radi beskonačno ili bar
+dok greška nije pronađena. Svaki pad ili greška koju detektuje
+sanitajzer biće prijavljeni, fazer zaustavljen i test primer koji je
+prouzrokovao grešku biće sačuvan u datoteku (obično, `crash-<sha1>`,
+`leak-<sha1>` ili `timeout-<sha1>`).
+
+## Primer rada libFuzzer-a
+
+Primer `fuzz_me.cpp` prevodimo korišćenjem *clang*-a:
+```sh
+$ clang++  -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
+```
+
+Kreiramo direktorijum u koji će nam se čuvati generisani testovi.
+```txt
+$ mkdir testovi
+```
+
+i pokrećemo program:
+```
+./fuzz_me testovi/
+```
+
+Testovi se generišu variranjem postojećih iz direktorijuma testovi
+ukoliko ih ima. Novi testovi se dodaju u korpus samo ukoliko povećavaju
+pokrivenost kôda nakon svih već ranije generisanih testova. Ukoliko
+želimo da nam se generišu testovi samo od ASCII karaktera prilikom
+pozivanja programa treba proslediti i opciju `-only_ascii=1`, 0 je
+podrazumevana.
+
+```sh
+$ ./fuzz_me -only_ascii=1 testovi/
+```
+
+Testovi se generišu u direktrijum, nama se prikazuje na ekran sledeći
+izlaz:
+```txt
+INFO: Seed: 2050712183
+INFO: Loaded 1 modules (7 guards): [0x77be60, 0x77be7c),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#0      READ units: 1
+#2      INITED cov: 3 ft: 3 corp: 1/1b exec/s: 0 rss: 30Mb
+#5      NEW    cov: 4 ft: 4 corp: 2/4b exec/s: 0 rss: 31Mb L: 3 MS: 3 CopyPart-ChangeBit-InsertByte-
+#1114   NEW    cov: 5 ft: 5 corp: 3/122b exec/s: 0 rss: 33Mb L: 118 MS: 2 ShuffleBytes-InsertRepeatedBytes-
+#176228 NEW    cov: 6 ft: 6 corp: 4/242b exec/s: 0 rss: 235Mb L: 120 MS: 1 CMP- DE: "U\x00"-
+#555573 NEW    cov: 7 ft: 7 corp: 5/366b exec/s: 555573 rss: 401Mb L: 124 MS: 1 CMP- DE: "Z\x00\x00\x00"-
+#1048576        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 524288 rss: 409Mb
+#2097152        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 419430 rss: 409Mb
+=================================================================
+==26069==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000023bb3 at pc 0x000000539e73 bp 0x7fff6c301bc0 sp 0x7fff6c301bb8
+READ of size 1 at 0x602000023bb3 thread T0
+.....
+==26069==ABORTING
+MS: 2 ChangeBinInt-CrossOver-; base unit: 1162a64ba4eb59dab49cfb3a8bb87abe708c3bb1
+0x46,0x55,0x5a,
+FUZ
+artifact_prefix='./'; Test unit written to ./crash-0eb8e4ed029b774d80f2b66408203801cb982a60
+Base64: RlVa
+```
+
+Opcijom `-max-len=N` možemo postaviti maksimalnu dužinu ulaza na neku
+drugu veličinu. Poruku
+`INFO: A corpus is not provided, starting from an empty corpus` označava
+da smo počeli sa praznim korpusom, kao što i jesmo. `READ` prati broj
+pročitanih testova iz korpusa, svaki novo dodati test je obelezen sa
+`NEW`. Broj na početku linije predstavlja redni broj generisanog testa.
+Ako je `NEW` u nastavku onda je i dodat u korpus, ako stoji `pulse`,
+tada je taj red ispisan samo zbog programera da bude obavešten da fuzzer
+i dalje radi. Vidimo da je fuzzer generisao 2097152 testova pre nego što
+je naišao na greku koja mu je prekinula rad. Dogodilo se prekoračenje
+memorije na hipu i generisan nam je izveštaj o prekidu rada
+`./crash-0eb8e4ed029b774d80f2b66408203801cb982a60` sa sve ulazom koji je
+grešku izazvao `FUZ`.
+
+Pojašnjenje kôdova događaja i prateće statistike:
+- `READ` - Fuzzer je pročitao sve od datih testova iz direktorijuma sa
+    korpusima.
+
+- `INITED` - Fuzzer je završio inicijalizaciju, što uključuje izvršavanje svakog inicijalnog testa kroz kôd koji se testira.
+
+- `NEW` - Fuzzer je kreirao nov test koji pokriva do sad ne pokrivene delove kôda koji se testira. Ovaj test će biti sačuvan u direktorijumu glavnog korpusa.
+
+- `REDUCE` - Fuzzer je pronašao bolji (kraći) test koji izaziva prethodno otkriveno ponašanje. Može se isključiti opcijom `-reduce_inputs=0`.
+
+- `pulse` - Fuzzer je generisao `2n` testotva. Poruka se generiše periodično da bi se korisnik uverio da fuzzer i dalje radi.
+
+- `DONE` - Fuzzer je završio sa radom jer je došao da limita broja iteracija (zadaje se opcijom `-runs`) ili vremenskog limita (zadaje se opcijom `-max_total_time`).
+
+- `RELOAD` - Fuzzer periodično ponovno učitava testove iz direktorijuma sa korpusom. Ovo omogućava fuzzeru da uzme u obzir testove koji su
+otkriveni drugim procesima fuzzera, prilikom paralelnog fuzz testiranja.
+
+Svaka izlazna linija sadrži i izveštaj sa sledećim statistikama, kada
+nisu 0:
+
+- `cov:` Ukupan broj blokova kôda ili ivica pokrivenih izvršavanjem trenutnog korpusa.
+
+- `ft:` *libFuzzer* koristi različite signale da proceni pokrivenost kôda: pokrivenost ivica, brojače ivica, profajleri vrednosti, indirektne parove pozivaoc/pozvani, itd. Ovi signali su kombinovani i obeleženi sa `(ft:)`.
+
+- `corp:` Broj testova u trenutnom korpusu u memoriji i njegova veličina u B.
+
+- `lim:` Trenutni limit u dužini novih ulaznih podataka u korpusu. Povećava se tokom vremena, dok ne dostigne maksimalnu dužinu. Ona se može zadati opcijom `-max_len`.
+
+- `exec/s:` Broj iteracija fuzzera u sekundi.
+
+- `rss:` Trenutno iskorišćeno memorije.
+
+Za nove (NEW) događaje, izlazna linija sadrži i informacije:
+
+- `L:` Veličina novog testa u bajtovima.
+
+- `MS: <n> <ops>` Broj i lista operacija mutacija koje su korišćene da bi se generisao nov ulaz.
+
 # Profajliranje
 
 _Profajliranje_ je vrsta dinamičke analize programa (program se analizira tokom izvršavanja) koja se sprovodi kako bi se izmerila, npr. količina memorije koju program zauzima, vreme koje program provodi u određenim funkcijama, iskorišćenost keša itd. Programi koji vrše profajliranje se zovu _profajleri_. Na ovom kursu će biti reči o popularnim profajlerima, njihovim prednosima i manama, uz primere upotrebe.
@@ -1455,12 +1687,12 @@ $ kcachegrind cachegrind.out.*
 
 Na ekranu vidimo izveštaj na nivou celog programa i vidimo da program ima preko 125 000 promašaja prilikom čitanja podataka sa D1 i LL nivoa keša.
 
-![cachegrind_1](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_1.png)
+![cachegrind_1](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_1.png)
 
 Istaknute su nam konkretne linije u kojima je bilo promašaja, zajedno sa brojem promašaja. Uočavamo da imamo
 po 125 000 promašaja obe petlje, i u main i u array sum funkciji.
 
-![cachegrind_2](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_2.png)
+![cachegrind_2](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_2.png)
 
 Cela matrica ima `1000 x 1000 x 8B = 8MB`. Veličina keša [^1], npr:
 ```txt
@@ -1576,7 +1808,7 @@ Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
 
 ili otvaranjem u KCachegrind -u.
 
-![cachegrind_3](05_profiling/03_valgrind_cachegrind/01_loops/images/cache1_3.png)
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_3.png)
 
 
 U programu `loops_slow` se elementima matrice ne pristupa po vrstama već po kolonama.
@@ -1588,7 +1820,7 @@ Prilikom učitavanja podataka u keš, učitavaju se zajedno podaci koji su blizu
 
 [^2]: Pretpostavljamo da je politika zamene linija keša takva da se najranije ubačene linije izbace prve.
 
-![cachegrind_3](05_profiling/03_valgrind_cachegrind/01_loops/images/cache2_1.png)
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache2_1.png)
 
 Ukoliko povećamo D1 keš na 64KB, imaćemo sličnu situaciju kao sa prethodnim programom sa ∼125000 promašaja prilikom pisanja na kešu D1.
 
@@ -1666,7 +1898,7 @@ $ valgrind --tool=callgrind --cache-sim=yes ./students.out
 
 Otvaramo izveštaj u KCachgrind-u. Gledamo sa leve strane broj pozivanja svake funkcije i broj instrukcija koji je zahtevalo njeno izvršavanje, samostalno i uključujući izvršavanja drugih funkcija koje je pozivala. Sa desne strane moˇzemo izabrati prikaz mape poziva i sa izborom _All Callers_, videćemo koje su sve funkcije pozivale funkciju od interesa.
 
-![callgrind_1](05_profiling/04_valgrind_callgrind/01_students/images/call1_1.png)
+![callgrind_1](06_profiling/04_valgrind_callgrind/01_students/images/call1_1.png)
 
 Nas zanima zašto se funkcija iz standardne biblioteke toliko puta poziva, 2020 puta. Ako iz alata pogledamo izvorni kod videćemo da se u pri samom početku funkcije `printClass` konstruktor kopije za `std::vector` poziva 10 puta. To je baš broj koliko puta generišemo izveštaj i broj poziva ove funkcije. Problem je što se ceo vektor studenata u funkciju prenosi po vrednosti, a ne po referenci i prilikom svakog poziva vrši se kreiranje kopije za konkretan poziv. Izmenimo kod i primetno ćemo ubrzati izvršavanje programa.
 #### Primer: Prosti brojevi

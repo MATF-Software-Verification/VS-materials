@@ -27,6 +27,7 @@ abstract: |
         - Ručno pisanje imitator klasa (C++)
         - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
+    - Fuzz testiranje (libFuzzer)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)
