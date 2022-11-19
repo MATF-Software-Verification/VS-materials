@@ -5,7 +5,7 @@ Memcheck prati sve parametre sistemskih poziva. Proverava svaki pojedinačno, be
 Program `02_undefined.c` sadrži dva sistemska poziva sa neinicijalizovanim parametrima. Memcheck je detektovao prvu grešku u prosledivanju neinicijalizovanog parametra `arr` sistemskom pozivu `write()`. Druga je u tome što sistemski poziv `read()` dobija neadresiran prostor. Tre ća greška je u tome što se sistemskom pozivu `exit()` prosleduje nedefinisan argument. Prikazane su nam i linije u samom programu koje sadrže detektovane greške.
 
 ```sh
-$ valgrind --track-origins=yes ./a.out
+$ valgrind --track-origins=yes ./02_undefined.out
 ```
 
 ```txt

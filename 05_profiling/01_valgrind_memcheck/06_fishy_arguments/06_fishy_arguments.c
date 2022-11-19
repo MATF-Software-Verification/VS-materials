@@ -10,6 +10,7 @@ int main(void)
 	int allocated = 1;
 	int memory = 0;
 
+	printf("Enter n: ");
 	scanf("%d", &n);
 
 	for (i = 0; i < n; i++) {
