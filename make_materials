@@ -1,14 +1,5 @@
 #!/bin/bash
 
-function indent_file ()
-{
-    indent \
-        -nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 \
-        -cli0 -d0 -di1 -nfc1 -i8 -ip0 -l80 -lp -npcs -nprs -npsl -sai \
-        -saf -saw -ncs -nsc -sob -nfca -cp33 -ss -ts8 -il1 \
-        $@
-}
-
 function ensure_md_trailing_newline ()
 {
     # Ensure every md file has 2 trailing newlines
@@ -27,8 +18,8 @@ function indent_c_cpp_files_recursively ()
     # Indent C files and remove temp files
     for f in $(fd -e c -e cpp -e h -e hpp); do
         echo "indenting: $f"
-        indent_file $f
-        rm "$f~"
+        clang-format --style="{BasedOnStyle: llvm, IndentWidth: 4}" -i $f
+        rm -f "$f~"
     done
 }
 
@@ -43,11 +34,10 @@ touch $materials $installing
 
 materials_path=$(realpath "$materials")
 installing_path=$(realpath "$installing")
-beautify_script="$(pwd)/beautify_materials"
 
 function collect_materials ()
 {
-    if [ ! -f .mignore ]; then
+    if [ ! -f .mignore ] && [ ! -f .mroot ]; then
         ensure_md_trailing_newline
     fi
 

@@ -1,26 +1,25 @@
 #include "calculator.h"
 
-int main()
-{
-	float x, y, result;
-	int choice;
+int main() {
+    float x, y, result;
+    int choice;
 
-	showChoices(cout);
-	while (!readChoice(cin, &choice))
-		cerr << "Invalid choice" << endl;
+    showChoices(cout);
+    while (!readChoice(cin, &choice))
+        cerr << "Invalid choice" << endl;
 
-	while (choice != 5) {
-		cout << "Enter two numbers: ";
-		readOperands(cin, &x, &y);
+    while (choice != 5) {
+        cout << "Enter two numbers: ";
+        readOperands(cin, &x, &y);
 
-		calculate(choice, x, y, &result);
-		printResults(cout, choice, result);
+        calculate(choice, x, y, &result);
+        printResults(cout, choice, result);
 
-		showChoices(cout);
-		while (!readChoice(cin, &choice))
-			cerr << "Invalid choice" << endl;
-	}
-	return 0;
+        showChoices(cout);
+        while (!readChoice(cin, &choice))
+            cerr << "Invalid choice" << endl;
+    }
+    return 0;
 }
 
 //    do

@@ -1,12 +1,11 @@
-#include <string>
 #include <cstdlib>
+#include <string>
 
 using namespace std;
 
-int main()
-{
-	string *s = new string[5];
+int main() {
+    string *s = new string[5];
 
-	free(s);
-	return 0;
+    free(s);
+    return 0;
 }

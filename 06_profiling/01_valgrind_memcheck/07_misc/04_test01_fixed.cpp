@@ -22,29 +22,29 @@ int main()
 //
 //  Licensing:
 //
-//    This code is distributed under the GNU LGPL license. 
+//    This code is distributed under the GNU LGPL license.
 //
 //  Modified:
 //
 //    18 May 2011
 //
 {
-	int n = 10;
+    int n = 10;
 
-	cout << "\n";
-	cout << "TEST01\n";
-	cout << "  C++ version.\n";
-	cout << "  A sample code for analysis by VALGRIND.\n";
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  C++ version.\n";
+    cout << "  A sample code for analysis by VALGRIND.\n";
 
-	f(n);
-//
-//  Terminate.
-//
-	cout << "\n";
-	cout << "TEST01\n";
-	cout << "  Normal end of execution.\n";
+    f(n);
+    //
+    //  Terminate.
+    //
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  Normal end of execution.\n";
 
-	return 0;
+    return 0;
 }
 
 //****************************************************************************80
@@ -63,30 +63,30 @@ void f(int n)
 //
 //  Licensing:
 //
-//    This code is distributed under the GNU LGPL license. 
+//    This code is distributed under the GNU LGPL license.
 //
 //  Modified:
 //
 //    18 May 2011
 //
 {
-	int i;
-	int *x;
+    int i;
+    int *x;
 
-	x = (int *)malloc(n * sizeof(int));
+    x = (int *)malloc(n * sizeof(int));
 
-	x[0] = 1;
-	cout << "  " << 0 << "  " << x[0] << "\n";
+    x[0] = 1;
+    cout << "  " << 0 << "  " << x[0] << "\n";
 
-	x[1] = 1;
-	cout << "  " << 1 << "  " << x[1] << "\n";
+    x[1] = 1;
+    cout << "  " << 1 << "  " << x[1] << "\n";
 
-	for (i = 2; i < n; i++) {
-		x[i] = x[i - 1] + x[i - 2];
-		cout << "  " << i << "  " << x[i] << "\n";
-	}
+    for (i = 2; i < n; i++) {
+        x[i] = x[i - 1] + x[i - 2];
+        cout << "  " << i << "  " << x[i] << "\n";
+    }
 
-	free(x);
+    free(x);
 
-	return;
+    return;
 }

@@ -13,14 +13,9 @@ public class SampleDbTests
     public void SampleTest()
     {
         this.DbProvider.SetupAlterAndVerify(
-            // setup
-            ctx => ctx.Students.Clear(),
-            
-            // alter
-            ctx => Service.PerformLogic(ctx.Students),
-
-            // verify
-            ctx => Assert.That(ctx.Students, Is.Not.Empty)
+            setup:  ctx => ctx.Students.Clear(),
+            alter:  ctx => Service.PerformLogic(ctx.Students),
+            verify: ctx => Assert.That(ctx.Students, Is.Not.Empty)
         );
     }
 }
