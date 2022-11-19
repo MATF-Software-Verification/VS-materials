@@ -21,8 +21,7 @@ int main()
 		}
 	}
 
-	std::
-	    cout << "There are " << primeCount << " prime numbers < 100000" <<
+	std::cout << "There are " << primeCount << " prime numbers < 100000" <<
 	    std::endl;
 
 	return 0;

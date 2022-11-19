@@ -47,6 +47,10 @@ beautify_script="$(pwd)/beautify_materials"
 
 function collect_materials ()
 {
+    if [ ! -f .mignore ]; then
+        ensure_md_trailing_newline
+    fi
+
     if [ -f $readme ]; then
         echo "including: $(realpath $readme)"
         cat $readme >> $materials_path
@@ -59,7 +63,6 @@ function collect_materials ()
     fi
 
     if [ ! -f .mignore ]; then
-        ensure_md_trailing_newline
         for d in *; do
             if [ -d $d ]; then
                 echo "scanning $d..."

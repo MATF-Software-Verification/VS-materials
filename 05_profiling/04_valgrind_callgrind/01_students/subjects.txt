@@ -1,0 +1,41 @@
+Programiranje 1
+Uvod u organizaciju i arhitekturu računara 1
+Diskretne strukture 1
+Linearna algebra i analitička geometrija
+Izborni predmet O1
+Programiranje 2
+Uvod u organizaciju i arhitekturu računara 2
+Diskretne strukture 2
+Analiza 1
+Izborni predmet O2
+Algoritmi i strukture podataka
+Uvod u veb i internet tehnologije
+Operativni sistemi
+Geometrija
+Analiza 2
+Konstrukcija i analiza algoritama
+Objektno orijentisano programiranje
+Analiza 3
+Algebra 1
+Izborni predmet O3
+Relacione baze podataka
+Prevođenje programskih jezika
+Računarska grafika
+Verovatnoća
+Uvod u numeričku matematiku
+Veštačka inteligencija
+Istraživanje podataka 1
+Programske paradigme
+Izborni predmet R1
+Statistika
+Računarske mreže
+Razvoj softvera
+Izborni predmet R2
+Izborni predmet R3
+Izborni predmet M1
+Projektovanje baza podataka
+Izborni predmet R5
+Izborni predmet K
+Izborni predmet R4
+Metodologija stručnog i naučnog rada
+Izborni predmet M2

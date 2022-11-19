@@ -40,3 +40,8 @@ Ukoliko želimo da vidimo izveštaj o broju promašaja po linijama koda, potrebn
 
 Daleko preglednije je gledati izveštaj pomoću alata KCachgrind.
 
+Cachegrind nam može otkriti gde imamo usko grlo u programu, ali nam ne može reći kako da ga popravimo. Potrebno je napomenuti da su rezultati vrlo osetljivi. Promena veličine izvršnog program ili neke od deljenih biblioteka koje koristi, pa čak i promena dužine imena datoteka, može izmeniti rezultate. Varijacije će biti male, ali svakako ne treba očekivati potpuno ponovljive rezultate ako se program promeni.
+
+Na novijim GNU/Linux distribucijama se prilikom ponovnih pokretanja istog programa deljene biblioteke se učitavaju na različite lokacije, iz bezbednosnih razloga. To takode može uticati na varijacije u rezultatima različitog profajliranja istog programa.
+
+Dakle, ne treba se uzdati da su podaci veoma precizni, ali su svakako korisni.
