@@ -1,6 +1,6 @@
 ---
 title: "Verifikacija softvera - Vežbe"
-author: [Ivan Ristović]
+author: [Ivan Ristović, Ana Vulović]
 date: "2022-10-10"
 keywords: [Software Verification]
 abstract: |
@@ -27,6 +27,7 @@ abstract: |
         - Ručno pisanje imitator klasa (C++)
         - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
+    - Fuzz testiranje (libFuzzer)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)

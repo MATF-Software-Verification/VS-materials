@@ -1,6 +1,8 @@
+
+
 ---
 title: "Verifikacija softvera - Vežbe"
-author: [Ivan Ristović]
+author: [Ivan Ristović, Ana Vulović]
 date: "2022-10-10"
 keywords: [Software Verification]
 abstract: |
@@ -27,6 +29,7 @@ abstract: |
         - Ručno pisanje imitator klasa (C++)
         - Imitatori baza podataka (C#)
         - [`Moq`](https://github.com/moq) (C#)
+    - Fuzz testiranje (libFuzzer)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)
@@ -992,6 +995,1485 @@ public async Task SetupAlterAndVerifyAsync(
 }
 ```
 
+# "Fuzz" testiranje
+
+Jedna od tehnika pronalaženja grešaka u programu koja se pokaza vrlo
+efikasna je tehnika *fuzz testiranja* (eng. *fuzzing*). Prilikom takvog
+testiranja, programu se šalju neočekivani i loši ulazni podaci, u cilju
+otkrivanja ulaza koji izaziva greške. Da bi se kreirali fuzz testovi,
+standardni fuzzer alati će ili mutirati postojeće testove ili generisati
+testove na osnovu definisane gramatike ili skupa pravila. Još efikasniji
+način je fuzz testiranje vođeno pokrivenošću kôda (eng. *coverage guided
+fuzzing*). Prate se putanje prilikom izvršavanja da bi se generisali još
+efikasniji testovi u cilju postizanja maksimalne pokrivenosti kôda, tako
+da svaka grana u kôdu bude pokrivena. Tako rade postojeći alati za fuzz
+testiranje, kao što su American Fuzzy Lop (AFL), LLVM libFuzzer i
+HonggFuzz.
+
+U najjednostavnijim slučajevima potrebno je da izolujemo funkcionalnost
+koju bismo da testiramo i ispišemo par pratećih linija kôda i
+kompajliramo i pokremo fuzzer. Fuzzer će izvršiti hiljade ili desetine
+hiljada testova po sekundi i sačuvaće one intersantne koji povećavaju
+pokrivenosti ili izazivaju određeno ponašanje.
+
+Prvi korak u upotrebi *libFuzzer*-a na nekoj biblioteci koju bi trebalo
+testirati je kreiranje funkcije koja se u literaturi zove *fuzz target*.
+Ta funkcija prihvata niz bajtova i na njih primenjuje neko funkcije iz
+biblioteke koju testiramo.
+
+```cpp
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    DoSomethingInterestingWithMyAPI(Data, Size);
+    return 0;  // Non-zero return values are reserved for future use.
+}
+```
+
+Ova funkcija ne zavisi ni u kojoj meri od *libFuzzer*-a, pa ju je moguće
+i poželjno koristiti i sa drugim alatima za fuzz testiranje npr. AFL i/ili Radamsa.
+
+Važne činjenice o fuzz funkciji (fuzz taget):
+
+-   Alat za fuzz testiranje će izvršiti ovu funkciju mnogo puta sa
+    različitim ulazima u okviru istog procesa.
+
+-   Mora tolerisati sve vrste ulaznih podataka (prazne, velike, loše
+    formatirane, itd.)
+
+-   Ni za jedan ulaz se ne sme pozivati `exit()`.
+
+-   Može koristiti niti, ali idealno bi bilo da sve niti budu spojene na
+    kraju funkcije.
+
+-   Mora biti deterministička, koliko god je moguće. Nedeterminizam, kao
+    što su nasumične odluke nezavisne od ulaznih bajtova, učiniće fuzz
+    testiranje neefikasnim.
+
+-   Mora biti brza. Pokušajte zaobići kubne i veće složenosti, logovanje
+    ili preveliko trošenje memorije.
+
+-   Idealno bi bilo da ne modifikuje nijedno globalno stanje (iako to
+    nije strogo neophodno).
+
+-   Obično je što uža funkcija to bolja, u smislu, ako funkcija može da
+    parsira više formata ulaza, treba je izdeliti na nekoliko fuzz
+    funkcija, po jedna po formatu.
+
+*LibFuzzer* koristi sanitajzer za pokrivenost kôda kojim se
+instumentalizuje kôd da bi fuzzer mogao da dobija informacije o
+pokriventosti koje navode dalje fuzz testiranje. Može se podešavati
+opcijom `-fsanitize-coverage` *clang* kompajlera.
+
+Trebalo bi uključiti još neki od sanitajzera, koji mogu pomoći u
+otkrivanju grešaka prilikom izvršavanja programa:
+
+- **AddressSanitizer (ASAN)** detektuje grešeke sa memorijom, uključuje se opcijom `-fsanitize=address`.
+
+- **UndefinedBehaviorSanitizer (UBSAN)** detektuje upotrebu različitih mogućnosti C/C++ koje su eksplicitno izdvojene jer uzrokuju nedefinisano ponašanje. Uključiti opcijom `-fsanitize=undefined` `-fno-sanitize-recover=undefined` ili nekom drugom *UBSAN* proverom, npr. `-fsanitize=signed-integer-overflow` `-fno-sanitize-recover=undefined`. Može se kombinovati sa *ASAN* u istom prevođenju.
+
+- **MemorySanitizer (MSAN)** detektuje upotrebu neinicijalizovanih vrednosti, kôd čije ponašanje zavisi od sadržaja neinicijalizovane memorijske lokacije. Uključuje se opcijom `-fsanitize=memory`. *MSAN* se ne sme kombinovati sa drugim sanitajzerima i treba ga koristiti u zasebnom prevođenju.
+
+## Korpus
+
+Fuzzeri, kao *libFuzzer*, koji koriste pokrivenost kôda za generisanje
+testova, oslanjaju se na korpus prethodno datih testova za test koji se
+testira. Korpus treba da bude idealno odemerena kolekcija validnih i
+nevalidnih ulaznih podataka. Fuzzer generiše nasumičnim mutacijama nove
+testove od datih iz trenutnog korpusa. Ako mutacija aktivira izvršavanje
+prethodno nepokrivene putanje u kôdu koji se testira, tada se mutacija
+čuva kao nov test u korpus i služi za buduće varijacije.
+
+*LibFuzzer* može da radi bez inicijalnog test primera, ali će biti manje
+efikasan ako bibilioteka koja se testira prihvata kompleksne i
+struktuirane ulaze. Korpus može da posluži i za proveru, da li svi
+ranije pronađeni testovi i dalje rade bez problema kada se propuste kroz
+kôd.
+
+Ako imamo veliki korpus, bilo da je dobijen faz testiranje ili
+drugačije, ukoliko želimo da ga smanjimo tako da zadržimo pokrivenost,
+to možemo uraditi upotrebom opcije `-merge=1`.
+```sh
+$ mkdir NEW_CORPUS_DIR  # Store minimized corpus here.
+$ ./my_fuzzer -merge=1 NEW_CORPUS_DIR FULL_CORPUS_DIR
+```
+
+Ista opcija se može koristiti da se doda još testova u postojeći korpus.
+Samo oni testovi koji povećavaju pokrivenost će biti dodati u prvi
+navedeni korpus.
+
+```sh
+$ ./my_fuzzer -merge=1 CURRENT_CORPUS_DIR NEW_POTENTIALLY_INTERESTING_INPUTS_DIR
+```
+
+Da bi se pokrenuo fuzzer sa korpusom testova, prvo treba kreirati
+direktorijum sa inicijalnim test primerima i potom ga pokrenuti:
+```sh
+$ mkdir CORPUS_DIR
+$ cp /some/input/samples/* CORPUS_DIR
+$ ./my_fuzzer CORPUS_DIR  # -max_len=1000 -jobs=20 ...
+```
+Novi testovi biće dodavani u direktorijum korpusa.
+
+Podrazumevano ponašanje je da fazer nastavlja da radi beskonačno ili bar
+dok greška nije pronađena. Svaki pad ili greška koju detektuje
+sanitajzer biće prijavljeni, fazer zaustavljen i test primer koji je
+prouzrokovao grešku biće sačuvan u datoteku (obično, `crash-<sha1>`,
+`leak-<sha1>` ili `timeout-<sha1>`).
+
+## Primer rada libFuzzer-a
+
+Primer `fuzz_me.cpp` prevodimo korišćenjem *clang*-a:
+```sh
+$ clang++  -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
+```
+
+Kreiramo direktorijum u koji će nam se čuvati generisani testovi.
+```txt
+$ mkdir testovi
+```
+
+i pokrećemo program:
+```
+./fuzz_me testovi/
+```
+
+Testovi se generišu variranjem postojećih iz direktorijuma testovi
+ukoliko ih ima. Novi testovi se dodaju u korpus samo ukoliko povećavaju
+pokrivenost kôda nakon svih već ranije generisanih testova. Ukoliko
+želimo da nam se generišu testovi samo od ASCII karaktera prilikom
+pozivanja programa treba proslediti i opciju `-only_ascii=1`, 0 je
+podrazumevana.
+
+```sh
+$ ./fuzz_me -only_ascii=1 testovi/
+```
+
+Testovi se generišu u direktrijum, nama se prikazuje na ekran sledeći
+izlaz:
+```txt
+INFO: Seed: 2050712183
+INFO: Loaded 1 modules (7 guards): [0x77be60, 0x77be7c),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#0      READ units: 1
+#2      INITED cov: 3 ft: 3 corp: 1/1b exec/s: 0 rss: 30Mb
+#5      NEW    cov: 4 ft: 4 corp: 2/4b exec/s: 0 rss: 31Mb L: 3 MS: 3 CopyPart-ChangeBit-InsertByte-
+#1114   NEW    cov: 5 ft: 5 corp: 3/122b exec/s: 0 rss: 33Mb L: 118 MS: 2 ShuffleBytes-InsertRepeatedBytes-
+#176228 NEW    cov: 6 ft: 6 corp: 4/242b exec/s: 0 rss: 235Mb L: 120 MS: 1 CMP- DE: "U\x00"-
+#555573 NEW    cov: 7 ft: 7 corp: 5/366b exec/s: 555573 rss: 401Mb L: 124 MS: 1 CMP- DE: "Z\x00\x00\x00"-
+#1048576        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 524288 rss: 409Mb
+#2097152        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 419430 rss: 409Mb
+=================================================================
+==26069==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000023bb3 at pc 0x000000539e73 bp 0x7fff6c301bc0 sp 0x7fff6c301bb8
+READ of size 1 at 0x602000023bb3 thread T0
+.....
+==26069==ABORTING
+MS: 2 ChangeBinInt-CrossOver-; base unit: 1162a64ba4eb59dab49cfb3a8bb87abe708c3bb1
+0x46,0x55,0x5a,
+FUZ
+artifact_prefix='./'; Test unit written to ./crash-0eb8e4ed029b774d80f2b66408203801cb982a60
+Base64: RlVa
+```
+
+Opcijom `-max-len=N` možemo postaviti maksimalnu dužinu ulaza na neku
+drugu veličinu. Poruku
+`INFO: A corpus is not provided, starting from an empty corpus` označava
+da smo počeli sa praznim korpusom, kao što i jesmo. `READ` prati broj
+pročitanih testova iz korpusa, svaki novo dodati test je obelezen sa
+`NEW`. Broj na početku linije predstavlja redni broj generisanog testa.
+Ako je `NEW` u nastavku onda je i dodat u korpus, ako stoji `pulse`,
+tada je taj red ispisan samo zbog programera da bude obavešten da fuzzer
+i dalje radi. Vidimo da je fuzzer generisao 2097152 testova pre nego što
+je naišao na greku koja mu je prekinula rad. Dogodilo se prekoračenje
+memorije na hipu i generisan nam je izveštaj o prekidu rada
+`./crash-0eb8e4ed029b774d80f2b66408203801cb982a60` sa sve ulazom koji je
+grešku izazvao `FUZ`.
+
+Pojašnjenje kôdova događaja i prateće statistike:
+- `READ` - Fuzzer je pročitao sve od datih testova iz direktorijuma sa
+    korpusima.
+
+- `INITED` - Fuzzer je završio inicijalizaciju, što uključuje izvršavanje svakog inicijalnog testa kroz kôd koji se testira.
+
+- `NEW` - Fuzzer je kreirao nov test koji pokriva do sad ne pokrivene delove kôda koji se testira. Ovaj test će biti sačuvan u direktorijumu glavnog korpusa.
+
+- `REDUCE` - Fuzzer je pronašao bolji (kraći) test koji izaziva prethodno otkriveno ponašanje. Može se isključiti opcijom `-reduce_inputs=0`.
+
+- `pulse` - Fuzzer je generisao `2n` testotva. Poruka se generiše periodično da bi se korisnik uverio da fuzzer i dalje radi.
+
+- `DONE` - Fuzzer je završio sa radom jer je došao da limita broja iteracija (zadaje se opcijom `-runs`) ili vremenskog limita (zadaje se opcijom `-max_total_time`).
+
+- `RELOAD` - Fuzzer periodično ponovno učitava testove iz direktorijuma sa korpusom. Ovo omogućava fuzzeru da uzme u obzir testove koji su
+otkriveni drugim procesima fuzzera, prilikom paralelnog fuzz testiranja.
+
+Svaka izlazna linija sadrži i izveštaj sa sledećim statistikama, kada
+nisu 0:
+
+- `cov:` Ukupan broj blokova kôda ili ivica pokrivenih izvršavanjem trenutnog korpusa.
+
+- `ft:` *libFuzzer* koristi različite signale da proceni pokrivenost kôda: pokrivenost ivica, brojače ivica, profajleri vrednosti, indirektne parove pozivaoc/pozvani, itd. Ovi signali su kombinovani i obeleženi sa `(ft:)`.
+
+- `corp:` Broj testova u trenutnom korpusu u memoriji i njegova veličina u B.
+
+- `lim:` Trenutni limit u dužini novih ulaznih podataka u korpusu. Povećava se tokom vremena, dok ne dostigne maksimalnu dužinu. Ona se može zadati opcijom `-max_len`.
+
+- `exec/s:` Broj iteracija fuzzera u sekundi.
+
+- `rss:` Trenutno iskorišćeno memorije.
+
+Za nove (NEW) događaje, izlazna linija sadrži i informacije:
+
+- `L:` Veličina novog testa u bajtovima.
+
+- `MS: <n> <ops>` Broj i lista operacija mutacija koje su korišćene da bi se generisao nov ulaz.
+
+# Profajliranje
+
+_Profajliranje_ je vrsta dinamičke analize programa (program se analizira tokom izvršavanja) koja se sprovodi kako bi se izmerila, npr. količina memorije koju program zauzima, vreme koje program provodi u određenim funkcijama, iskorišćenost keša itd. Programi koji vrše profajliranje se zovu _profajleri_. Na ovom kursu će biti reči o popularnim profajlerima, njihovim prednosima i manama, uz primere upotrebe.
+
+Profajliranje bi trebalo da nam da jasnu informaciju o tome da li imamo značajna uska grla u kodu. Ako primetimo da neka funkcija uzima 60% vremena izvršavanja, onda je ona glavni kandidat za optimizaciju. Sa druge strane, ako nemamo nijednu funkciju koja troši više od par procenata vremena onda treba pažnju usmeriti na druge pristupe poboljšanja performansi aplikacije (brži hardver, bolja arhitektura/dizajn aplikacije, paralelizacija) ili  ́ce biti potrebno da se optimizuje mnogo koda da bi se napravila ve ́ca razlika. 
+
+Profajleri mogu obezbediti informaciju o tome koliko je vremena potrošeno u svakoj funkciji i u pozivima drugih funkcija, pa i koliko je potrošeno u svakoj liniji koda. Te informacije se, za neke alate kao što su Cachegrind i Callgrind koji generišu izlaz koji ima dosta zajedničkog, mogu prikazati bilo kroz alate koje Valgrind pruža ili kroz specijalizovane alate kao što je _Kcachegrind_.
+
+## Valgrind
+
+[Valgrind](https://valgrind.org/) je platforma za pravljenje alata za dinamičku analizu mašinskog koda, snimljenog ili kao objektni modul (nepovezan) ili kao izvršivi program (povezan). Postoje Valgrind alati koji mogu automatski da detektuju probleme sa memorijom i procesima. 
+
+Valgrind se može koristiti i kao alat za pravljenje novih alata. Valgrind distribucija, između ostalih, uključuje sledeće alate: detektor memorijskih grešaka (Memcheck), detektor grešaka u višenitnim programima (Hellgrind i DRD), optimizator keš memorije i skokova (Cachegrind), generator grafa skrivene memorije i predikcije skoka (Callgrind) i optimizator korišćenja dinamičke memorije (Massif).
+
+### Struktura i upotreba Valgrind alata
+
+Alat Valgrind se sastoji od alata za dinamičku analizu koda koji se kreira kao dodatak pisan u C programskom jeziku na jezgro Valgrinda. Jezgro Valgrinda omogućuje izvršavanje klijentskog programa, kao i snimanje izveštaja koji su nastali prilikom analize samog programa. Alati Valgrinda koriste metodu bojenja vrednosti. Oni svaki registar i memorijsku vrednost boje (zamenjuju) sa vrednošću koja govori nešto dodatno o originalnoj vrednosti. Proces rada svakog alata Valgrinda je u osnovi isti.
+
+Valgrind deli originalni kod u sekvence koje se nazivaju osnovni blokovi. Osnovni blok je pravolinijska sekvenca mašinskog koda, na čiji se početak skače, a koja se završava skokom, pozivom funkcije ili povratkom u funkciju pozivaoca. Svaki kod programa koji se analizira ponovo se prevodi na zahtev, pojedinačno po osnovnim blokovima, neposredno pre izvršavanja samog bloka. Veličina osnovnog bloka je ograničena na maksimalno šezdeset mašinskih instrukcija.
+
+Alat analizira dobijen kod i vrši translaciju - proces koji se sastoji od sledećih koraka:
+1. Disasembliranje (razgradnja) - prevodenje mašinskog koda u ekvivalentni interni skup instrukcija koje se nazivaju međukod instrukcije. U ovoj fazi međukod je predstavljen stablom. Ova faza je zavisna od arhitekture na kojoj se program izvršava.
+2. Optimizacija 1 - prva faza optimizacije linearizuje prethodno izgradeni međukod. Primenjuju se neke standardne optimizacije programskih prevodilaca kao što su uklanjanje redudantnog koda, eliminacija podizraza itd.
+3. Instrumentacija - Blok međukoda se prosleduje alatu, koji može proizvoljno da ga transformiše. Prilikom instrumentacije alat u zadati blok dodaje dodatne međukod operacije, kojima proverava ispravnost rada programa. Treba napomenuti da ubačene instrukcije ne narušavaju konzistentno izvršavanje originalnog koda.
+4. Optimizacija 2 - jednostavnija faza optimizacije od prve. Uključuje izračunavanje matematičkih izraza koji se mogu izvršiti pre faze izvršavanja i uklanjanje mrtvog koda.
+5. Izgradnja stabla - linearizovani međukod se konvertuje natrag u stablo radi lakšeg izbora instrukcija.
+6. Odabir instrukcija - Stablo međukoda se konvertuje u listu instrukcija koje koriste virtualne registre. Ova faza se takode razlikuje u zavisnosti od arhitetkure na kojoj se izvršava.
+7. Alokacija registara - zamena virtualnih registara stvarnim. Po potrebi se uvode prebacivanja u memoriju. Ne zavisi od platforme. Koristi se poziv funkcija koje pronalaze iz kojih se registara vrši čitanje i u koje se vrši upis.
+8. Asembliranje - kodiranje izabranih instrukcija na odgovarajući način i smeštaju u blok memorije. Ova faza se
+takode razlikuje u zavisnosti od arhitekture na koji se izršava. 
+
+Jezgro Valgrinda troši najviše vremena na sam proces pravljenja, pronalaženja i izvršavanja translacije (originalni kod se nikad ne izvršava). Treba napomenuti da sve ove korake osim instrumentacije izvršava jezgro Valgrinda dok samu instrumentaciju izvršava odredeni alat koji smo koristili za analizu izvornog koda. 
+
+Sve međukod instrukcije, originalne i dodate translacijom, prevode se u mašinske reči ciljne platforme i snimaju u prevedeni osnovni blok. Alat u originalni kod umeće operacije u svrhu instrumentalizacije, zatim se takav kod prevodi. 
+
+Prilikom analize programa alatom Valgrind izvršavanje programa traje 20-100 puta duže nego inače. Analiza prevedenog programa Valgrindom, vrši sledećom naredbom:
+```sh
+valgrind --tool=alat [argumenti alata] ./a.out [argumenti za a.out]
+```
+ili pokretanjem Valgrind memory analizer-a iz QtCreator-a za aktivan projekat.
+
+Ukoliko se ne zada vrednost argumenta `--tool` podrazumeva se `memcheck`.
+
+Prve tri linije izlazne poruke štampaju se prilikom pokretanja bilo kog alata koji je u sklopu Valgrinda. U nastavku se prikazuju poruke o greškama koje je alat pronašao u programu. Zatim sledi izlaz samog programa, praćen sumiranim izveštajem o greškama.
+
+Nekada informacija koja se dobije o grešci nije dovoljno detaljna da se u hiljadama linija koda nade pravo mesto. Da bismo u okviru poruke o grešci imali i informaciju o liniji koda u kojoj je detektovana potrebno je da program prevedemo sa debug simbolima (opcija `-g` za `gcc`). Da se ne bi dogodilo da se ne prijavljuje tačna linija u kojoj je detektovana greška preporučuje se da se isključe optimizacije (opcija `-O0` za `gcc`).
+### Memcheck
+
+Memcheck detektuje memorijske greške korisničkog programa. Kako ne vrši analizu izvornog koda već mašinskog, Memcheck ima mogućnost analize programa pisanom u bilo kom programskom jeziku. Za programe pisane u jezicima C i C++ detektuje sledeće probleme:
+- Korišćenje nedefinisanih vrednosti, vrednosti koje nisu inicijalizovane ili koje su izvedene od drugih nedefinisanih.
+vrednosti. Problem se detektuje tek kada su upotrebljene.
+- Čitanje ili pisanje u nedopuštenu memoriju na hipu, steku, bilo da je potkoračenje ili prekoračenje dozvoljene
+memorije ili pristupanje već oslobodenoj memoriji.
+- Neispravno oslobadanje memorije na hipu, npr. duplo oslobadanje memorije na hipu ili neupareno korišćenje funkcija `malloc/new/new[]` i `free/delete/delete[]`.
+- Poklapanje argumenata `src` i `dest` funkcije `memcpy` i njoj sličnim.
+- Prosledivanje loših vrednosti za veličinu memorijskog prostora funkcijama za alokaciju memorije, npr. negativnih.
+- Curenje memorije, npr. gubitak pokazivača na alociran prostor.
+
+#### Korišćenje nedefinisanih vrednosti
+
+Program `01_uninitialized.c` koristi nedefinisanu promenljivu `x`. Prevedimo kod i pokrenimo `memcheck`:
+```sh
+$ gcc -g -O0 -Wall 01_uninitialized.c -o 1
+$ valgrind ./1
+```
+
+Nedefinisana promenljiva može više puta da se kopira. Memcheck prati i beleži podatke o tome, ali ne prijavljuje grešku. U slučaju da se nedefinisane vrednosti koriste tako da od te vrednosti zavisi dalji tok programa ili ako je potrebno prikazati vrednosti nedefinisane promeljive, Memcheck prijavljuje grešku.
+
+```txt
+==11003== Memcheck, a memory error detector
+==11003== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==11003== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==11003== Command: ./1
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Use of uninitialised value of size 8
+==11003== at 0x48C332E: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48C3339: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DF48B: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEB5A: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109162: main (01_uninitialized.c:7)
+==11003==
+x = -16778112
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Use of uninitialised value of size 8
+==11003== at 0x48C332E: _itoa_word (_itoa.c:179)
+3
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48C3339: _itoa_word (_itoa.c:179)
+==11003== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DF48B: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+==11003== Conditional jump or move depends on uninitialised value(s)
+==11003== at 0x48DEB5A: __vfprintf_internal (vfprintf-internal.c:1644)
+==11003== by 0x48C98D7: printf (printf.c:33)
+==11003== by 0x109189: main (01_uninitialized.c:10)
+==11003==
+t = 0
+==11003==
+==11003== HEAP SUMMARY:
+==11003== in use at exit: 4 bytes in 1 blocks
+==11003== total heap usage: 2 allocs, 1 frees, 1,028 bytes allocated
+==11003==
+==11003== LEAK SUMMARY:
+==11003== definitely lost: 4 bytes in 1 blocks
+==11003== indirectly lost: 0 bytes in 0 blocks
+==11003== possibly lost: 0 bytes in 0 blocks
+==11003== still reachable: 0 bytes in 0 blocks
+==11003== suppressed: 0 bytes in 0 blocks
+==11003== Rerun with --leak-check=full to see details of leaked memory
+==11003==
+==11003== For counts of detected and suppressed errors, rerun with: -v
+==11003== Use --track-origins=yes to see where uninitialised values come from
+==11003== ERROR SUMMARY: 24 errors from 10 contexts (suppressed: 0 from 0)
+```
+
+Da bi nam bilo lakše da pronademo glavni izvor greške sa korišćenjem nedefinisanih promenljivih koristimo opciju `--track-origins=yes`.
+
+```sh
+$ valgrind --track-origins=yes ./1
+```
+
+Tada uz poruku o upotrebi neinicijalizovane promenljive dobijamo i informaciju o liniji u kojoj je deklarisana:
+```txt
+==18060== Conditional jump or move depends on uninitialised value(s)
+==18060== at 0x48DEE40: __vfprintf_internal (vfprintf-internal.c:1644)
+==18060== by 0x48C98D7: printf (printf.c:33)
+==18060== by 0x109162: main (01_uninitialized.c:7)
+==18060== Uninitialised value was created by a stack allocation
+==18060== at 0x109145: main (01_uninitialized.c:5)
+==18060==
+==18060== Use of uninitialised value of size 8
+==18060== at 0x48C332E: _itoa_word (_itoa.c:179)
+==18060== by 0x48DE9EF: __vfprintf_internal (vfprintf-internal.c:1644)
+==18060== by 0x48C98D7: printf (printf.c:33)
+==18060== by 0x109162: main (01_uninitialized.c:7)
+==18060== Uninitialised value was created by a stack allocation
+==18060== at 0x109145: main (01_uninitialized.c:5)
+```
+
+Primetimo da nemamo grešku da je promenljiva `y` inicijalizovana neinicijalizovanom promenljivom `x`. Tada se samo obelezava da ni `y` nije inicijalizovana. Tek prilikom prve upotrebe promenljive `y` biće detektovana greška, čiji uzrok je neinicijalizovano `x`.
+#### Prosleđivanje sistemskim pozivima neinicijalizovane ili neadresirane vrednosti
+
+Memcheck prati sve parametre sistemskih poziva. Proverava svaki pojedinačno, bez obzira da li je inicijalizovan ili ne. Ukoliko sistemski poziv treba da čita iz prosledenog bafera, Memcheck proverava da li je ceo bafer adresiran i inicijalizovan. Ako sistemski poziv treba da piše u memoriju, proverava se da li je adresirana. Posle sistemskog poziva Memcheck ažurira svoje informacije o praćenju stanja memorije tako da one precizno opisuju promene koje su nastale izvršavanjem sistemskog poziva.
+
+Program `02_undefined.c` sadrži dva sistemska poziva sa neinicijalizovanim parametrima. Memcheck je detektovao prvu grešku u prosledivanju neinicijalizovanog parametra `arr` sistemskom pozivu `write()`. Druga je u tome što sistemski poziv `read()` dobija neadresiran prostor. Tre ća greška je u tome što se sistemskom pozivu `exit()` prosleduje nedefinisan argument. Prikazane su nam i linije u samom programu koje sadrže detektovane greške.
+
+```sh
+$ valgrind --track-origins=yes ./02_undefined.out
+```
+
+```txt
+==3422== Memcheck, a memory error detector
+==3422== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==3422== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==3422== Command: ./a.out
+==3422==
+==3422== Syscall param write(buf) points to uninitialised byte(s)
+==3422== at 0x4978024: write (write.c:26)
+==3422== by 0x10919E: main (02_undefined.c:9)
+==3422== Address 0x4a59040 is 0 bytes inside a block of size 10 alloc’d
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109176: main (02_undefined.c:6)
+==3422== Uninitialised value was created by a heap allocation
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109176: main (02_undefined.c:6)
+==3422==
+==3422== Syscall param read(buf) contains uninitialised byte(s)
+==3422== at 0x4977F81: read (read.c:26)
+==3422== by 0x1091B4: main (02_undefined.c:10)
+==3422== Uninitialised value was created by a stack allocation
+==3422== at 0x109165: main (02_undefined.c:5)
+==3422==
+==3422== Syscall param read(buf) points to unaddressable byte(s)
+==3422== at 0x4977F81: read (read.c:26)
+==3422== by 0x1091B4: main (02_undefined.c:10)
+==3422== Address 0x0 is not stack’d, malloc’d or (recently) free’d
+==3422==
+==3422== Syscall param exit_group(status) contains uninitialised byte(s)
+==3422== at 0x494C926: _Exit (_exit.c:31)
+==3422== by 0x48B23A9: __run_exit_handlers (exit.c:132)
+==3422== by 0x48B23D9: exit (exit.c:139)
+==3422== by 0x1091C1: main (02_undefined.c:11)
+==3422== Uninitialised value was created by a heap allocation
+==3422== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3422== by 0x109184: main (02_undefined.c:8)
+5
+==3422==
+==3422==
+==3422== HEAP SUMMARY:
+==3422== in use at exit: 14 bytes in 2 blocks
+==3422== total heap usage: 2 allocs, 0 frees, 14 bytes allocated
+==3422==
+==3422== LEAK SUMMARY:
+==3422== definitely lost: 0 bytes in 0 blocks
+==3422== indirectly lost: 0 bytes in 0 blocks
+==3422== possibly lost: 0 bytes in 0 blocks
+==3422== still reachable: 14 bytes in 2 blocks
+==3422== suppressed: 0 bytes in 0 blocks
+==3422== Rerun with --leak-check=full to see details of leaked memory
+==3422==
+==3422== For counts of detected and suppressed errors, rerun with: -v
+==3422== ERROR SUMMARY: 4 errors from 4 contexts (suppressed: 0 from 0)
+```
+
+Takođe, Memcheck prilikom izvršavanja beleži podatke o svim dinamički alociranim blokovima memorija. Po završetku programa, ima sve informacije o neoslobodenim memorijskim blokovima. Opcijom `--leak-check=yes` za svaki neosloboden blok se odreduje da li mu je moguće pristupiti preko pokazivača (still reachable) ili ne (definitely lost).
+
+Opcijama `--leak-check=full --show-leak-kinds=all` tražimo da nam se prikaže detaljan izveštaj o svakom definitivno ili potencijalno izgubljenom bloku, kao i o tome gde je alociran u delu sa izveštajem sa hipa - `HEAP SUMMARY`.
+
+```txt
+==3439== HEAP SUMMARY:
+==3439== in use at exit: 14 bytes in 2 blocks
+==3439== total heap usage: 2 allocs, 0 frees, 14 bytes allocated
+==3439==
+==3439== 4 bytes in 1 blocks are still reachable in loss record 1 of 2
+==3439== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3439== by 0x109184: main (02_undefined.c:8)
+==3439==
+==3439== 10 bytes in 1 blocks are still reachable in loss record 2 of 2
+==3439== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3439== by 0x109176: main (02_undefined.c:6)
+==3439==
+==3439== LEAK SUMMARY:
+==3439== definitely lost: 0 bytes in 0 blocks
+==3439== indirectly lost: 0 bytes in 0 blocks
+==3439== possibly lost: 0 bytes in 0 blocks
+==3439== still reachable: 14 bytes in 2 blocks
+==3439== suppressed: 0 bytes in 0 blocks
+```
+#### Nedopušteno oslobadanje memorije
+
+Memcheck prati svaku alokaciju memorije pozivom funkcija kao što su `malloc` i `calloc`, ali i alokacije uzrokovane konstrukcijom objekata (`new`). Iz tog razloga tačno zna da li je argument funkcije `free`, odnosno `delete`, ispravan ili ne. U sledećem programu isti blok dinamički alocirane memorije se oslobada dva puta. Memcheck prijavljuje tu grešku a potom detektuje i drugu grešku prilikom pokušaja oslobadanje bloka memorije sa adrese koja nije na hipu.
+
+```sh
+$ valgrind --show-leak-kinds=all --leak-check=full --track-origins=yes ./03_malloc.out
+```
+
+```txt
+==3914== Memcheck, a memory error detector
+==3914== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==3914== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==3914== Command: ./3
+==3914==
+==3914== Invalid free() / delete / delete[] / realloc()
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x10919F: main (03_malloc.c:11)
+==3914== Address 0x4a590a0 is 0 bytes inside a block of size 12 free’d
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109193: main (03_malloc.c:10)
+==3914== Block was alloc’d at
+==3914== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109183: main (03_malloc.c:9)
+==3914==
+==3914== Invalid free() / delete / delete[] / realloc()
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x1091B3: main (03_malloc.c:14)
+==3914== Address 0x1ffefffd0f is on thread 1’s stack
+==3914== in frame #1, created by main (03_malloc.c:5)
+```
+
+I u ovom programu imamo i pored svega curenje memorije jer 19B bivaju alocirani i potom pokazivač `p` dobije
+vrednost adrese novog prostora. Pokretanjem sa opcijama `--leak-check=full` i `--show-leak-kinds=all` dobijamo
+informaciju da imamo 19B koji su sasvim izgubljeni jer smo izgubili adresu alociranog bloka na hipu.
+
+```txt
+==3914== HEAP SUMMARY:
+==3914== in use at exit: 19 bytes in 1 blocks
+==3914== total heap usage: 2 allocs, 3 frees, 31 bytes allocated
+==3914==
+==3914== 19 bytes in 1 blocks are definitely lost in loss record 1 of 1
+==3914== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109175: main (03_malloc.c:8)
+==3914==
+==3914== LEAK SUMMARY:
+==3914== definitely lost: 19 bytes in 1 blocks
+==3914== indirectly lost: 0 bytes in 0 blocks
+==3914== possibly lost: 0 bytes in 0 blocks
+==3914== still reachable: 0 bytes in 0 blocks
+==3914== suppressed: 0 bytes in 0 blocks
+==3914==
+==3914== For counts of detected and suppressed errors, rerun with: -v
+==3914== ERROR SUMMARY: 3 errors from 3 contexts (suppressed: 0 from 0)
+```
+#### Nekorektno oslobađanje memorije
+
+U primeru `04_new_delete.cpp` se ne upotrebljavaju odgovaraju ́ce funkcije za oslobadanje dinamiˇcki alocirane memorije. Pokrenimo Memcheck:
+
+```sh
+$ valgrind --track-origins=yes ./04_new_delete.out
+```
+
+```txt
+==4011== Memcheck, a memory error detector
+==4011== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==4011== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==4011== Command: ./4
+==4011==
+==4011== Invalid free() / delete / delete[] / realloc()
+==4011== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==4011== by 0x1091AD: main (04_new_delete.cpp:10)
+==4011== Address 0x4db6c88 is 8 bytes inside a block of size 168 alloc’d
+==4011== at 0x48394DF: operator new[](unsigned long) (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_m
+==4011== by 0x10916B: main (04_new_delete.cpp:8)
+==4011==
+==4011==
+==4011== HEAP SUMMARY:
+==4011== in use at exit: 168 bytes in 1 blocks
+==4011== total heap usage: 2 allocs, 2 frees, 72,872 bytes allocated
+==4011==
+==4011== LEAK SUMMARY:
+==4011== definitely lost: 168 bytes in 1 blocks
+==4011== indirectly lost: 0 bytes in 0 blocks
+==4011== possibly lost: 0 bytes in 0 blocks
+==4011== still reachable: 0 bytes in 0 blocks
+==4011== suppressed: 0 bytes in 0 blocks
+==4011== Rerun with --leak-check=full to see details of leaked memory
+==4011==
+==4011== For counts of detected and suppressed errors, rerun with: -v
+==4011== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
+```
+#### Delimično preklapanje izvorne i ciljne memorije
+
+Program `05_overlap.c` prepisuje nisku u lokaciju koja se preklapa sa onom odakle se prepisuje. Ako unesemo reč `Da`, neće se detektovati gredška, jer prilikom izvrdšavanja za unetu reč neće biti preklapanja. Ponovo pokrenimo program i unesimo reč `dobro`. Memcheck detektuje problem preklapanja memorijskih lokacija sa koje se kopira i one na koju se kopira.
+
+```txt
+==16178== Source and destination overlap in memcpy(0x5204041, 0x5204040, 5)
+==16178== at 0x4C32513: memcpy@@GLIBC_2.14 (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==16178== by 0x400617: main (05_overlap.c:9)
+```
+
+Ukoliko se unese kraća reč od 3 slova ovo će biti jedina gredška koju imamo. Ukoliko unesemo dužu reč na ulazu, `printf` će nam prijaviti pristup neinicilizovanoj vrednosti.
+#### Detekcija neispravnog argumenta pri alokaciji memorije 
+
+Memcheck može da detekuje grešku slanja negativnog argumenta za veličinu alociranog prostora. Program `06_fishy_arguments.c` ilustruje tu grešku. Ukoliko se program pokrene za negativne brojeve neće se ništa desiti jer petlja u tom slučaju neće imati ni jednu iteraciju, pa neće biti ni poziva `malloc` funkcije. Pozivi sa `n < 27` neće biti problematični - sve će se lepo alocirati i osloboditi. Imaćemo samo prijavljeno upozorenje: 
+```txt
+(Warning: set address range perms: large range)
+```
+
+Ovo znači da se velikom bloku memorije menjaju prava pristupa. To upozorenje je namenjeno zapravo najviše Valgrind developerima i možemo ga ignorisati jer će memorija biti alocirana. Ukoliko pokrenemo ponovo Valgrind i za `n` unesemo `28`, dobićemo grešku jer smo prekoračili opseg `int` domena.
+
+```txt
+sada je i = 26 allocated = 1073741824
+==5105== Warning: set address range perms: large range [0x59c89028, 0x99c89058) (noaccess)
+sada je i = 27 allocated = -2147483648B
+==5105== Argument ’size’ of function malloc has a fishy (possibly negative) value: -2147483648
+==5105== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==5105== by 0x109219: main (06_fishy_arguments.c:20)
+==5105==
+Realloc failed!
+```
+
+### Massif
+
+Massif je profajer hip memorije - beleži iskorišćen prostor i dodatne bajtove koji se zauzimaju radi poravnanja i vodenja evidencije bajtova u upotrebi. Može da meri i zauzeće memorije na steku, ali to ne radi bez uključivanja dodatne opcije (`--stacks=yes`) jer dosta usporava rad alata. 
+
+Profajliranje hip memorije nam može pomoći da eventalno smanjimo korišćenu memoriju i da otkrijemo neka curenja memorije koja se ne mogu prepoznati Memcheck -om. Prevashodno kad memorija nije još uvek izgubljena, imamo pokazivač, ali nije u upotrebi. Kod takvih programa nepotrebno se povećava memorija koja se koristi tokom vremena. Massif nam može reći i koliko memorije na hipu program koristi i tačnu liniju koda koja je zaslužna za njegovu alokaciju.
+
+Kao i pri upotrebi drugih Valgrind alata, program prevodimo sa informacijama debug sombolima (opcija `-g`). Optimizacija neće uticati na količinu upotrebljene memorije. Massif svoj izveštaj upisuje u datoteku `massif.out.<pid>`, gde je `<pid>` ID procesa. Ukoliko želimo da se upiše u drugu datoteku koristimo opciju `--massif-out-file` i navedemo naziv izlazne datoteke. Informacije iz izveštaja prikazujemo programom `ms_print` prosledujući mu datoteku sa izveštajem.
+
+`ms_print` proizvodi graf koji prikazuje zauzeće memorije tokom izvršavanja programa, kao i detaljnije informacije o različitim tačkama programa koje su odgovorne za alokaciju/dealokaciju memorije. Vrednosti na y osi predstavljaju presek stanja iskorišćenosti memorije u odredenom vremenskom trenutku. Na x osi, Massif podrazumevano koristi broj izvršenih instrukcija kao jedinicu vremena. To se može promeneti opcijom `--time-unit=B` da nam jedinica vremena bude broj bajtova alociran/dealociran na hipu.
+
+Massif pravi preseke stanja iskorišćenosti memorije za svaku alokaciju i dealokaciju hipa, ali ako se program duže izvršava Massif ređe pravi preseke. Kada dostigne maksimalni broj preseka on odbaci oko pola ranijih preseka. Podrazumevan broj preseka koje čuva je 100, ali se to može promeniti opcijom `--max-snapshots`. Detaljnije obradeni preseci su na grafu predstavljeni simbolom `@`. Podrazumevano detaljnije obraduje svaki deseti presek, ali se i to može promeniti opcijom `--detailed-freq`.
+
+```sh
+$ valgrind --tool=massif ./massif_example.out
+```
+
+Na grafu je simbolom `#` predstavljen još jedan detaljan presek koji je obraden i ujedno je i presek sa najvećim iskorišćenjem memorije. Odredivanje preseka sa najvećim iskorišćenjem memorije nije uvek tačno jer Massif uzima u obzir samo preseke kod kojih se desila dealokacija. Time se izbegava mnogo nepotrebnih pravljenja preseka za najveću iskorišćenost memorije, npr. u slučaju da program iz više navrata alocira dosta memorije, i svaki put to je nova najveća iskorišćenost memorije. Takode, ako program nikada ne dealocira memoriju, nećemo ni imati ovakav presek. Takode ako program i dealocira memoriju ali kasnije alocira još veći blok koji kasnije ne oslobodi, imaćemo presek sa najvećom iskorišćenosti memorije, ali će on biti dosta niži od stvarnog.
+
+Alat Massif meri samo hip memoriju, tj. onu koju smo alocirali funkcijama `malloc`, `calloc`, `realloc`, `memalign`, `new`, `new[]`. Ne meri memoriju alociranu sistemskim pozivima kao što su `mmap`, `mremap`, `brk`. Ukoliko nam je od značaja merenje celokupne alocirane memorije, potrebno je uključiti opciju `--pages-as-heap=yes`. Sa ovom opcijom Massif neće profajlirati hip memoriju, već stranice u memoriji.
+### Cachegrind
+
+Merenje performansi keša je postalo važno jer se eksponencijalno pove ́ćava razlika u brzini RAM memorije i performansi procesora. Uloga keša je da premosti tu razliku u brzini. Da bismo utvrdili koliko je keš sposoban da to učini prate se pogodci (_hits_) i promašaji (_misses_) keša. Jedan od koraka za poboljšanje je da se smanji broj promašaja na najvišim nivoima keša.
+
+Cachegrind je alat koji omogućava softversko profajliranje keš memorije tako što simulira i prati pristup keš memoriji mašine na kojoj se program, koji se analizira, izvršava. Može se koristiti i za profajliranje izvršavanja grana, korišćenjem opcije `--branch-sim=yes`. Cachegrind simulira memoriju mašine, koja ima prvi nivo keš memorije podeljene u dve odvojene nezavisne sekcije:
+**I1** - sekcija keš memorije u koju se smeštaju instrukcije
+**D1** - sekcija keš memorije u koju se smeštaju podaci
+
+Drugi nivo keš memorije koju Cachegrind simulira je objedinjen - **LL**, skraćeno od eng. _last level_. Ovaj način konfiguracije odgovara mnogim modernim mašinama. Postoje mašine koje imaju i tri ili četiri nivoa keš memorije. U tom slučaju, Cachegrind simulira pristup prvom i poslednjem nivou. Generalno gledano, Cachegrind simulira I1, D1 i LL (poslednji nivo keš memorije). Cachegrind prikuplja sledeće statističke podatke o programu koji analizira:
+- O čitanjima instrukcija iz keš memorije:
+    - **Ir** - ukupan broj izvršenih instrukcija
+    - **I1mr** - broj promašaja čitanja instrukcija iz keš memorije nivoa I1
+    - **ILmr** - broj promašaja čitanja instrukcija iz keš memorije nivoa LL
+- O čitanjima brze memorije:
+    - **Dr** - ukupan broj čitanja memorije
+    - **D1mr** - broj promašaja čitanja nivoa keš memorije D1
+    - **DLmr** - broj promašaja čitanja nivoa keš memorije LL
+- O pisanjima u brzu memoriju:
+    - **Dw** - ukupan broj pisanja u memoriji
+    - **D1mw** - broj promašaja pisanja u nivo keš memorije D1
+    - **DLmw** - broj promašaja pisanja u nivo keš memorije LL
+- O izvršavanju grana:
+    - **Bc** - broj uslovno izvršenih grana
+    - **Bcm** - broj promašaja uslovno izvršenih grana
+    - **Bi** - broj indirektno izvršenih grana
+    - **Bim** - broj promašaja indirektno izvršenih grana
+
+Broj pristupa D1 delu keš memorije je jednak zbiru statistika D1mr i D1mw. Ukupan broj pristupa LL nivou jednak je zbiru ILmr, DLmr i DLmw. Primeri u C/C++ koji proizvode indirektno grananje su pozivi funkcija preko pokazivača na funkcije ili pozivi virtuelnih funkcija i `switch` naredbe. Uslovne grananje se generše `if` naredbama i uslovnim ternarnim operatorom
+`?:`.
+
+Statistika se prikuplja na nivou celog programa, kao i pojedinačno na nivou funkcija. Na modernim mašinama L1 promašaj košta oko 10 procesorskih ciklusa, LL promašaj košta oko 200 procesorskih ciklusa, a promašaji uslovno i indirektno izvršene grane od 10 do 30 procesorskih ciklusa. Detaljno profajliranje upotrebe keš memorije može pomoći u poboljšanju performansi programa. Izvršavanjem komande `lscpu` na Linux sistemima, dobićemo informacije o veličini keša na mašini na kojoj radimo.
+
+Program koji želimo da analiziramo propuštamo kroz Cachegrind navodeći opciju `--tool=cachegrind`. Za razliku od ostalih Valgrind alata želimo uključenu optimizaciju, tako da ne koristimo opciju `-O0` prilikom prevođenja programa. Kompilacija treba da bude sa optimizacijom, jer nema smisla ovako profajlirati kod koji je drugačiji od onoga koji će se normalno izvršavati. Na standardni izlaz se ispisuju sumarne informacije na nivou celog programa, dok se detaljne informacije upisuju u `cachegrind.out.<pid>` datoteku, gde `<pid>` predstavlja ID procesa. Alat grupiše sve troškove po datotekama i funkcijama kojima ti troškovi pripadaju.
+
+Detaljniji izveštaj možemo videti iz iste datoteke korišćenjem alata `cg_annotate`. Ukoliko imamo izveštaje iz više pokretanja Cachgrind-a za isti program, možemo ih sumirati u jednu datoteku korišćenjem alata `cg_merge` i njegov izlaz kasnije pregledati alatom `cg_annotate`. Moguće je i praviti razliku izmedu više izveštaja Cachgrind-a pomoću alata `cg_diff` i njegov izlaz, slično, otvoriti pomoću `cg_annotate`. Ukoliko modifikujemo kod, to nam može biti od korisiti da pratimo kako modifikacija utiče na performanse programa. Programom `cg_annotate` podrazumevano se prikazuje izveštaj sumiran po funkcijama.
+
+Ako kolona sadrži samo tačkicu, to označava da funkcija ne sadrži instrukcije koje bi prouzrokovale taj dogadaj. Ukoliko u koloni za ime funkcije stoji `???`, to znači da nije bilo moguće odrediti ime na osnovu simbola za debagovanje. Ukoliko većina redova sadrži `???` za ime funkcije program verovatno nije preveden sa debug simbolima (opcija `-g`).
+
+Ukoliko želimo da vidimo izveštaj o broju promašaja po linijama koda, potrebno je da prosledimo izvorne datoteke programu `cg_annotate` ili da uključimo opciju `--auto=yes` kada će se anotirati svaki izvorni kod koji se može naći.
+
+Daleko preglednije je gledati izveštaj pomoću alata KCachgrind.
+
+Cachegrind nam može otkriti gde imamo usko grlo u programu, ali nam ne može reći kako da ga popravimo. Potrebno je napomenuti da su rezultati vrlo osetljivi. Promena veličine izvršnog program ili neke od deljenih biblioteka koje koristi, pa čak i promena dužine imena datoteka, može izmeniti rezultate. Varijacije će biti male, ali svakako ne treba očekivati potpuno ponovljive rezultate ako se program promeni.
+
+Na novijim GNU/Linux distribucijama se prilikom ponovnih pokretanja istog programa deljene biblioteke se učitavaju na različite lokacije, iz bezbednosnih razloga. To takode može uticati na varijacije u rezultatima različitog profajliranja istog programa.
+
+Dakle, ne treba se uzdati da su podaci veoma precizni, ali su svakako korisni.
+#### Primer: Petlje
+
+Matrica se popunjava u `main` funkciji, a čita u funkciji `array_sum`.
+Iz konzole izvršavamo komandu:
+```sh
+$ valgrind --tool=cachegrind ./loops-fast
+$ kcachegrind cachegrind.out.*
+```
+
+Na ekranu vidimo izveštaj na nivou celog programa i vidimo da program ima preko 125 000 promašaja prilikom čitanja podataka sa D1 i LL nivoa keša.
+
+![cachegrind_1](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_1.png)
+
+Istaknute su nam konkretne linije u kojima je bilo promašaja, zajedno sa brojem promašaja. Uočavamo da imamo
+po 125 000 promašaja obe petlje, i u main i u array sum funkciji.
+
+![cachegrind_2](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_2.png)
+
+Cela matrica ima `1000 x 1000 x 8B = 8MB`. Veličina keša [^1], npr:
+```txt
+L1d cache:               32K      
+L1i cache:               32K
+L2 cache:               256K
+L3 cache:              6144K   ---> LL
+```
+
+[^1]: Veličina keša i linije na konkretnom procesoru se može saznati izvršavanjem: 
+```sh
+$ getconf -a | grep CACHE
+```
+
+Svakako premali za celu matricu, pa se zbog toga i dogadaju promašaji. Ukoliko bi LL keš bio dovoljno veliki (>8MB)
+u funkciji array sum ne bismo imali promašaje na LL nivou, jer se cela matrica učita u keš pre poziva funkcije u petlji
+u main funkciji.
+
+Ponovo pokrećemo program, ali ovaj put Cachegrind -u zadajemo 16MB za veličinu LL keša:
+```sh
+$ valgrind --tool=cachegrind --LL=16777216,8,64 ./loops-fast
+```
+
+Izveštaj možemo iz konzole čitati komandom
+```sh
+$ cg_annotate --auto=yes cachegrind.out.*
+```
+
+```txt
+--------------------------------------------------------------------------------
+I1 cache:         32768 B, 64 B, 8-way associative
+D1 cache:         32768 B, 64 B, 8-way associative
+LL cache:         16777216 B, 64 B, 2-way associative
+Command:          ./loops-fast
+Data file:        cachegrind.out.26469
+Events recorded:  Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Events shown:     Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Event sort order: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Thresholds:       0.1 100 100 100 100 100 100 100 100
+Include dirs:    
+User annotated:  
+Auto-annotation:  on
+
+--------------------------------------------------------------------------------
+       Ir  I1mr  ILmr        Dr    D1mr  DLmr        Dw    D1mw    DLmw
+--------------------------------------------------------------------------------
+9,170,730 1,068 1,053 2,040,968 127,541 1,976 1,012,294 125,603 125,487  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+       Ir I1mr ILmr        Dr    D1mr DLmr        Dw    D1mw    DLmw  file:function
+--------------------------------------------------------------------------------
+5,004,015    2    2 1,000,004       3    1 1,000,002 125,002 124,928  /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c:main
+4,004,004    1    1 1,000,001 125,001    0         0       0       0  /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c:array_sum
+   56,470    9    9    13,757   1,047  868        17       2       1  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-addr.c:_dl_addr
+   21,444   20   20     7,663     187  133     3,329      11       6  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-lookup.c:do_lookup_x
+   17,173   10   10     3,626      92   80     1,993      12       8  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-lookup.c:_dl_lookup_symbol_x
+   16,311   20   20     3,949     555  535     2,048     243     235  /build/glibc-Cl5G7W/glibc-2.23/elf/../sysdeps/x86_64/dl-machine.h:_dl_relocate_object
+
+--------------------------------------------------------------------------------
+-- Auto-annotated source: /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c
+--------------------------------------------------------------------------------
+       Ir I1mr ILmr        Dr    D1mr DLmr        Dw    D1mw    DLmw
+
+-- line 3 ----------------------------------------
+        .    .    .         .       .    .         .       .       .  #define N 1000
+        .    .    .         .       .    .         .       .       .  
+        .    .    .         .       .    .         .       .       .  double array_sum(double[N][N]);
+        .    .    .         .       .    .         .       .       .  
+        .    .    .         .       .    .         .       .       .  double array_sum(double a[N][N])
+        .    .    .         .       .    .         .       .       .  {
+        .    .    .         .       .    .         .       .       .    int i,j;
+        .    .    .         .       .    .         .       .       .    double s;
+    2,003    1    1         0       0    0         0       0       0    s=0;
+    2,000    0    0         0       0    0         0       0       0    for(i=0;i<N;i++)
+2,000,000    0    0         0       0    0         0       0       0      for(j=0;j<N;j++)
+2,000,000    0    0 1,000,000 125,000    0         0       0       0        s += a[i][j];
+        .    .    .         .       .    .         .       .       .    
+        .    .    .         .       .    .         .       .       .    return s;
+        1    0    0         1       1    0         0       0       0  }
+        .    .    .         .       .    .         .       .       .  
+        .    .    .         .       .    .         .       .       .  int main(int argc, char** argv)
+    2,007    1    1         1       0    0         1       0       0  {
+        .    .    .         .       .    .         .       .       .    double a[N][N];
+        .    .    .         .       .    .         .       .       .    int i,j;
+        .    .    .         .       .    .         .       .       .    
+    2,000    0    0         0       0    0         0       0       0    for(i=0;i<N;i++)
+        .    .    .         .       .    .         .       .       .    {
+2,000,000    0    0         0       0    0         0       0       0      for(j=0;j<N;j++)
+        .    .    .         .       .    .         .       .       .      {
+3,000,000    1    1 1,000,000       1    1 1,000,000 125,001 124,928        a[i][j]=0.01;
+        .    .    .         .       .    .         .       .       .      }
+        .    .    .         .       .    .         .       .       .    }
+        .    .    .         .       .    .         .       .       .    
+        .    .    .         .       .    .         .       .       .    /* this is just to prevent the compiler
+        .    .    .         .       .    .         .       .       .       from optimizing the upper loop away */
+        2    0    0         0       0    0         1       1       0    printf("sum = %10.3f\n",array_sum(a));
+        .    .    .         .       .    .         .       .       .    
+        .    .    .         .       .    .         .       .       .    return 0;
+        6    0    0         3       2    0         0       0       0  }
+
+--------------------------------------------------------------------------------
+The following files chosen for auto-annotation could not be found:
+--------------------------------------------------------------------------------
+  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-lookup.c
+  /build/glibc-Cl5G7W/glibc-2.23/elf/../sysdeps/x86_64/dl-machine.h
+  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-addr.c
+
+--------------------------------------------------------------------------------
+Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+--------------------------------------------------------------------------------
+98    0    0 98   98    0 99  100  100  percentage of events annotated
+```
+
+ili otvaranjem u KCachegrind -u.
+
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache1_3.png)
+
+
+U programu `loops_slow` se elementima matrice ne pristupa po vrstama već po kolonama.
+```sh
+$ valgrind --tool=cachegrind ./loops-slow
+```
+
+Prilikom učitavanja podataka u keš, učitavaju se zajedno podaci koji su blizu u memoriji pod pretpostavkom da će biti uskoro upotrebljeni. Tako se učitava pored jednog elementa vrste i oni koji su za njim u vrsti jer nam je matrica tako alocirana. U petlji u main funkciji pristupamo jednom elementu, a potom narednom elementu iz iste kolone. Ta dva elementa, za dovoljno veliku matricu ne moraju biti zajedno učitani u keš. Ukoliko je D1 keš veličine 32KB i ako je veličina linije keša 64B, tj. 8 double vrednosti, imamo 512 linija keša. Prilikom pristupanja elementu `a[0][0]`, potrebno ga je dovući u keš D1. Sa njim će u D1 biti učitano i narednih 7, do `a[0][7]`. U narednom koraku nam treba element `a[1][0]` i njega nema u kešu, imamo još jedan promašaj. Možemo imati najviše 512 linija istovremeno prisutnih u kešu stoga posle prvog elementa 512. vrste, moraće da se izbacuju najranije učitane linije, da bi se napravio prostor za nove podatke [^2]. Iz tog razloga imamo 1000000 promašaja na D1 prilikom pisanja u matricu. Nijedan element matrice nije u D1 kešu u trenutku kada je potreban.
+
+[^2]: Pretpostavljamo da je politika zamene linija keša takva da se najranije ubačene linije izbace prve.
+
+![cachegrind_3](06_profiling/03_valgrind_cachegrind/01_loops/images/cache2_1.png)
+
+Ukoliko povećamo D1 keš na 64KB, imaćemo sličnu situaciju kao sa prethodnim programom sa ∼125000 promašaja prilikom pisanja na kešu D1.
+
+```sh
+$ valgrind --tool=cachegrind --D1=65536,8,64 ./loops-slow
+```
+
+Sa toliko velikim D1 kešom možemo imati 1024 linije u jednom trenutku, pa je onda nakon prvih 1000 promašaja za prvi element svake vrste, istovremeno u D1 keš učitano prvih 8 kolona matrice, pa za narednih 7 kolona nećemo imati promašaje. Dakle, otprilike svaka 8 kolona će generisati novih 1000 promašaja. Iz tog razloga imamo oko 125000
+promašaja prilikom pisanja na D1. Programu `loops_fast` je dovoljan duplo manji D1 keš za iste performanse.
+
+#### Primer: Množenje matrica
+
+Programi: `matrix_slowest`, `matrix_slower`, `matrix_medium` i `matrix_mediumish`, implementiraju množenje matrica.
+
+`matrix_slowest` program rešava problem naivno primenjujući formulu. Uzrok sporosti izvršavanja tog programa leži u velikom broju promašaja u kešu. Oni nastaju kao posledica toga što je potrebno `i`-tu vrstu matrice `A` pomnožiti skalarno sa `j`-tom kolonom matrice `B`, a elementi kolone se ne nalaze na sukcesivnim adresama u memoriji.
+
+Podesimo `N` na `10` i profajliramo Cachegrind-om. Primećujemo da imamo malo promašaja, najviše na D1.
+
+```txt
+==20967== Cachegrind, a cache and branch-prediction profiler
+==20967== Copyright (C) 2002-2015, and GNU GPL’d, by Nicholas Nethercote et al.
+==20967== Using Valgrind-3.11.0 and LibVEX; rerun with -h for copyright info
+==20967== Command: ./matrix_slow
+==20967==
+--20967-- warning: L3 cache found, using its data for the LL simulation.
+==20967==
+==20967== I refs: 2,186,832
+==20967== I1 misses: 1,530
+==20967== LLi misses: 1,455
+==20967== I1 miss rate: 0.07%
+==20967== LLi miss rate: 0.07%
+==20967==
+==20967== D refs: 732,348 (537,801 rd + 194,547 wr)
+==20967== D1 misses: 15,790 ( 13,572 rd + 2,218 wr)
+==20967== LLd misses: 9,191 ( 7,761 rd + 1,430 wr)
+==20967== D1 miss rate: 2.2% ( 2.5% + 1.1% )
+==20967== LLd miss rate: 1.3% ( 1.4% + 0.7% )
+==20967==
+==20967== LL refs: 17,320 ( 15,102 rd + 2,218 wr)
+==20967== LL misses: 10,646 ( 9,216 rd + 1,430 wr)
+==20967== LL miss rate: 0.4% ( 0.3% + 0.7% )
+```
+
+Probajmo da profajliramo program za daleko veće `N`, tako da matrica ne može stati u na keš. Tri matrice 1000x1000 `float` brojeva su dovoljno velike da ne bi bile zajedno u kešu.
+
+Broj promašaja u `main` funkciji bi mogao da se smanji razdvajanjem obrade svake matrice u zasebnu petlju, a ne da se sve 3 matrice inicijalizuju u jednoj dvostrukoj petlji.
+
+Izvršavati svaki program i meriti vreme:
+```sh
+$ time ./matrix_slowest
+$ time valgrind --tool=cachegrind ./matrix_slowest
+```
+i primetiti koliko puta Valgrind usporava rad programa.
+
+Probati da se zamene neki redosledi petlji, npr, po `col` i `row`, i ispratiti broj promašaja u kešu.
+### Callgrind
+
+Callgrind je alat koji generiše listu poziva funkcija korisničkog programa u vidu grafa. U osnovnim podešavanjima sakupljeni podaci sastoje se od broja izvršenih instrukcija, njihov odnos sa linijom u izvršnom kodu, odnos pozivaoc/pozvan izmedu funkcija, kao i broj takvih poziva.
+
+Podaci koji se analiziraju i nakon završetka rada programa i alata zapisuju u datoteku `callgrind.out.<pid>`, gde `<pid>` predstavlja identifikator procesa. Program `callgrind_annotate` na osnovu generisanog izveštaja prikazuje listu funkcija. Za grafičku vizuelizaciju preporučeno je koristiti alate kao npr. KCachegrind, koji olakšava navigaciju ukoliko Callgrind napravi veliku količinu podataka.
+
+Program `callgrind_control` omogućava interaktivnu kontrolu i  nadgledanje programa prilikom izvršavanja. Mogu se dobiti informacije o stanju na steku, može se takode u svakom trenutku generisati profil.
+
+Alat Cachegrind sakuplja podatke, odnosno broji dogadaje koji se dešavaju direktno u jednoj funkciji. Ovaj mehanizam sakupljanja podataka se naziva ekskluzivnim. Ovu funkcionalnost proširuje tako što propagira cenu funkcije preko njenih granica. Na primer, ako funkcija `foo` poziva funkciju `bar`, cena funkcije `bar` se dodaje funkciji `foo`. Kada se ovaj mehanizam primeni na celu funkciju, dobija se slika takozvanih inkluzivnih poziva, gde cena svake funkcije uključuje i cene svih funkcija koje ona poziva, direktno ili indirektno.
+
+Zahvaljujući grafu poziva, može da se odredi, počevši od `main` funkcije, koja funkcija ima najveću cenu poziva. Pozivaoc/pozvan cena je izuzetno korisna za profilisanje funkcija koje imaju više poziva iz raznih funkcija, i gde imamo priliku optimizacije našeg programa menjajući kod u funkciji koja je pozivaoc, tačnije redukovanjem broja poziva.
+
+Dodatno može da vrši analizu upotrebe keš memorije i profajliranje grana programa slično kao kod Cachegrind-a. Za takvo profajliranje potrebno je uključiti opcije `--cache-sim=yes` i `--branch-sim=yes`. Stoga Callgrind možemo smatrati i proširenjem Cachegrind -a.
+#### Primer: Studenti
+
+Program učitava imena i prezimena studenata iz datoteke `students.txt` i predmete iz datoteke `subjects.txt` i potom ispisuje informacije o studentima i prosečnim ocenama, po predmetu i u globalu. Ukupno 100 studenata sa po 100 ocena iz svakog od 40 predmeta. Spiskovi sa studentskim rezultatima ispisuju se 10 puta. Analiziramo program Callgrind-om:
+```sh
+$ valgrind --tool=callgrind --cache-sim=yes ./students.out
+```
+
+Otvaramo izveštaj u KCachgrind-u. Gledamo sa leve strane broj pozivanja svake funkcije i broj instrukcija koji je zahtevalo njeno izvršavanje, samostalno i uključujući izvršavanja drugih funkcija koje je pozivala. Sa desne strane moˇzemo izabrati prikaz mape poziva i sa izborom _All Callers_, videćemo koje su sve funkcije pozivale funkciju od interesa.
+
+![callgrind_1](06_profiling/04_valgrind_callgrind/01_students/images/call1_1.png)
+
+Nas zanima zašto se funkcija iz standardne biblioteke toliko puta poziva, 2020 puta. Ako iz alata pogledamo izvorni kod videćemo da se u pri samom početku funkcije `printClass` konstruktor kopije za `std::vector` poziva 10 puta. To je baš broj koliko puta generišemo izveštaj i broj poziva ove funkcije. Problem je što se ceo vektor studenata u funkciju prenosi po vrednosti, a ne po referenci i prilikom svakog poziva vrši se kreiranje kopije za konkretan poziv. Izmenimo kod i primetno ćemo ubrzati izvršavanje programa.
+#### Primer: Prosti brojevi
+
+Program koristi ne tako jeftinu bibliotečku funkciju `sqrt`.
+- Izmeniti funkciju tako da se ne koristi promenljiva limit već da se u uslov for petlje stavi poziv funkcije `sqrt`. Kako to utiče na broj instrukcija programa?
+- Izmenom programa da umesto upotrebe `sqrt` imamo u petlji izlazak ukoliko `i*i > x` stvari se ne popravljaju. Funkcija se poziva 1000000 puta i pre svake naredne iteracije petlje proverava se uslov ostanka u petlji. Koliko god da je brže množenje od korenovanja, pomnoženo sa nekoliko miliona, čak ima i veći broj instrukcija nego funkcija koja koristi korenovanje.
+- Izmeniti uslov petlje na `i < x/2`. Izmeniti petlju tako da se pre petlje proverava za parne brojeve, a posle u petlji da se iterira samo po neparnim brojevima.
+- Sklopiti najefikasniju implementaciju.
+#### Primer: Pretraga niski
+
+Program pretražuje nisku `txt` tražeći podnisku `pat`. U programu se 10 puta vrši pretraga iste niske i iste podniske
+koristeći 3 različita algoritma. Pomoću Callgrind-a možemo utvrditi koji od algoritama najviše instrukcija izvršava.
+#### Primer: Sortiranje
+
+Program izvršava funkcije koje implementiraju različite algoritme sortiranja, na rastu će ili opadajuće sortiranom nizu ili nasumice generisanom nizu celih brojeva. U zavisnosti od izbora ulaznog niza neki algoritmi se pokazuju daleko bolje od očekivanog.
+
+### Helgrind / DRD
+
+Helgrind je alat u sklopu programskog paketa Valgrind koji otkriva
+greške sinhronizacije prilikom upotrebe modela niti `POSIX`.
+
+Glavne apstrakcije modela `POSIX` niti su: grupa niti koji deli
+zajednički adresni prostor, formiranje niti, čekanje na završetak
+izvršavanja funkcije niti, izlaz iz funkcije niti, muteks objekti,
+uslovne promenljive, čitaj-piši zaključavanje i semafori.
+
+Problemi poput ovih imaju kao rezultat nereproduktivne, vremenski
+zavisne padove, mrtve petlje i druga loša ponašanja programa koja se
+mogu teško otkriti drugim sredstvima. *Helgrind* je svestan svih
+apstrakcija niti i prati njihove efekte. Najbolje radi ukoliko program
+koristi isključivo `POSIX` niti. Moguće ga je koristiti i za programe
+koji koriste druge standarde za niti, ali je neophodno opisati
+*Helgrind*-u njihovo ponašanje korišćenjem `ANNOTATE_*` makroa
+definisanih u `helgrind.h` zaglavlju).
+
+*DRD* je *Valgrind*-ov alat za detekciju grešaka u *C* i *C++*
+programima koji koriste više niti. Alat radi za svaki program koji
+koristi niti POSIX standarda ili koji koriste koncepte koji su
+nadograđeni na ovaj standard.
+
+|                              | Helgrind | DRD |
+|------------------------------|----------|-----|
+| Mrtve petlje                 | DA       | NE  |
+| Trka za podacima             | DA       | DA  |
+| Nepravilno korišćenje API-ja | DA       | DA  |
+| Zadržavanje podataka         | NE       | DA  |
+
+Alati *DRD* i *Helgrind* ne koriste iste algoritme za otkrivanje
+grešaka, samim tim ne otkrivaju iste tipove grešaka, iako imaju veliki
+broj poklapanja. Helgrind proizvodi izlaze koji su lakši za
+interpretaciju, dok *DRD* ima bolje performanse.
+
+#### Loša upotreba intefejsa za programiranje `POSIX` niti
+
+Mnoge implementacije interfejsa su optimizovane radi kraćeg vremena
+izvršavanja. Takve implementacije se neće buniti na određene greške (ako
+muteks otključa neka druga nit, a ne ona koja ga je zaključala).
+
+Greške koje Helgrind i DRD pronalaze su:
+
+-   Greške u otključavanju muteksa - kada je muteks nevažeći, nije
+    zaključan ili je zaključan od strane druge niti;
+
+-   Greške u radu sa zaključanim muteksom - uništavanje nevažećeg ili
+    zaključanog muteksa, rekurzivno zaključavanje nerekurzivnog muteksa,
+    dealokacija memorije koja sadrži zaključan muteks;
+
+-   Prosleđivanje muteksa kao argumenta funkcije koja očekuje kao
+    argument `reader-writer lock` i obrnuto;
+
+-   Greške sa `pthread barrier` - nevažeća ili dupla inicijalizacija,
+    uništavanje `pthread barrier` koji nikada nije inicijalizovan ili
+    koga niti čekaju ili čekanje na objekat koji nije nikada
+    inicijalizovan;
+
+-   Greške prilikom korišćenja funkcije `pthread_cond_wait` -
+    prosleđivanje nezaključanog, nevažećeg ili muteksa koga je
+    zaključala druga nit;
+
+-   `Pthread` funkcija vrati kôd greške koji je potrebno dodatno
+    obraditi;
+
+-   Greška kada se nit uništi, a još drži zaključanu promenljivu;
+
+-   Nekonzistentne veze između uslovnih promenljivih i njihovih
+    odgovarajućih muteksa.
+
+Ovakve greške mogu da dovedu do nedefinisanog ponašanja programa i do
+pojave grešaka u programima koje je kasnije veoma teško otkriti.
+*Helgrind* presreće pozive ka funkcijama biblioteke `pthread`, i zbog
+toga je u mogućnosti da otkrije veliki broj grešaka. Za sve `pthread`
+funkcije koje *Helgrind* presreće, generiše se podatak o grešci ako
+funkcija vrati kôd greške, iako *Helgrind* nije našao greške u kôdu.
+Provere koje se odnose na mutekse se takođe primenjuju i na
+`reader-writer lock`. Prijavljena greška prikazuje i primarno stanje
+steka koje pokazuje gde je detektovana greška. Takođe, ukoliko je moguće
+ispisuje se i broj linije u samom kôdu gde se greška nalazi. Ukoliko se
+greška odnosi na muteks, *Helgrind* će prikazati i gde je prvi put
+detektovao problematični muteks.
+
+Primer `01_bad.unlock.c` prikazuje ovakav tip grešaka. Prevodimo program sa opcijom `-pthread` pošto koristimo POSIX niti i pokrećemo Helgrind:
+```sh
+$ valgrind –tool=helgrind -v –log-file=bl.log ./bad_unlock.out
+```
+Opcijom `–log-file=bl.log` zadajemo da nam se izveštaj upiše u datoteku `bl.log`. Vidimo da nam je prijavljen veliki broj grešaka:
+
+```txt
+==24477== ---Thread-Announcement------------------------------------------
+==24477==
+==24477== Thread #1 is the program's root thread
+==24477==
+==24477== ----------------------------------------------------------------
+==24477==
+==24477== Thread #1 unlocked a not-locked lock at 0xFFEFFF720
+==24477==    at 0x4C326B4: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4008DE: nearly_main (01_bad_unlock.c:27)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+==24477==  Lock at 0xFFEFFF720 was first observed
+==24477==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4008B1: nearly_main (01_bad_unlock.c:23)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+==24477==  Location 0xffefff720 is 0 bytes inside local var "mx1"
+==24477==  declared at 01_bad_unlock.c:18, in frame #1 of thread 1
+```
+
+Prijavljena nam je greška u da imamo u 27. liniji otključavanje
+nezaključanog muteksa. Poruka *was first observed* nam dodatno
+objašnjava gde je taj muteks prvi put primećen od strane *Helgrind*-a.
+
+```txt
+==24477== Thread #2 unlocked lock at 0xFFEFFF750 currently held by thread #1
+==24477==    at 0x4C326B4: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x40084D: child_fn (01_bad_unlock.c:11)
+==24477==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==24477==  Lock at 0xFFEFFF750 was first observed
+==24477==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4008F2: nearly_main (01_bad_unlock.c:31)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+==24477==  Location 0xffefff750 is 0 bytes inside local var "mx2"
+==24477==  declared at 01_bad_unlock.c:18, in frame #2 of thread 1
+```
+
+Prijavljen nam je pokušaj da nit koja nije zaključala muteks pokušava da
+ga otključa naredbom u liniji 11.
+
+```txt
+==24477== Thread #1 unlocked an invalid lock at 0xFFEFFF848
+==24477==    at 0x4C326B4: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x40094D: nearly_main (01_bad_unlock.c:41)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+==24477==
+==24477== ----------------------------------------------------------------
+==24477==
+==24477== Thread #1's call to pthread_mutex_unlock failed
+==24477==    with error code 22 (EINVAL: Invalid argument)
+==24477==    at 0x4C327DA: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x40094D: nearly_main (01_bad_unlock.c:41)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+```
+
+Greška je u pokušaju otključavanja promenljive koja nije muteks.
+
+```txt
+==24477== Thread #1 unlocked a not-locked lock at 0xFFEFFF720
+==24477==    at 0x4C326B4: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4008DE: nearly_main (01_bad_unlock.c:27)
+==24477==    by 0x400990: main (01_bad_unlock.c:50)
+==24477==  Lock at 0xFFEFFF720 was first observed
+==24477==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x4008B1: nearly_main (01_bad_unlock.c:23)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+==24477==  Location 0xffefff720 is 0 bytes inside local var "mx1"
+==24477==  declared at 01_bad_unlock.c:18, in frame #1 of thread 1
+```
+
+Greška je u tome što se u liniji 27 otključava već otključani muteks.
+
+```txt
+==24477== Thread #1: Attempt to re-lock a non-recursive lock I already hold
+==24477==    at 0x4C320F4: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x400901: nearly_main (01_bad_unlock.c:32)
+==24477==    by 0x400990: main (01_bad_unlock.c:50)
+==24477==  Lock was previously acquired
+==24477==    at 0x4C321BC: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==24477==    by 0x400901: nearly_main (01_bad_unlock.c:32)
+==24477==    by 0x40096D: main (01_bad_unlock.c:49)
+```
+
+Prijavljuje nam da ponovno zaključavamo muteks koji je nit već ranije
+zaključala u liniji 32 funkcije `nearly_main` iz 49. linije `main` fje.
+Ponovno zaključavanje je nastalo u u liniji 32 funkcije  `nearly_main`
+iz 50. linije `main` funkcije, jer se tada ponovo poziva funkcija
+`nearly_main`. Problematični muteks je ostao zaključan iz prethodnog
+izvšavanja funkcije. Ako na kraju funkcije otključamo muteks `mx2`, rešićemo i ovaj i naredni problem.
+
+```txt
+==24477== Thread #1: Exiting thread still holds 1 lock
+==24477==    at 0x5129748: _Exit (_exit.c:31)
+==24477==    by 0x5096FAA: __run_exit_handlers (exit.c:97)
+==24477==    by 0x5097044: exit (exit.c:104)
+==24477==    by 0x507D836: (below main) (libc-start.c:325)
+```
+
+Greška je što nit završava sa radom, ali nije otključala sve katance
+koje je držala.
+
+Ispravimo greške jednu po jednu sve dok nam *Helgrind* prijavljuje
+nešto. Sada pokrećemo program kroz *Valgrind* sa alatom *drd*.
+
+```sh
+$ valgrind --tool=drd ./bad_unlock.out
+```
+
+```txt
+==8394== drd, a thread error detector
+==8394== Copyright (C) 2006-2015, and GNU GPL'd, by Bart Van Assche.
+==8394== Using Valgrind-3.11.0 and LibVEX; rerun with -h for copyright info
+==8394== Command: ./bad_unlock.out
+==8394==
+---------------------
+==8394== Mutex reinitialization: mutex 0xffefff570, recursion count 0, owner 1.
+==8394==    at 0x4C36719: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==8394==    by 0x4008A1: nearly_main (01_bad_unlock_fixed.c:23)
+==8394==    by 0x40096B: main (01_bad_unlock_fixed.c:51)
+==8394== mutex 0xffefff570 was first observed at:
+==8394==    at 0x4C36719: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==8394==    by 0x4008A1: nearly_main (01_bad_unlock_fixed.c:23)
+==8394==    by 0x400948: main (01_bad_unlock_fixed.c:50)
+==8394==
+==8394== Mutex reinitialization: mutex 0xffefff5a0, recursion count 0, owner 1.
+==8394==    at 0x4C36719: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==8394==    by 0x4008D3: nearly_main (01_bad_unlock_fixed.c:31)
+==8394==    by 0x40096B: main (01_bad_unlock_fixed.c:51)
+==8394== mutex 0xffefff5a0 was first observed at:
+==8394==    at 0x4C36719: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==8394==    by 0x4008D3: nearly_main (01_bad_unlock_fixed.c:31)
+==8394==    by 0x400948: main (01_bad_unlock_fixed.c:50)
+==8394==
+==8394==
+==8394== For counts of detected and suppressed errors, rerun with: -v
+==8394== ERROR SUMMARY: 2 errors from 2 contexts (suppressed: 14 from 6)
+```
+
+Prijavljuje nam da imamo reinicijalizovane mutekse. Prema dokumentaciji
+reinicijalizovanje inicijalizovanog muteksa ima nedefinisano ponašanje i
+stoga nam se prijavljuje greška. Muteksi iako su deklarisani u telu
+funkcije, ne ponašaju se kao obične lokalne promenljive. Dodajemo na
+kraj funkcije `nearly_main` sledeće naredbe:
+```c
+pthread_mutex_destroy(&mx1);
+pthread_mutex_destroy(&mx2);
+```
+
+Pokretanje program kroz *Valgrind* sa alatom *drd* ovaj put prolazi bez
+greške.
+#### Potencijalno blokiranje niti
+
+*Helgrind* prati redosled kojim niti zaključava promenljive. Na ovaj
+način *Helgrind* detektuje potencijalne delove kôda koji mogu dovesti do
+blokiranja niti. Na ovaj način je moguće detektovati greške koje se nisu
+javile tokom samog procesa testiranja programa, već se javljaju kasnije
+tokom njegovog korišćenja.
+
+Ilustracija ovakvog problema:
+
+-   Pretpostavimo da je potrebno zaključati dve promenljive $M1$ i $M2$
+    da bi se pristupilo deljenom objekatu $O$
+
+-   Zatim da dve niti $T1$ i $T2$ žele da pristupe deljenoj promenljivoj
+    $O$. Do blokoranja niti dolazi kada nit $T1$ zaključa $M1$ , a u
+    istom trenutku $T2$ zaključa $M2$. Nakon toga nit $T1$ ostane
+    blokirana jer čeka da se otključa $M2$ , a nit $T2$ ostane blokirana
+    jer čeka da se otključa $T1$.
+
+*Helgrind* kreira graf koji predstavlja sve promenljive koje se mogu
+zaključati, a koje je otkrio u prošlosti. Kada nit naiđe na novu
+promenljivu koju zaključava, graf se osveži i proverava se da li graf
+sadrži krug u kome se nalaze zaključane promenljive. Postojanje kruga u
+kome se nalaze zaključane promenljive je znak da je moguće da će se niti
+nekada u toku izvršavanja blokirati. Ako postoje više od dve zaključane
+promenljive u krugu problem je još ozbiljniji. Alat *DRD* ne otkriva
+ovaj tip grešaka.
+
+Primer `02_dining_philosophers_deadlock` ilustruje deadlock scenario:
+```txt
+==15457== Thread #6: lock order "0x6010E0 before 0x6012C0" violated
+==15457==
+==15457== Observed (incorrect) order is: acquisition of lock at 0x6012C0
+==15457==    at 0x4C321BC: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x40090D: dine(void*) (02_dinning_philosophers_deadlock.cpp:26)
+==15457==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==15457==
+==15457==  followed by a later acquisition of lock at 0x6010E0
+==15457==    at 0x4C321BC: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400937: dine(void*) (02_dinning_philosophers_deadlock.cpp:27)
+==15457==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==15457==
+==15457==  Lock at 0x6010E0 was first observed
+==15457==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400A0E: main (02_dinning_philosophers_deadlock.cpp:48)
+==15457==  Address 0x6010e0 is 0 bytes inside data symbol "_ZL4chop"
+==15457==
+==15457==  Lock at 0x6012C0 was first observed
+==15457==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400A0E: main (02_dinning_philosophers_deadlock.cpp:48)
+==15457==  Address 0x6012c0 is 480 bytes inside data symbol "_ZL4chop"
+```
+
+Ne treba ignorisati činjenicu da nam *Helgrind* prijavljuje narušavanje
+relacije, čak iako vidimo da se program lepo završava. Ako svaki filozof
+samo jednom ruča, može se dogoditi da nemamo zaključavanje, ali ako
+povećamo broj iteracija petlje na 1000 i da svaki filozof želi 1000 puta
+ručati, stvari se komplikuju.
+
+Problem se rešava uvođenjem uređenja nad izborom viljuške, jer se tada
+nameće i relacija *„desilo se pre"*. Staviti raspored da filozof uvek
+bira prvo manju viljušku, pa zatim veću po rednom broju. Kako se sada
+ponaša program?
+
+Program `03_deadlock.c` ostaje zaglavljen u mrtvoj petlji i program se ne završava. Otvorimo kôd i primetimo da se u funkcijama `run1` i `run2` uspavljuje program na 10ms između dva zaključavanja muteksa, `mx1` i `mx2` i pre otključavanja. Stavimo te redove pod komentare, privremeno. Nakon toga, pokretanje programa se uspešno završava. Sada, pokrenimo program kroz *Valgrind* sa alatom *Helgrind*. Prijaviće nam poruku, sa narušenim redosledom zaključavanja muteksa, i kao tako, prijavljuje nam mogućnost da imamo mrtvu petlju.
+
+#### Trka za podacima
+
+Trka za podacima *(eng. Data race)* može da se javi usled nedostatka
+adekvatnog zaključavanja ili sinhronizacije. Pristup podacima bez
+adekvatnog zaključavanja ili sinhronizacije se odnosi na problem kada
+dve ili više niti pristupaju deljenom podatku bez sinhronizacije. Na
+ovaj način je moguće da dve ili više niti u istom trenutku pristupe
+deljenom objektu.
+
+Algoritam detekcije pristupa promenljivoj bez sinhronizacije u okviru
+alata *Helgrind* implementira *„desilo se pre"* relaciju *(eng.
+„happens-before" relation)*. Na primer, kao u gore pokazanom programu,
+nit roditelj kreira nit dete. Zatim obe menjaju vrednost promenljive
+`var`, a zatim nit roditelja čeka da nit deteta izvrši svoju funkciju.
+Ovaj program nije dobro napisan jer ne možemo sa sigurnošću da znamo
+koja je vrednost promenljive `var` prilikom štampanja iste. Ako je nit
+roditelja brža od niti deteta, onda će biti štampana vrednost 10, u
+suprotnom će biti 20. Brzina izvršavanja niti roditelja i deteta je
+nešto na šta programer nema uticaja. Rešenje ovog problema je u
+zaključavanju promenljive `var`. Na primer, možemo da pošaljemo poruku
+iz niti roditelj nakon što ona promeni vrednost promenljive `var`, a nit
+dete neće promeniti vrednost promenljive `var` dok ne dobije poruku. Na
+ovaj način smo sigurni da će program ispisati vrednost 10. Razmena
+poruka kreira *„desilo se pre"* zavisnost između dve dodele vrednost:
+`var = 20;` se događa pre `var = 10;`. Takođe, sada više nemamo pristup
+promenljivoj bez sinhronizacije. Nije obavezno da šaljemo poruku iz niti
+roditelj. Možemo poslati poruku iz niti dete nakon što ona izvrši svoju
+dodelu. Na ovaj način smo sigurni da će se ispisati vrednost 20.
+
+Alat *Helgrind* radi na istom ovom principu. On prati svaki pristup
+memorijskoj lokaciji. Ako se lokacija, u ovom primeru `var`, pristupa iz
+dve niti, Helgrind proverava da li su ti pristupi povezani sa *„desilo
+se pre"* vezom. Ako nisu, alat prijavljuje grešku o pristupu
+promenljivoj bez sinhronizacije. Ako je pristup deljenoj promenljivoj iz
+dve ili više programerske niti povezan sa *„desilo se pre"* relacijom,
+znači da postoji sinhronizacioni lanac između programskih niti koje
+obezbeđuje da se sam pristup odvija po tačno određenom redosledu, bez
+obzira na stvarne stope napretka pojedinačnih niti.
+
+Standardne primitive `pthread` niti kreiraju *„desilo se pre"* relaciju:
+
+-   Ako je muteks otključan od strane niti $T1$ , a kasnije ili odmah
+    zaključan od strane niti $T2$ , onda se sav pristup memoriji iz niti
+    $T1$ pre otključavanja muteksa dešava pre nego onih pristupa iz niti
+    $T2$ nakon njenog zaključavanja muteksa.
+
+-   Ista ideja se odnosi i na `reader-writer` zaključavanje
+    promenljivih.
+
+-   Ako je kondiciona promenljiva signalizirana u funkciji niti $T1$ i
+    ako druga nit $T2$ čeka na taj signal, da bi nastavila sa radom,
+    onda se memorijski pristup u $T1$ dešava pre signalizacije, dok nit
+    $T2$ vrši pristup memoriji nakon što izađe iz stanja čekanja na
+    signal koji šalje nit $T1$.
+
+-   Ako nit $T2$ nastavlja sa izvršavanjem nakon što nit $T1$ oslobodi
+    semafor, onda kažemo da postoji *„desilo se pre"* relacija između
+    programskih niti $T1$ i $T2$.
+
+*Helgrind* presreće sve gore navedene događaje i kreira graf koji
+predstavlja sve *„desilo se pre"* relacije u programu. Takođe, on prati
+sve pristupe memoriji u programu. Ako postoji pristup nekoj memorijskoj
+lokaciji u programu od strane dve niti i *Helgrind* ne može da nađe
+putanju kroz graf od jednog pristupa do drugog, generiše podatak o
+grešci u programu koji analizira. *Helgrind* ne proverava da li postoji
+pristup memorijskoj lokaciji bez sinhronizacije ukoliko se svi pristupi
+toj lokaciji odnose na čitanje sadržaja te lokacije. Dva pristupa
+memorijskoj lokaciji su u *„desilo se pre"* relaciji, i ako postoji
+proizvoljno dugačak lanac sinhronizacije događaja između ta dva
+pristupa. Ako nit $T1$ pristupa lokaciji $M$, zatim signalizira nit $T2$
+, koja kasnije signalizira nit $T3$ koja pristupa lokaciji $M$, kažemo
+da su ova dva pristupa između niti $T1$ i $T3$ u *„desilo se pre"*
+relaciji, iako između njih ne postoji direktna veza.
+
+Pokrenimo Helgrind:
+```txt
+==972== Thread #1 is the program's root thread
+==972==
+==972== ---Thread-Announcement------------------------------------------
+==972==
+==972== Thread #2 was created
+==972==    at 0x51643DE: clone (clone.S:74)
+==972==    by 0x4E46149: create_thread (createthread.c:102)
+==972==    by 0x4E47E83: pthread_create@@GLIBC_2.2.5 (pthread_create.c:679)
+==972==    by 0x4C34BB7: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==972==    by 0x400705: main (simpleDataRace.c:12)
+==972==
+==972== ----------------------------------------------------------------
+==972==
+==972== Possible data race during read of size 4 at 0x60104C by thread #1
+==972== Locks held: none
+==972==    at 0x400706: main (simpleDataRace.c:13)
+==972==
+==972== This conflicts with a previous write of size 4 by thread #2
+==972== Locks held: none
+==972==    at 0x4006C7: child_fn (simpleDataRace.c:6)
+==972==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==972==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==972==  Location 0x60104c is 0 bytes inside global var "var"
+==972==  declared at simpleDataRace.c:3
+==972==
+--972-- warning: evaluate_Dwarf3_Expr: unhandled DW_OP_ 0xf2
+==972== ----------------------------------------------------------------
+==972==
+==972== Possible data race during write of size 4 at 0x60104C by thread #1
+==972== Locks held: none
+==972==    at 0x40070F: main (simpleDataRace.c:13)
+==972==
+==972== This conflicts with a previous write of size 4 by thread #2
+==972== Locks held: none
+==972==    at 0x4006C7: child_fn (simpleDataRace.c:6)
+==972==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==972==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==972==  Location 0x60104c is 0 bytes inside global var "var"
+==972==  declared at simpleDataRace.c:3
+```
+
+*Helgrind* algoritam za detekciju pristupa memoriji bez sinhronizacije
+od prikupljeni informacija  najpre ispisuje podatke gde su niti koje
+uzrokuju grešku napravljene. Glavni podatak o grešci počinje sa
+*„Possible data race during read"*. Zatim se ispisuje adresa gde se
+nesinhronizovan pristup memoriji dešava, kao i veličina memorije kojoj
+se pristupa. Prikazuje stek za obe niti, nit roditelja i nit deteta. U
+nastavku Helgrind ispisuje gde druga nit pristupa istoj lokaciji. Na
+kraju, *Helgrind* pokrenut sa opcijom `–read-var-info=yes` ispisuje i
+samo ime promenljive kojoj se pristupa, kao i gde u programu je ta
+promenljiva deklarisana. Na obe lokacija pristupa promenljivoj
+*Helgrind* ispisuje i sva zaključavanja koja postoje u tom trenutku, ali
+ovde ih nema ni na jednom mestu. Takva informacija je uglavnom korisna
+da se zaključi koja nit nije uspela da zaključa željeni objekat.\
+Kad imamo 2 poziva na steku kako naći uzrok trke za podacima?\
+Kao prvo, ispitati lokacije na koje se referiše u svakom steku. Trebalo
+bi da oba pokazuju na pristup istoj lokaciji, tj. promenljivoj. Potom
+treba utvrditi kako tu lokaciju obezbediti. Ukoliko je već bilo
+planirano da bude zaštićena muteksom, treba zaključati i otključati
+muteks na obe tačke pristupa, čak i ako je na jednom mestu planirano
+samo čitanje. *Helgrind* u momentu pristupa ispisuje i sve katance koje
+u tom trenutku drži nit koja pristupa lokaciji. Ukoliko smo zaboravili
+da zaključamo, tako možemo primetiti.
+
+Možda je namera bila da se lokacija nekim drugim postupkom obezbedi,
+signalizacijom uslovnih promenljivih, npr. U tom slučaju treba pokušati
+da se pronađe dokaz da se raniji pristup u relaciji *„desilo se pre"* sa
+kasnijim pristupom. Činjenica je da *Helgrind* prijavljuje problem sa
+trkom za podacima ako nije uočio *„desilo se pre"* relaciju između dva
+pristupa. Ukoliko je u pravu, onda ni mi ne bi trebalo da možemo da
+nađemo takvu relaciju ni sa detaljnim ispitivanjem izvornog kôda.
+Ispitivanjem kôda ćemo uočiti i gde bi operacije za sinhronizaciju
+trebalo da stoje.\
+*DRD* ispisuje poruku svaki put kada otkrije da je došlo do trke za
+podacima u programu. Treba imati u vidu par sledećih stvari prilikom
+tumačenja ispisa koji nam alat *DRD* daje. Prvo, *DRD* dodeljuje svakoj
+niti jedinstveni broj `ID`. Brojevi koji se dodeljuju nitima kreću od
+jedan i nikada se ne koristi isti broj za više niti. Drugo, termin
+segment se odnosi na sekvencu uzastopnih operacija čuvanja, čitanja i
+sinhronizacije koje se izvršavaju u jednoj niti. Segment uvek počinje i
+završava se operacijom sinhronizacije. Analiza trke za podacima se
+izvršava između dva segmenta umesto između pojedinačnih operacija
+čitanja i čuvanja podataka, isključivo zbog učinka. Na kraju, uvek
+postoje bar dva pristupa memoriji prilikom trke za podacima. *DRD*
+štampa izveštaj o svakom pristupu memoriji koje je dovelo do trke za
+podacima.
+
+Pokrenućemo za prethodni primer sada alat *DRD*:
+```txt
+==24411== Conflicting load by thread 1 at 0x0060104c size 4
+==24411==    at 0x400706: main (simpleDataRace.c:13)
+==24411== Allocation context: BSS section of /home/student/vs/06/helgrind/a.out
+==24411== Other segment start (thread 2)
+==24411==    at 0x51703E1: clone (clone.S:81)
+==24411== Other segment end (thread 2)
+==24411==    at 0x516A807: madvise (syscall-template.S:84)
+==24411==    by 0x4E5394C: start_thread (pthread_create.c:432)
+==24411==
+==24411== Conflicting store by thread 1 at 0x0060104c size 4
+==24411==    at 0x40070F: main (simpleDataRace.c:13)
+==24411== Allocation context: BSS section of /home/student/vs/06/helgrind/a.out
+==24411== Other segment start (thread 2)
+==24411==    at 0x51703E1: clone (clone.S:81)
+==24411== Other segment end (thread 2)
+==24411==    at 0x516A807: madvise (syscall-template.S:84)
+==24411==    by 0x4E5394C: start_thread (pthread_create.c:432)
+```
+
+Pristupi memoriji koji učestvuju u trci za podacima su označeni kao
+*konfliktni* sa prethodnim pristupom. Mora ih biti bar dva od koji je
+bar jedan sa namerom za menjanje podatka na memorijskoj lokaciji. Za
+jedan od pristupa se prikazuje potpun stek poziva, a za ostale delimični
+stek pozivi. Oni uglavnom uključuju početak i kraj segmenta pristupa.
+Ove informacije se mogu protumačiti na sledeći način:
+
+-   Krenuti od dna oba steka poziva, brojati stek okvire sa istim
+    imenima funkcije, izvorne datoteke i broja linije.
+
+-   Naredni viši okvir na steku u oba steka poziva govori između kojih
+    delova izvornog kôda se desio pristup memorijskoj lokaciji.
+
+Problem u ovom primeru je što nemamo sinhronizaciju pristupa
+promenljivoj `var`. Uvođenjem muteksa i zaključavanjem istog prilikom
+pristupa promenljivoj, će rešiti problem.
+#### Zadržavanje katanaca
+
+Prilikom rada niti može doći do pojave zadržavanja katanca *(eng. lock
+contention)*, pri kojoj jedna nit ne može da radi zbog blokiranja drugih
+niti. Dešava se da nit mora da čeka da muteks ili sinhronizacioni
+reader-write objekat budu otključani od strane druge niti. Ovakva pojava
+je nepoželjna u višenitnim sistemima, alat *DRD* otkriva ovaj tip
+problema. Zadržavanje katanaca stvara kašnjenja, koja bi trebalo da budu
+što je moguće kraća. Opcije `–exclusive-threshold=<n>` i
+`–shared-threshold=<n>` omogućavaju da DRD otkrije preterano zadržavanje
+katanca, tako što će prijaviti svako zadržavanje katanca koje je duže od
+zadatog praga. Alat *Helgrind* ne otkriva ovakav tip grešaka.
+
+Pokrenimo DRD za primer `hold_lock.c`. Program dobija preko argumenata komandne linije `-i 500` da bi između zaključavanja i otključavanja muteksa bio uspavan 500ms.
+```sh
+$ valgrind –tool=drd –exclusive-threshold=10 ./hard_lock -i 500
+```
+
+*DRD* nam generiše izveštaj o nitima koje su prekoračile vreme od 10ms
+koje smo zadali opcijom `–exclusive-threshold=10`
+
+```txt
+Locking mutex ...
+==25008== Acquired at:
+==25008==    at 0x4C3725B: pthread_mutex_lock (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400E1C: main (07_hold_lock.c:51)
+==25008== Lock on mutex 0xffefff8f0 was held during 505 ms (threshold: 10 ms).
+==25008==    at 0x4C3818C: pthread_mutex_unlock (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400E4D: main (07_hold_lock.c:55)
+==25008== mutex 0xffefff8f0 was first observed at:
+==25008==    at 0x4C36719: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400E04: main (07_hold_lock.c:49)
+==25008==
+Locking rwlock exclusively ...
+==25008== Acquired at:
+==25008==    at 0x4C3F484: pthread_rwlock_wrlock (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400E94: main (07_hold_lock.c:61)
+==25008== Lock on rwlock 0xffefff920 was held during 502 ms (threshold: 10 ms).
+==25008==    at 0x4C40955: pthread_rwlock_unlock (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400EAD: main (07_hold_lock.c:63)
+==25008== rwlock 0xffefff920 was first observed at:
+==25008==    at 0x4C3E705: pthread_rwlock_init (in /usr/lib/valgrind/vgpreload_drd-amd64-linux.so)
+==25008==    by 0x400E88: main (07_hold_lock.c:60)
+==25008==
+Locking rwlock shared ...
+Done.
+```
+
+Ovako dolazimo do saznanja u kojoj liniji je zaključan neki od katanaca i koliko se dugo držao dok nije otključan.
+
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -1038,4 +2520,16 @@ $ dotnet add package NUnit --version 3.13.3
 `Moq` se jednostavno instalira sa [NuGet repozitorijuma](https://www.nuget.org/packages/Moq) ili uz pomoć IDE-a, ili kroz komandu:
 ```sh
 $ dotnet add package Moq --version 4.18.2
+```
+## Profajleri
+### Valgrind
+
+Valgrind se na većini Linux distribucija može instalirati kroz paket `valgrind`. Npr., za Ubuntu:
+```sh
+$ sudo apt-get install valgrind
+```
+
+Za grafički prikaz izveštaja nekih Valgrind-ovih alata može se koristiti program _KCachegrind_. Instalacija, npr., za Ubuntu:
+```sh
+$ sudo apt-get install kcachegrind
 ```
