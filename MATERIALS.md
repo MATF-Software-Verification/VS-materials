@@ -1169,7 +1169,7 @@ Memcheck prati sve parametre sistemskih poziva. Proverava svaki pojedinačno, be
 Program `02_undefined.c` sadrži dva sistemska poziva sa neinicijalizovanim parametrima. Memcheck je detektovao prvu grešku u prosledivanju neinicijalizovanog parametra `arr` sistemskom pozivu `write()`. Druga je u tome što sistemski poziv `read()` dobija neadresiran prostor. Tre ća greška je u tome što se sistemskom pozivu `exit()` prosleduje nedefinisan argument. Prikazane su nam i linije u samom programu koje sadrže detektovane greške.
 
 ```sh
-$ valgrind --track-origins=yes ./a.out
+$ valgrind --track-origins=yes ./02_undefined.out
 ```
 
 ```txt
@@ -1250,6 +1250,147 @@ Opcijama `--leak-check=full --show-leak-kinds=all` tražimo da nam se prikaže d
 ==3439== still reachable: 14 bytes in 2 blocks
 ==3439== suppressed: 0 bytes in 0 blocks
 ```
+#### Nedopušteno oslobadanje memorije
+
+Memcheck prati svaku alokaciju memorije pozivom funkcija kao što su `malloc` i `calloc`, ali i alokacije uzrokovane konstrukcijom objekata (`new`). Iz tog razloga tačno zna da li je argument funkcije `free`, odnosno `delete`, ispravan ili ne. U sledećem programu isti blok dinamički alocirane memorije se oslobada dva puta. Memcheck prijavljuje tu grešku a potom detektuje i drugu grešku prilikom pokušaja oslobadanje bloka memorije sa adrese koja nije na hipu.
+
+```sh
+$ valgrind --show-leak-kinds=all --leak-check=full --track-origins=yes ./03_malloc.out
+```
+
+```txt
+==3914== Memcheck, a memory error detector
+==3914== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==3914== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==3914== Command: ./3
+==3914==
+==3914== Invalid free() / delete / delete[] / realloc()
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x10919F: main (03_malloc.c:11)
+==3914== Address 0x4a590a0 is 0 bytes inside a block of size 12 free’d
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109193: main (03_malloc.c:10)
+==3914== Block was alloc’d at
+==3914== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109183: main (03_malloc.c:9)
+==3914==
+==3914== Invalid free() / delete / delete[] / realloc()
+==3914== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x1091B3: main (03_malloc.c:14)
+==3914== Address 0x1ffefffd0f is on thread 1’s stack
+==3914== in frame #1, created by main (03_malloc.c:5)
+```
+
+I u ovom programu imamo i pored svega curenje memorije jer 19B bivaju alocirani i potom pokazivač `p` dobije
+vrednost adrese novog prostora. Pokretanjem sa opcijama `--leak-check=full` i `--show-leak-kinds=all` dobijamo
+informaciju da imamo 19B koji su sasvim izgubljeni jer smo izgubili adresu alociranog bloka na hipu.
+
+```txt
+==3914== HEAP SUMMARY:
+==3914== in use at exit: 19 bytes in 1 blocks
+==3914== total heap usage: 2 allocs, 3 frees, 31 bytes allocated
+==3914==
+==3914== 19 bytes in 1 blocks are definitely lost in loss record 1 of 1
+==3914== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3914== by 0x109175: main (03_malloc.c:8)
+==3914==
+==3914== LEAK SUMMARY:
+==3914== definitely lost: 19 bytes in 1 blocks
+==3914== indirectly lost: 0 bytes in 0 blocks
+==3914== possibly lost: 0 bytes in 0 blocks
+==3914== still reachable: 0 bytes in 0 blocks
+==3914== suppressed: 0 bytes in 0 blocks
+==3914==
+==3914== For counts of detected and suppressed errors, rerun with: -v
+==3914== ERROR SUMMARY: 3 errors from 3 contexts (suppressed: 0 from 0)
+```
+#### Nekorektno oslobađanje memorije
+
+U primeru `04_new_delete.cpp` se ne upotrebljavaju odgovaraju ́ce funkcije za oslobadanje dinamiˇcki alocirane memorije. Pokrenimo Memcheck:
+
+```sh
+$ valgrind --track-origins=yes ./04_new_delete.out
+```
+
+```txt
+==4011== Memcheck, a memory error detector
+==4011== Copyright (C) 2002-2017, and GNU GPL’d, by Julian Seward et al.
+==4011== Using Valgrind-3.14.0 and LibVEX; rerun with -h for copyright info
+==4011== Command: ./4
+==4011==
+==4011== Invalid free() / delete / delete[] / realloc()
+==4011== at 0x483997B: free (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==4011== by 0x1091AD: main (04_new_delete.cpp:10)
+==4011== Address 0x4db6c88 is 8 bytes inside a block of size 168 alloc’d
+==4011== at 0x48394DF: operator new[](unsigned long) (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_m
+==4011== by 0x10916B: main (04_new_delete.cpp:8)
+==4011==
+==4011==
+==4011== HEAP SUMMARY:
+==4011== in use at exit: 168 bytes in 1 blocks
+==4011== total heap usage: 2 allocs, 2 frees, 72,872 bytes allocated
+==4011==
+==4011== LEAK SUMMARY:
+==4011== definitely lost: 168 bytes in 1 blocks
+==4011== indirectly lost: 0 bytes in 0 blocks
+==4011== possibly lost: 0 bytes in 0 blocks
+==4011== still reachable: 0 bytes in 0 blocks
+==4011== suppressed: 0 bytes in 0 blocks
+==4011== Rerun with --leak-check=full to see details of leaked memory
+==4011==
+==4011== For counts of detected and suppressed errors, rerun with: -v
+==4011== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
+```
+#### Delimično preklapanje izvorne i ciljne memorije
+
+Program `05_overlap.c` prepisuje nisku u lokaciju koja se preklapa sa onom odakle se prepisuje. Ako unesemo reč `Da`, neće se detektovati gredška, jer prilikom izvrdšavanja za unetu reč neće biti preklapanja. Ponovo pokrenimo program i unesimo reč `dobro`. Memcheck detektuje problem preklapanja memorijskih lokacija sa koje se kopira i one na koju se kopira.
+
+```txt
+==16178== Source and destination overlap in memcpy(0x5204041, 0x5204040, 5)
+==16178== at 0x4C32513: memcpy@@GLIBC_2.14 (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==16178== by 0x400617: main (05_overlap.c:9)
+```
+
+Ukoliko se unese kraća reč od 3 slova ovo će biti jedina gredška koju imamo. Ukoliko unesemo dužu reč na ulazu, `printf` će nam prijaviti pristup neinicilizovanoj vrednosti.
+#### Detekcija neispravnog argumenta pri alokaciji memorije 
+
+Memcheck može da detekuje grešku slanja negativnog argumenta za veličinu alociranog prostora. Program `06_fishy_arguments.c` ilustruje tu grešku. Ukoliko se program pokrene za negativne brojeve neće se ništa desiti jer petlja u tom slučaju neće imati ni jednu iteraciju, pa neće biti ni poziva `malloc` funkcije. Pozivi sa `n < 27` neće biti problematični - sve će se lepo alocirati i osloboditi. Imaćemo samo prijavljeno upozorenje: 
+```txt
+(Warning: set address range perms: large range)
+```
+
+Ovo znači da se velikom bloku memorije menjaju prava pristupa. To upozorenje je namenjeno zapravo najviše Valgrind developerima i možemo ga ignorisati jer će memorija biti alocirana. Ukoliko pokrenemo ponovo Valgrind i za `n` unesemo `28`, dobićemo grešku jer smo prekoračili opseg `int` domena.
+
+```txt
+sada je i = 26 allocated = 1073741824
+==5105== Warning: set address range perms: large range [0x59c89028, 0x99c89058) (noaccess)
+sada je i = 27 allocated = -2147483648B
+==5105== Argument ’size’ of function malloc has a fishy (possibly negative) value: -2147483648
+==5105== at 0x483874F: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==5105== by 0x109219: main (06_fishy_arguments.c:20)
+==5105==
+Realloc failed!
+```
+
+### Massif
+
+Massif je profajer hip memorije - beleži iskorišćen prostor i dodatne bajtove koji se zauzimaju radi poravnanja i vodenja evidencije bajtova u upotrebi. Može da meri i zauzeće memorije na steku, ali to ne radi bez uključivanja dodatne opcije (`--stacks=yes`) jer dosta usporava rad alata. 
+
+Profajliranje hip memorije nam može pomoći da eventalno smanjimo korišćenu memoriju i da otkrijemo neka curenja memorije koja se ne mogu prepoznati Memcheck -om. Prevashodno kad memorija nije još uvek izgubljena, imamo pokazivač, ali nije u upotrebi. Kod takvih programa nepotrebno se povećava memorija koja se koristi tokom vremena. Massif nam može reći i koliko memorije na hipu program koristi i tačnu liniju koda koja je zaslužna za njegovu alokaciju.
+
+Kao i pri upotrebi drugih Valgrind alata, program prevodimo sa informacijama debug sombolima (opcija `-g`). Optimizacija neće uticati na količinu upotrebljene memorije. Massif svoj izveštaj upisuje u datoteku `massif.out.<pid>`, gde je `<pid>` ID procesa. Ukoliko želimo da se upiše u drugu datoteku koristimo opciju `--massif-out-file` i navedemo naziv izlazne datoteke. Informacije iz izveštaja prikazujemo programom `ms_print` prosledujući mu datoteku sa izveštajem.
+
+`ms_print` proizvodi graf koji prikazuje zauzeće memorije tokom izvršavanja programa, kao i detaljnije informacije o različitim tačkama programa koje su odgovorne za alokaciju/dealokaciju memorije. Vrednosti na y osi predstavljaju presek stanja iskorišćenosti memorije u odredenom vremenskom trenutku. Na x osi, Massif podrazumevano koristi broj izvršenih instrukcija kao jedinicu vremena. To se može promeneti opcijom `--time-unit=B` da nam jedinica vremena bude broj bajtova alociran/dealociran na hipu.
+
+Massif pravi preseke stanja iskorišćenosti memorije za svaku alokaciju i dealokaciju hipa, ali ako se program duže izvršava Massif ređe pravi preseke. Kada dostigne maksimalni broj preseka on odbaci oko pola ranijih preseka. Podrazumevan broj preseka koje čuva je 100, ali se to može promeniti opcijom `--max-snapshots`. Detaljnije obradeni preseci su na grafu predstavljeni simbolom `@`. Podrazumevano detaljnije obraduje svaki deseti presek, ali se i to može promeniti opcijom `--detailed-freq`.
+
+```sh
+$ valgrind --tool=massif ./massif_example.out
+```
+
+Na grafu je simbolom `#` predstavljen još jedan detaljan presek koji je obraden i ujedno je i presek sa najvećim iskorišćenjem memorije. Odredivanje preseka sa najvećim iskorišćenjem memorije nije uvek tačno jer Massif uzima u obzir samo preseke kod kojih se desila dealokacija. Time se izbegava mnogo nepotrebnih pravljenja preseka za najveću iskorišćenost memorije, npr. u slučaju da program iz više navrata alocira dosta memorije, i svaki put to je nova najveća iskorišćenost memorije. Takode, ako program nikada ne dealocira memoriju, nećemo ni imati ovakav presek. Takode ako program i dealocira memoriju ali kasnije alocira još veći blok koji kasnije ne oslobodi, imaćemo presek sa najvećom iskorišćenosti memorije, ali će on biti dosta niži od stvarnog.
+
+Alat Massif meri samo hip memoriju, tj. onu koju smo alocirali funkcijama `malloc`, `calloc`, `realloc`, `memalign`, `new`, `new[]`. Ne meri memoriju alociranu sistemskim pozivima kao što su `mmap`, `mremap`, `brk`. Ukoliko nam je od značaja merenje celokupne alocirane memorije, potrebno je uključiti opciju `--pages-as-heap=yes`. Sa ovom opcijom Massif neće profajlirati hip memoriju, već stranice u memoriji.
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
