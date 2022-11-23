@@ -57,3 +57,9 @@ Za grafički prikaz izveštaja nekih Valgrind-ovih alata može se koristiti prog
 ```sh
 $ sudo apt-get install kcachegrind
 ```
+### Perf
+
+Perf se na većini Linux distribucija može instalirati kroz paket `perf`. Npr., za Ubuntu:
+```sh
+$ sudo apt-get install perf
+```

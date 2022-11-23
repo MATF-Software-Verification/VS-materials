@@ -34,7 +34,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 Ova funkcija ne zavisi ni u kojoj meri od *libFuzzer*-a, pa ju je moguće
 i poželjno koristiti i sa drugim alatima za fuzz testiranje npr. AFL i/ili Radamsa.
 
-Važne činjenice o fuzz funkciji (fuzz taget):
+Važne činjenice o fuzz funkciji (fuzz target):
 
 -   Alat za fuzz testiranje će izvršiti ovu funkciju mnogo puta sa
     različitim ulazima u okviru istog procesa.
