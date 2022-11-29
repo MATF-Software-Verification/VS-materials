@@ -27,7 +27,7 @@ biblioteke koju testiramo.
 ```cpp
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     DoSomethingInterestingWithMyAPI(Data, Size);
-    return 0;  // Non-zero return values are reserved for future use.
+    return 0;  // vrednosti osim 0 i -1 su rezervisane
 }
 ```
 

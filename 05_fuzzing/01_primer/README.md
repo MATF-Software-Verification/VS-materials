@@ -5,14 +5,10 @@ Primer `fuzz_me.cpp` prevodimo korišćenjem *clang*-a:
 $ clang++  -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
 ```
 
-Kreiramo direktorijum u koji će nam se čuvati generisani testovi.
-```txt
+Kreiramo direktorijum u koji će nam se čuvati generisani testovi i pokrećemo program:
+```sh
 $ mkdir testovi
-```
-
-i pokrećemo program:
-```
-./fuzz_me testovi/
+$ ./fuzz_me testovi/
 ```
 
 Testovi se generišu variranjem postojećih iz direktorijuma testovi

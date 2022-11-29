@@ -1017,7 +1017,7 @@ biblioteke koju testiramo.
 ```cpp
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
     DoSomethingInterestingWithMyAPI(Data, Size);
-    return 0;  // Non-zero return values are reserved for future use.
+    return 0;  // vrednosti osim 0 i -1 su rezervisane
 }
 ```
 
@@ -1119,14 +1119,10 @@ Primer `fuzz_me.cpp` prevodimo korišćenjem *clang*-a:
 $ clang++  -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
 ```
 
-Kreiramo direktorijum u koji će nam se čuvati generisani testovi.
-```txt
+Kreiramo direktorijum u koji će nam se čuvati generisani testovi i pokrećemo program:
+```sh
 $ mkdir testovi
-```
-
-i pokrećemo program:
-```
-./fuzz_me testovi/
+$ ./fuzz_me testovi/
 ```
 
 Testovi se generišu variranjem postojećih iz direktorijuma testovi
@@ -2159,14 +2155,14 @@ tokom njegovog korišćenja.
 
 Ilustracija ovakvog problema:
 
--   Pretpostavimo da je potrebno zaključati dve promenljive $M1$ i $M2$
-    da bi se pristupilo deljenom objekatu $O$
+-   Pretpostavimo da je potrebno zaključati dve promenljive `M1` i `M2`
+    da bi se pristupilo deljenom objekatu `O`
 
--   Zatim da dve niti $T1$ i $T2$ žele da pristupe deljenoj promenljivoj
-    $O$. Do blokoranja niti dolazi kada nit $T1$ zaključa $M1$ , a u
-    istom trenutku $T2$ zaključa $M2$. Nakon toga nit $T1$ ostane
-    blokirana jer čeka da se otključa $M2$ , a nit $T2$ ostane blokirana
-    jer čeka da se otključa $T1$.
+-   Zatim da dve niti `T1` i `T2` žele da pristupe deljenoj promenljivoj
+    `O`. Do blokoranja niti dolazi kada nit `T1` zaključa `M1` , a u
+    istom trenutku `T2` zaključa `M2`. Nakon toga nit `T1` ostane
+    blokirana jer čeka da se otključa `M2` , a nit `T2` ostane blokirana
+    jer čeka da se otključa `T1`.
 
 *Helgrind* kreira graf koji predstavlja sve promenljive koje se mogu
 zaključati, a koje je otkrio u prošlosti. Kada nit naiđe na novu
@@ -2258,23 +2254,23 @@ obzira na stvarne stope napretka pojedinačnih niti.
 
 Standardne primitive `pthread` niti kreiraju *„desilo se pre"* relaciju:
 
--   Ako je muteks otključan od strane niti $T1$ , a kasnije ili odmah
-    zaključan od strane niti $T2$ , onda se sav pristup memoriji iz niti
-    $T1$ pre otključavanja muteksa dešava pre nego onih pristupa iz niti
-    $T2$ nakon njenog zaključavanja muteksa.
+-   Ako je muteks otključan od strane niti `T1` , a kasnije ili odmah
+    zaključan od strane niti `T2` , onda se sav pristup memoriji iz niti
+    `T1` pre otključavanja muteksa dešava pre nego onih pristupa iz niti
+    `T2` nakon njenog zaključavanja muteksa.
 
 -   Ista ideja se odnosi i na `reader-writer` zaključavanje
     promenljivih.
 
--   Ako je kondiciona promenljiva signalizirana u funkciji niti $T1$ i
-    ako druga nit $T2$ čeka na taj signal, da bi nastavila sa radom,
-    onda se memorijski pristup u $T1$ dešava pre signalizacije, dok nit
-    $T2$ vrši pristup memoriji nakon što izađe iz stanja čekanja na
-    signal koji šalje nit $T1$.
+-   Ako je kondiciona promenljiva signalizirana u funkciji niti `T1` i
+    ako druga nit `T2` čeka na taj signal, da bi nastavila sa radom,
+    onda se memorijski pristup u `T1` dešava pre signalizacije, dok nit
+    `T2` vrši pristup memoriji nakon što izađe iz stanja čekanja na
+    signal koji šalje nit `T1`.
 
--   Ako nit $T2$ nastavlja sa izvršavanjem nakon što nit $T1$ oslobodi
+-   Ako nit `T2` nastavlja sa izvršavanjem nakon što nit `T1` oslobodi
     semafor, onda kažemo da postoji *„desilo se pre"* relacija između
-    programskih niti $T1$ i $T2$.
+    programskih niti `T1` i `T2`.
 
 *Helgrind* presreće sve gore navedene događaje i kreira graf koji
 predstavlja sve *„desilo se pre"* relacije u programu. Takođe, on prati
@@ -2286,9 +2282,9 @@ pristup memorijskoj lokaciji bez sinhronizacije ukoliko se svi pristupi
 toj lokaciji odnose na čitanje sadržaja te lokacije. Dva pristupa
 memorijskoj lokaciji su u *„desilo se pre"* relaciji, i ako postoji
 proizvoljno dugačak lanac sinhronizacije događaja između ta dva
-pristupa. Ako nit $T1$ pristupa lokaciji $M$, zatim signalizira nit $T2$
-, koja kasnije signalizira nit $T3$ koja pristupa lokaciji $M$, kažemo
-da su ova dva pristupa između niti $T1$ i $T3$ u *„desilo se pre"*
+pristupa. Ako nit `T1` pristupa lokaciji `M`, zatim signalizira nit `T2`
+, koja kasnije signalizira nit `T3` koja pristupa lokaciji `M`, kažemo
+da su ova dva pristupa između niti `T1` i `T3` u *„desilo se pre"*
 relaciji, iako između njih ne postoji direktna veza.
 
 Pokrenimo Helgrind:
@@ -2626,7 +2622,7 @@ $ perf stat -B dd if=/dev/zero of=/dev/null count=1000000
 ```
 
 Konkretni događaji se mogu meriti uz pomoć `-e` opcije:
-```
+```sh
 $ perf stat -e cycles dd if=/dev/zero of=/dev/null count=100000
 ```
 
@@ -2714,6 +2710,608 @@ Primer jednog vatrenog grafika:
 
 ![flamegraph](https://www.brendangregg.com/FlameGraphs/cpu-linux-tcpsend.svg)
 
+# KLEE
+
+[KLEE](http://klee.github.io/) je javno dostupan alat koji se distribuira pod licencom NCSA
+otvorenog koda Univerziteta Ilinois. Služi za simboličko izvršavanje
+programa i za automatsko generisanje test primera. KLEE vrši analizu
+nad LLVM međureprezentacijom i koristi SMT rešavač [STP](https://stp.github.io/) za proveravanje uslova
+ispravnosti koje generiše. KLEE koristi nekoliko optimizacija i
+heuristika za poboljšavanje pokrivenosti koda prilikom simboličkog
+izvršavanja. KLEE se koristi i kao sastavni deo raznih platformi za
+razvijanje novih alata za analizu programa. KLEE ima dva cilja:
+1. da pokrije svaku liniju izvornog koda u programu
+1. da detektuje svaku opasnu operaciju ako postoji ijedna ulazna vrednost koja može da prouzrokuje grešku
+
+Ukoliko prilikom generisanja test primera za neku od putanja, KLEE pronađe test primer koji izaziva grešku, onda će pored tog test primera
+biti generisane još dve datoteke:
+-   `test<N>.pc` - uslovi ograničenja koji važe za tu putanju i koji su
+    prosleđeni solveru u `KQuery` sintaksi [@kquery].
+-   `test<N>.<TYPE>.err` - dodatne informacije o grešci
+
+`<TYPE>` označava tip detektovane greške. Neke od grešaka koje KLEE
+može da detektuje su:
+-   **ptr**: Čitanje ili pisanje u nevalidnu memorijsku lokaciju;
+-   **free**: Dupli ili nekorektan poziv funkcije `free()`;
+-   **abort**: Program je pozvao funkciju `abort()`;
+-   **assert**: Uslov proveravan funkcijom `assert` nije tačan;
+-   **div**: Deljenje nulom ili računanje po modulu 0;
+-   **user**: Problem je u vezi sa ulazom (neispravan poziv
+    `klee intrinsic`) ili pogrešan način upotrebe KLEE-a.
+-   **exec**: Dogodio se problem koji je KLEE sprečio u izvršavanju
+    programa, npr. nepoznata instrukcija, poziv preko neispravnog
+    pokazivača na funkciju ili inline funkcije.
+-   **model**: KLEE nije mogao da ispuni kompletnu preciznost i
+    ispituje samo deo svih stanja programa. Na primer, simboličke
+    veličine prosleđene `malloc` funkciji nisu trenutno podržane i u
+    takvim situacijama KLEE konkretizuje taj argument.
+## Primer upotrebe KLEE alata
+
+Naredni primer (`01_intro`) će nas sprovesti kroz osnovne korake pripreme izvornog
+koda za korišćenje alata. Razmotrimo kratak program u kome se testira
+funkcija koja proverava da li je učitan ceo broj paran:
+
+```c
+int even(int x) {
+    if (x % 2 == 0)
+        return 1;
+    if (x % 2)
+        return 0;
+    return 1;
+}
+
+int main(int argc, char* argv[]) {
+    int x;
+    scanf("%d", &x);
+    printf("%d", even(x));
+    return 0;
+}
+```
+
+Možemo primetiti da je poslednja naredba u definiciji funkcije `even`
+nedostižna, odnosno da će se uvek izvršiti prvi ili drugi `return` u
+funkciji.
+
+Priprema programa za simboličko izvršavanje:
+1. uključiti zaglavlje `klee/klee.h`
+1. umesto učitavanja vrednosti promenljive koja nas zanima, označiti je simboličkom pomoću funkcije `klee_make_symbolic`
+1. umesto korišćenja eksterne funkcije za ispis koju KLEE ne može da proveri, povratnu vrednost funkcije `even` ćemo vratiti preko povratne vrednosti funkcije `main`
+
+Argumenti funkcije `klee_make_symbolic`, redom:
+1.  adresa promenljive
+1.  veličina promenljive
+1.  naziv promenljive (proizvoljna niska karaktera)
+
+Opciono: primetili smo da je poslednja linija funkcije `even`
+nedostižna, ali to možemo i potvrditi pozivom funkcije `klee_assert(0)`,
+što će signalizitati grešku alatu ukoliko bude postojala putanja kojom
+se dolazi do poziva ove funkcije. U slučaju da takva putanja ne postoji,
+neće biti signalizirana greška i potvrdiće se pretpostavka da ne postoji
+ulaz za koji je ta naredba dostižna.
+
+**Napomena:** Korišćenje funkcije `klee_assert` zahteva uključivanje zaglavlja `assert.h`.
+
+```c
+#include <assert.h>
+#include <klee/klee.h>
+
+int even(int x) {
+    if (x % 2 == 0)
+        return 1;
+    if (x % 2)
+        return 0;
+    klee_assert(0);
+    return 1;
+}
+
+int main(int argc, char* argv[]) {
+    int x;
+    klee_make_symbolic(&x, sizeof(x), "x");
+    return even(x);
+}
+```
+
+Pomoću Clang kompilatora generišemo LLVM bitkod koji će biti ulaz za KLEE (Clang će kreirati fajl sa nazivom `even.bc`):
+
+```sh
+$ clang -emit-llvm -c -g even.c 
+$ klee even.bc
+```
+
+```txt
+KLEE: output directory is "..."
+Using STP solver backend
+
+KLEE: done: total instructions = 42
+KLEE: done: completed paths = 2
+KLEE: done: generated tests = 2
+```
+
+Na osnovu dobijenog izlaza, postoje dve putanje u našem programu, kao
+što smo i očekivali, u zavisnosti od toga da li je argument paran ili
+neparan po vrednosti. KLEE je generisao direktorijum pod nazivom
+`klee-out-0` sa test primerom za svaku eksploatisanu putanju. Pri
+sledećem pokretanju generisao bi se direktorijum `klee-out-1`, tj. u
+opštem slučaju direktorijum pod nazivom `klee-out-N` za prvo slobodno
+`N`. Takođe, napravljen je i simbolički link `klee-last` koji uvek
+ukazuje na poslednji `klee-out` direktorijum. Ukoliko izlistamo
+direktorijum `klee-out-0`, između ostalog, primetićemo datoteke sa
+ekstenzijom `.ktest`. To su binarne datoteke koje sadrže test primere za
+svaku putanju zasebno i koje se mogu pročitati korišćenjem alata
+`ktest-tool`:
+
+```sh
+$ ktest-tool --write-ints test000001.ktest
+```
+
+```txt
+ktest file : 'test000001.ktest'
+args       : ['even.bc']
+num objects: 2
+object    0: name: 'model_version'
+object    0: size: 4
+object    0: data: 1
+object    1: name: 'x'
+object    1: size: 4
+object    1: data: 0
+```
+
+```sh
+$ ktest-tool --write-ints test000002.ktest
+```
+
+```txt
+ktest file : 'test000002.ktest'
+args       : ['even.bc']
+num objects: 2
+object    0: name: 'model_version'
+object    0: size: 4
+object    0: data: 1
+object    1: name: 'x'
+object    1: size: 4
+object    1: data: 1
+```
+
+Primećujemo da je KLEE generisao ulaz `0` i `1` za pokrivanje dve
+otkrivene putanje, tj. jednu parnu i jednu neparnu ulaznu vrednost.
+
+Da bismo proverili da li naš program daje očekivane izlaze za generisane
+test primere, možemo testirati polazni program korišćenjem vrednosti
+`data` iz pročitanih testova ili koristiti simbolički program
+zahvaljujući posebnoj biblioteci `libkleeRuntest` i koja pozive funkcije
+`klee_make_symbolic` zamenjuje pozivom funkcije koja promenljivoj
+dodeljuje vrednost zapisanu u odgovarajućoj test datoteci.
+
+Testiranje pomoću `libkleeRuntest` biblioteke:
+```sh
+$ export LD_LIBRARY_PATH=/putanja/do/klee/Release+Asserts/lib
+$ gcc \
+    -I /putanja/do/klee/include/ \
+    -L /putanja/do/klee/Release+Asserts/lib even.c \
+    -lkleeRuntest
+$ KTEST_FILE=klee-last/test000001.ktest ./a.out
+$ echo $?
+1
+$ KTEST_FILE=klee-last/test000002.ktest ./a.out
+$ echo $?
+0
+```
+
+Očekivano, nismo dobili poruku od `klee_assert` što potvrđuje
+pretpostavku da je označen deo koda nedostižan za bilo koji ulaz.
+
+Statističke informacije u vezi sa izvršavanjem KLEE alata nad nekim
+bitkodom, kao što su broj izvršenih instrukcija, pokrivenost instukcija
+bitkoda, pokrivenost grana bitkoda i slično, možemo dobiti pomoću Python
+skripta `klee-stats`. Informacije se prikazuju u tabelarnoj formi. Ovaj
+alat se poziva nad direktorijumom koji je generisao KLEE. Da bismo
+bili sigurni da je to najnovija verzija direktorijuma, najjednostavnije
+je alat pozvati sa argumentom `klee-last`.
+```sh
+$ klee-stats klee-last
+```
+```txt
+------------------------------------------------------------------------
+|  Path   |  Instrs|  Time(s)|  ICov(%)|  BCov(%)|  ICount|  TSolver(%)|
+------------------------------------------------------------------------
+|klee-last|      42|     0.06|    12.16|     5.71|     296|       90.36|
+------------------------------------------------------------------------
+```
+
+Legendu za tabelu možemo dobiti pomoću opcije `–help`.
+
+```txt
+LEGEND
+--------  ---------------------------------------------
+Instrs    number of executed instructions
+Time      total wall time (s)
+ICov      instruction coverage in the LLVM bitcode (%)
+BCov      branch coverage in the LLVM bitcode (%)
+ICount    total static instructions in the LLVM bitcode
+TSolver   time spent in the constraint solver
+```
+
+Vizuelni prikaz statistike o simboličkom izvršavanju možemo dobiti
+korišćenjem alata *KCachegrind*:
+
+```sh
+$ kcachegrind klee-last/run.istats
+```
+
+Izborom `CoveredInstructions` ili `UncoveredInstructions` i izborom
+kartice `Source Code` možemo tačno videti koje linije jesu, odnosno nisu
+pokrivene test primerima.
+
+![kcachegrind_coverage](07_klee/01_intro/images/kcache_coverage.png)
+
+Primetimo da brojevi koje sada vidimo su daleko veći od brojevi koje je
+prikazao `klee-stats`. Razlog je to što gcov razmatra samo linije u
+jednoj datoteci, a ne u celoj aplikaciji, dok sa KCachegrind-om možemo
+čitati izlaz gcov-a o pokrivenosti koda i da ispratimo koje su linije
+pokrivene, a koje ne.
+## Primer semantičke greške
+
+Pogledajmo primer neispravne funkcije za proveru parnosti celog broja:
+```c
+int bad_even(int x) {
+    if (x % 2 == 0)
+        return 1;
+    if (x % 2 == 1)
+        return 0;
+    return 1;
+}
+```
+
+Ovaj primer, za razliku od prethodnog ima grešku prilikom provere
+neparnih negativnih brojeva jer je za njih ostatak pri deljenju jednak
+`-1` pa nisu obuhvaćeni drugom `if` naredbom.
+
+Pokušaćemo da korišćenjem KLEE alata otkrijemo ovu grešku i dobijemo
+test primer za koji je dostižna poslednja `return` naredba. Kao i
+malopre, u glavnom programu označavamo simboličku promenljivu i dodajemo
+poziv funkcije `klee_assert(0)` koja će signalizirati grešku pri
+eksploatisanju putanje u kojoj je malopređašnja nedostižna naredba.
+
+Nakon dobijanja LLVM bitkoda `bad_even.bc` i pokretanja KLEE alata:
+```txt
+KLEE: output directory is "klee-out-0"
+Using STP solver backend
+KLEE: ERROR: bad_even.c:12: ASSERTION FAIL: 0
+KLEE: NOTE: now ignoring this error at this location
+
+KLEE: done: total instructions = 39
+KLEE: done: completed paths = 3
+KLEE: done: generated tests = 3
+```
+
+Primetimo da su sada pronađene tri putanje i generisani odgovarajući
+test primeri, ali je i prijavljena greška koju je signalizirala funkcija
+`klee_assert`. Ukoliko pogledamo sadržaj direktorijuma sa test
+primerima, primetićemo da je napravljena datoteka
+`test000002.assert.err` koja nam ukazuje da je gore pomenuta greška
+signalizirana pri drugom test primeru.
+
+Pogledajmo kakav je ulaz u pitanju:
+```sh
+$ ktest-tool --write-ints test000002.ktest
+```
+```txt
+ktest file : 'test000002.ktest'
+args       : ['bad_even.bc']
+num objects: 1
+object    0: name: 'x'
+object    0: size: 4
+object    0: data: -2147483647
+```
+
+KLEE je pronašao da je sporna vrednost ulaza `-2147483647`. Upotrebom
+debagera i korišćenjem sporne ulazne vrednosti može se uočiti mesto
+problema, odnosno da je zaboravljeno da je ostatak pri deljenju sa `2` u
+slučaju negativnih brojeva `-1`, a ne `1`. Očekivano, vreme izvršavanja
+koje je potrošeno na solver je veće nego u slučaju ispravnog programa.
+```sh
+$ klee-stats klee-last
+```
+```txt
+------------------------------------------------------------------------
+|  Path   |  Instrs|  Time(s)|  ICov(%)|  BCov(%)|  ICount|  TSolver(%)|
+------------------------------------------------------------------------
+|klee-last|      39|     0.17|    11.30|     7.14|     292|       93.78|
+------------------------------------------------------------------------
+```
+Generalno, prikazanom upotrebom funkcije `klee_assert` možemo označiti
+putanju za koju smo zainteresovani, bilo da bismo proverili da li je ta
+putanja izvodljiva ili da bismo imali na izlazu označen ulaz kojim se ta
+putanja dostiže.
+## Primer greške u radu sa pokazivačima
+
+U slučaju da postoji putanja programa na kojoj može doći do nepravilnog
+pristupa memorijskim lokacijama, što je čest slučaj pri radu sa
+pokazivačima, `Klee` će sam prijaviti grešku i generisati ulaz na osnovu
+koga možemo popraviti svoj program. Primer ovakvog programa se može videti u primeru `03_err_pointer`.
+
+Označićemo simbolički ulaz i uključiti potrebno zaglavlje i zatim
+sačuvati kod u datoteku `pointer_error_sym.c`. Na osnovu nje ćemo
+napraviti odgovarajući bitkod i pokrenuti alat KLEE. KLEE je
+pronašao `8` putanja i generisao `5` test primera, a pritom je i javio
+`memory error: out of bound pointer`. Test primer koji dovodi do
+prijavljene greške će biti označen posebnom datotekom sa ekstenzijom
+`.ptr.err`. Primetimo da je broj test primera manji od broja istraženih
+putanja.
+
+**BITNO:** `Klee` neće generisati sve moguće ulaze koji dovode do iste
+greške. Ukoliko je tako nešto potrebno, prilikom pokretanja dodati
+opciju `-emit-all-errors`:
+```sh
+$ klee –emit-all-errors pointer_error_sym.bc
+```
+
+Ako uvedemo pomenutu opciju prilikom pokretanja alata KLEE, biće generisano `8` test primera, od čega `4` označena greškom za memoriju. Čitanjem dobijenih test primera, možemo ispraviti sve putanje koje su dovele do problema sa pokazivačima.
+
+Pokrenuti `klee-stats` nad direktorijumom koji je generisan u prvom
+slučaju i sa dodavanjem opcije za emitovanje svih grešaka. Primetiti da
+se jedino razlikuje vreme potrošeno na solver dok je pokrivenost koda i
+grana identična.
+## Korišćenje C bibliotečkih funkcija i simboličkog okruženja
+
+U slučaju da se koristi KLEE za program koji radi sa C bibliotečkim
+funkcijama, potrebno je navesti opcije `–libc=uclibc –posix-runtime`
+koje omogućavaju ispravno linkovanje i dodatne opcije za rad sa
+simboličkim okruženjem. Sa opcijom `–allow-external-sym-calls` se
+omogućava pozivanje spoljnih funkcija sa simboličkim vrednostima u
+programu. [@option]
+
+Dodatne opcije za rad sa simboličkim okruženjem:
+1.  `–sym-arg <N>` - simbolički argument dužine najviše N  
+1.  `–sym-args <MIN> <MAX> <N>` - najmanje MIN, a najviše MAX
+    simboličkih argumenata komandne linije, svi maksimalne dužine N  
+1.  `–sym-files <NUM> <N>` - NUM simboličkih datoteka veličine N (ne
+    uključujući stdin)  
+1.  `–sym-files <NUM> <N>` - NUM simboličkih datoteka veličine N (ne
+    uključujući stdin)  
+1.  `–sym-stdin <N>` - simbolički standardni ulaz veličine N  
+1.  `–sym-stdout` - simbolički standardni izlaz
+
+Nevezano za simboličko okruženje, korisno je koristiti i opciju
+`–optimize` koja eliminiše mrtav kod prilikom eksploatisanja putanji
+čime se dobija na efikasnosti, tj. bržem izvršavanju. Ono što treba
+imati u vidu, svaki poziv eksterne funkcije prilično usložnjava
+pronalaženje putanja i generisanje test primera.
+
+
+### Primer sa simboličkim argumentom komandne linije
+
+Primer `04_libc` sadrži program za validaciju lozinke jednog
+sistema koja se zadaje kao argument komandne linije i za koju jedino
+znamo da je maksimalne dužine `100`. Pretpostaviti da postoji samo jedna
+valjana kombinacija za lozinku. Zadatak je pronaći lozinku bez rešavanja
+zadatih jednačina koje su postavljenje u programu.
+
+Zadatak ćemo rešiti označavanjem putanje koja nas zanima pozivom
+funkcije `klee_assert(0)`, a to je upravo nakon ispisa poruke o uspešno
+pronađenoj lozinki (datoteka `password_sym.c`). Nakon što se generiše
+bitkod `password_sym.bc`, dodajemo potrebne opcije prilikom poziva
+KLEE alata:
+
+```sh
+$ klee –optimize –libc=uclibc –posix-runtime password_sym.bc -sym-arg 100
+```
+
+Nakon što je prošlo par sekundi, može se primetiti da je generisana samo
+jedna poruka o grešci i čak `102` putanje. Da bismo dobili onu koja nas
+zanima, izvući ćemo naziv datoteke ekstenzije `.err` i pročitati
+odgovarajuću `.ktest` datoteku:
+```sh
+$ ls klee-last/*err
+klee-last/test000026.assert.err
+$ ktest-tool test000026.ktest
+```
+```txt
+ktest file : 'test000026.ktest'
+args       : ['password_sym.bc', '-sym-arg', '100']
+num objects: 2
+object    0: name: 'arg0'
+object    0: size: 101
+object    0: data: 'Pandi_panda\x00\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
+\xff\xff\xff\xff\xff\xff\xff'
+object    1: name: 'model_version'
+object    1: size: 4
+object    1: data: 1
+```
+
+Dobili smo da je ulaz `Pandi_panda` koji prati terminirajuća nula
+ispravna lozinka.
+
+## KLEE heuristike
+
+KLEE je primenjen na svih 89 programa u verziji 6.10 paketa GNU 
+Coreutils, koji obuhvata oko 80,000 linija koda biblioteka i 61,000
+linija iz konkretnih programa. Ti programi interaguju sa okruženjem da
+bi omogućili različite funkcionalnosti, kao što je manipulisanje fajl
+sistemom (npr. `ls`, `dd`, `chmod`), prikazivanje i
+konfigurisanje svojstava sistema (npr. `hostname`, `logname`, `printenv`),
+kontrolu poziva komandi (npr. `nohup`, `nice`, `env`), obrada tekstualnih
+datoteka (npr. `sort`, `od`, `patch`), itd.
+
+Svaki program iz paketa Coreutils dolazi sa velikim skupom ručno
+pisanih testova, koji se proširuje sa svakom novo otkrivenom greškom ili
+dodatom opcijom. KLEE je nadmašio ručno pisani skup testova u pogledu
+ukupne pokrivenosti linija (84.5% nasuprot 67.7%) i prosečne pokrivenosti po
+alatu (90.9% nasuprot 68.4%). Postigao je 100% pokrivenost na 16 programa i
+preko 90% na 56 programa dok ručno pisani testovi imaju 100% pokrivenost
+samo na jednom programu (`true`) i preko 90% samo na 7 programa. U
+suštini, za 89h, tj. 1h po programu, KLEE je za 16.8% premašio
+pokrivenost skupa ručno pisanih testova u periodu od 15 godina.
+
+KLEE je pronašao 10 grešaka u Coreutils (uglavnom grešaka sa
+memorijom). U tabeli ispod je dat spisak poziva koje je KLEE
+generisao za pronađene greške. Prve tri greške postoje bar od 1992.
+godine, dok su ostale novije. U trenutku objavljivanja rezultata 
+greška za `seq` je već bila ispravljena u neobjavljenoj verziji, a
+ostale greške su potvrđene i ispravljene u toku od 2 dana od
+prijavljivanja. Dodatno, od tada se u zvaničnom skupu testova nalaze i
+KLEE-om generisani testovi za ove greške.
+
+```txt
+paste -d\\ abcdefghijklmnopqrstuvwxyz
+pr -e t2.txt
+tac -r t3.txt t3.txt
+mkdir -Z a b
+mkfifo -Z a b
+mknod -Z a b p
+md5sum -c t1.txt
+ptx -F abcdefghijklmnopqrstuvwxyz
+ptx x t4.txt
+seq -f %0 1
+```
+```txt
+t1.txt: "\t \tMD5("
+t2.txt: "\b\b\b\b\b\b\b\t"
+t3.txt: "\n"
+t4.txt: "a"
+```
+
+### Korišćenje različitih heuristika za pretragu
+
+KLEE koristi sledeće heuristike za pretragu putanja:
+-   Depth-First Search (DFS)
+-   Random State Search
+-   Random Path Selection
+-   Non Uniform Random Search (NURS)
+
+Heuristika se može izabrati KLEE-ovom opcijom `-search`, npr.
+`-search=dfs`. Za *NURS* se mora dodati opcija za heuristiku kojom se
+dodeljuju težine pojedinim putanjama i tako odlučuje koja će biti
+naredna praćena:
+- `nurs:covnew`: koristi *Coverage-New* heuristiku kojom se daje veća težina putanji koja će pokriti nepokriven deo koda;
+- `nurs:md2u`: koristi *Min-Dist-to-Uncovered* heuristiku kojom se bira putanja najbliža nepokrivenoj instrukciji;
+- `nurs:depth`: koristi *`2^{depth}`* heuristiku
+- `nurs:icnt`: koristi *Instr-Count* heuristiku
+- `nurs:cpicnt`: koristi *CallPath-Instr-Count* heuristiku
+- `nurs:qc`: koristi *Query-Cost* heuristiku
+
+KLEE-u se može zadati da koristi više heuristika na *round-robin*
+način, da bi se sprečilo da pojedine heuristike zaglave u lokalnom
+maksimumu.
+
+Podrazumevana je *random-path* ukomponovan sa `nurs:covnew`.
+
+Moguće zadati željenu heuristiku korišćenjem opcije `–search`.
+Detaljnije informacije u vezi sa parametrima za ovu opciju možete dobiti
+pozivom KLEE-a sa opcijom `–help`.
+
+
+### Testiranje heuristika
+
+Testiraćemo izbor putanja različitih heuristika na primerima koji imaju `N` simboličkih promenljivih i za svaku od njih imamo `if-else` grane. Nakon tih provera imamo i računanje količnika. Zbog toga što je nedozvoljeno deliti nulom, KLEE implicitno za tu naredbu dodaje proveru. Takvo ponašanje se javlja kod svih kritičnih mesta u kôdu. Za svaki broj simboličkih promenljivih imamo 3 verzije programa. Verzije sa sufiksom `-1.c` i `-2.c` imaju deljenje nulom samo na različitim putanjama, dok verzija sa sufiksom `-v.c` nema spornu putanju.
+
+Ukoliko želimo da vidimo za svaki generisani test primer putanju i upit
+koji je slan solveru, prilikom poziva KLEE-a treba zadati opcije
+`–write-paths`.
+
+Za potrebe testiranja dodaćemo i opciju `-exit-on-error` da se prekine
+sa simboličkim izvršavanjem čim se dođe do sporne putanje.
+
+Merenje je automatizovano skriptom `measure_time.sh`.
+
+Pokrećemo sa `./measure_time.sh dfs yes 15` da se dfs heuristika koristi
+za izbor putanje, da nam se generišu sve putanje i upiti za solver i da
+ne pokrećemo programe sa više od 15 simboličkih promenljivih.
+
+Za verzije `*-1.c`, ako se koristi `–search=dfs` opcija, odmah se
+nailazi na spornu putanju. Stoga se test primer za nju generiše uvek kao
+`test1`. Nije ni potrebno čekati kraj cele pretrage jer odmah izbaci
+grešku.
+
+Za verzije `*-2.c`, ako se koristi `–search=dfs` opcija, sporna putanja
+je poslednja koja se obilazi. Do nje neće doći mnogo brzo, vreme zavisi
+od broja putanja koje joj prethode.
+
+Sa `–search=random_path` opcijom primenjenom na programe sa većim brojem
+promenljivih, čak i ne pronađe spornu putanju. Uzrok je vrlo razgranato
+stablo izvršavanja, tj. veliki broj putanja.
+
+Ukoliko otvorimo generisanu datoteku sa izveštajem `report_dfs.txt`
+videćemo da su verzije `*-1.c` uvek ranije dolazile do greške i
+prekidale dalje simboličko izvršavanje. U odgovarajućem direktorijumu
+naći ćemo testove. Za test1 nas interesuje putanja. Primećujemo da je
+uvek birana `else` grana i da smo tako odmah došli do sporne putanje.
+Verzija `*-2.c` je tako napisana da `dfs` heuristikom tek na kraju
+obilazimo spornu putanju. Kod složenijih stabala izvršavanja, tj. kod
+programa sa većim brojem simboličkih promenljivih može se dogoditi i da
+je ne pronađe pre nego što potroši resurse.
+
+Ako imamo `N` promenljivih i za svaku od njih po grananje imamo $2^N$
+putanja. Verovatnoća da heuristika `random-path` ubode spornu putanju je
+`1/{2^N}`. To se može dogoditi ranije ili kasnije, ali se može desiti da
+se i ne isprati ta putanja pre prekoračenja memorijskog prostora, zbog
+prevelike razgranatosti stabla.
+
+Problem sa memorijom nastaje jer je KLEE u suštini program koji se
+izvršava u okviru jednog procesa i ceo stablo mora biti u svakom
+trenutku u memoriji. Očekivano, bolje se performanse u postižu
+paralelizacijom. *Cloud9* je program koji dinamički distribuira delove
+stabla između POSIX niti koje izvršavaju simboličko izvršavanje programa
+bazirano na KLEE-u. Time postiže i bolja pokrivenosti i za kraće
+vreme.
+
+Ipak, ukoliko se iskoristi KLEE-ova opcija `-optimize` primenjuju se
+optimizacije kompajlera i izvršavanje je višestruko brže. Samim tim
+pronalaze se sporne putanje i na programima sa vrlo razgranatim stablom.
+
+
+### Kreiranje nove heuristike za KLEE
+
+Kôd vezan za heuristike u KLEE-u se nalazi u datotekama
+` /build/klee/lib/Core/Searcher.h` i
+` /build/klee/lib/Core/Searcher.cpp`. Nova heuristika treba da bude
+pisana u klasi koja će naslediti klasu `Searcher`. Kôd nove heuristike
+uneti u pomenute datoteke. Navesti ime nove heuristike u
+`CoreSearchType` i dopuniti metode klase `UserSearcher` sa informacijama
+o novoj heuristici. Klasa `Executor` svojom metodom `run` kreira stablo
+izvrašavanja, kreira objekat klase `UserSearcher` i prati i izvršava
+stanja programa, tj. objekata klase `ExecutionState`.
+
+Nakon izmena koda bilo potrebno i ponovo izgraditi KLEE. Zato se treba
+pozicionirati u KLEE-ov direktorijum.
+```sh
+$ cd /klee/dir 
+$ LLVM_VERSION=6.0 SANITIZER_BUILD= BASE="/libc++/path/" \
+    ./scripts/build/build.sh libcxx
+$ mkdir build
+$ cd build
+$ cmake \
+    -DENABLE_SOLVER_STP=ON \
+    -DENABLE_SOLVER_Z3=ON  \
+    -DENABLE_POSIX_RUNTIME=ON \
+    -DENABLE_KLEE_UCLIBC=ON \
+    -DKLEE_UCLIBC_PATH="/klee-uclibc/path/" \
+    -DUSE_CMAKE_FIND_PACKAGE_LLVM=OFF  \
+    -DLLVM_CONFIG_BINARY="/bin/llvm-config" \
+    -DLLVMCC="/bin/clang" \
+    -DLLVMCXX="/bin/clang++" \
+    -DENABLE_DOCS=ON \
+    -DENABLE_DOXYGEN=ON \
+    -DENABLE_KLEE_LIBCXX=ON \
+    -DLIT_ARGS="-v" \
+    -DLIT_TOOL="/usr/bin/"   \
+    -DENABLE_UNIT_TESTS=OFF \
+    -DENABLE_SYSTEM_TESTS=ON \
+    -DCMAKE_BUILD_TYPE="Debug" \
+    ../
+
+$ make   
+$ sudo make install
+```
+
+
+
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -2779,3 +3377,6 @@ Perf se na većini Linux distribucija može instalirati kroz paket `perf`. Npr.,
 ```sh
 $ sudo apt-get install perf
 ```
+## KLEE
+
+KLEE se može instalirati prateći uputstva na zvaničnoj [stranici](https://klee.github.io/getting-started/).

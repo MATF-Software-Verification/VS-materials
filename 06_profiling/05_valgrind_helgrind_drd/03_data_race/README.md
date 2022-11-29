@@ -39,23 +39,23 @@ obzira na stvarne stope napretka pojedinačnih niti.
 
 Standardne primitive `pthread` niti kreiraju *„desilo se pre"* relaciju:
 
--   Ako je muteks otključan od strane niti $T1$ , a kasnije ili odmah
-    zaključan od strane niti $T2$ , onda se sav pristup memoriji iz niti
-    $T1$ pre otključavanja muteksa dešava pre nego onih pristupa iz niti
-    $T2$ nakon njenog zaključavanja muteksa.
+-   Ako je muteks otključan od strane niti `T1` , a kasnije ili odmah
+    zaključan od strane niti `T2` , onda se sav pristup memoriji iz niti
+    `T1` pre otključavanja muteksa dešava pre nego onih pristupa iz niti
+    `T2` nakon njenog zaključavanja muteksa.
 
 -   Ista ideja se odnosi i na `reader-writer` zaključavanje
     promenljivih.
 
--   Ako je kondiciona promenljiva signalizirana u funkciji niti $T1$ i
-    ako druga nit $T2$ čeka na taj signal, da bi nastavila sa radom,
-    onda se memorijski pristup u $T1$ dešava pre signalizacije, dok nit
-    $T2$ vrši pristup memoriji nakon što izađe iz stanja čekanja na
-    signal koji šalje nit $T1$.
+-   Ako je kondiciona promenljiva signalizirana u funkciji niti `T1` i
+    ako druga nit `T2` čeka na taj signal, da bi nastavila sa radom,
+    onda se memorijski pristup u `T1` dešava pre signalizacije, dok nit
+    `T2` vrši pristup memoriji nakon što izađe iz stanja čekanja na
+    signal koji šalje nit `T1`.
 
--   Ako nit $T2$ nastavlja sa izvršavanjem nakon što nit $T1$ oslobodi
+-   Ako nit `T2` nastavlja sa izvršavanjem nakon što nit `T1` oslobodi
     semafor, onda kažemo da postoji *„desilo se pre"* relacija između
-    programskih niti $T1$ i $T2$.
+    programskih niti `T1` i `T2`.
 
 *Helgrind* presreće sve gore navedene događaje i kreira graf koji
 predstavlja sve *„desilo se pre"* relacije u programu. Takođe, on prati
@@ -67,9 +67,9 @@ pristup memorijskoj lokaciji bez sinhronizacije ukoliko se svi pristupi
 toj lokaciji odnose na čitanje sadržaja te lokacije. Dva pristupa
 memorijskoj lokaciji su u *„desilo se pre"* relaciji, i ako postoji
 proizvoljno dugačak lanac sinhronizacije događaja između ta dva
-pristupa. Ako nit $T1$ pristupa lokaciji $M$, zatim signalizira nit $T2$
-, koja kasnije signalizira nit $T3$ koja pristupa lokaciji $M$, kažemo
-da su ova dva pristupa između niti $T1$ i $T3$ u *„desilo se pre"*
+pristupa. Ako nit `T1` pristupa lokaciji `M`, zatim signalizira nit `T2`
+, koja kasnije signalizira nit `T3` koja pristupa lokaciji `M`, kažemo
+da su ova dva pristupa između niti `T1` i `T3` u *„desilo se pre"*
 relaciji, iako između njih ne postoji direktna veza.
 
 Pokrenimo Helgrind:

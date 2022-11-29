@@ -1,3 +1,5 @@
+
+
 # Instalacije
 ## Alati za debagovanje i razvojna okruženja
 
@@ -63,3 +65,6 @@ Perf se na većini Linux distribucija može instalirati kroz paket `perf`. Npr.,
 ```sh
 $ sudo apt-get install perf
 ```
+## KLEE
+
+KLEE se može instalirati prateći uputstva na zvaničnoj [stranici](https://klee.github.io/getting-started/).

@@ -8,14 +8,14 @@ tokom njegovog korišćenja.
 
 Ilustracija ovakvog problema:
 
--   Pretpostavimo da je potrebno zaključati dve promenljive $M1$ i $M2$
-    da bi se pristupilo deljenom objekatu $O$
+-   Pretpostavimo da je potrebno zaključati dve promenljive `M1` i `M2`
+    da bi se pristupilo deljenom objekatu `O`
 
--   Zatim da dve niti $T1$ i $T2$ žele da pristupe deljenoj promenljivoj
-    $O$. Do blokoranja niti dolazi kada nit $T1$ zaključa $M1$ , a u
-    istom trenutku $T2$ zaključa $M2$. Nakon toga nit $T1$ ostane
-    blokirana jer čeka da se otključa $M2$ , a nit $T2$ ostane blokirana
-    jer čeka da se otključa $T1$.
+-   Zatim da dve niti `T1` i `T2` žele da pristupe deljenoj promenljivoj
+    `O`. Do blokoranja niti dolazi kada nit `T1` zaključa `M1` , a u
+    istom trenutku `T2` zaključa `M2`. Nakon toga nit `T1` ostane
+    blokirana jer čeka da se otključa `M2` , a nit `T2` ostane blokirana
+    jer čeka da se otključa `T1`.
 
 *Helgrind* kreira graf koji predstavlja sve promenljive koje se mogu
 zaključati, a koje je otkrio u prošlosti. Kada nit naiđe na novu

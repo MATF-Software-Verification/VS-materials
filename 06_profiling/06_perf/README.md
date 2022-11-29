@@ -157,7 +157,7 @@ $ perf stat -B dd if=/dev/zero of=/dev/null count=1000000
 ```
 
 Konkretni događaji se mogu meriti uz pomoć `-e` opcije:
-```
+```sh
 $ perf stat -e cycles dd if=/dev/zero of=/dev/null count=100000
 ```
 

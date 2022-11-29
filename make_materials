@@ -65,6 +65,8 @@ function collect_materials ()
 }
 
 indent_c_cpp_files_recursively
+echo >> $installing_path
+echo >> $installing_path
 echo "# Instalacije" >> $installing_path
 collect_materials
 cat $installing_path >> $materials_path
