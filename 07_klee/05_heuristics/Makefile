@@ -1,5 +1,5 @@
 CLANG_FLAGS=-emit-llvm -c -g
-CLANG=clang-6.0
+CLANG=clang
 
 default: ex100-1.bc ex011-2.bc ex015-1.bc ex020-v.bc ex030-2.bc ex050-1.bc ex005-v.bc ex010-1.bc ex011-v.bc ex015-2.bc ex002-1.bc 	ex030-v.bc ex050-2.bc ex010-2.bc ex012-1.bc ex015-v.bc ex002-2.bc ex040-1.bc ex050-v.bc ex010-v.bc ex012-2.bc ex020-1.bc ex002-v.bc 	ex040-2.bc ex005-1.bc ex011-1.bc ex012-v.bc ex020-2.bc ex030-1.bc ex040-v.bc ex005-2.bc 
 

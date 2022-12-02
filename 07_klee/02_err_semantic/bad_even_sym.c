@@ -4,6 +4,9 @@
 
 /* funkcija vraca 1 ukoliko je x paran, inace 0 */
 int bad_even(int x) {
+
+    // imamo 4 grane, posto su dva if-a jedan posle drugog
+
     if (x % 2 == 0)
         return 1;
     if (x % 2 == 1)
