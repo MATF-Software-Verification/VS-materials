@@ -1,4 +1,4 @@
-# KLEE
+# Simboličko izvršavanje (alat KLEE)
 
 [KLEE](http://klee.github.io/) je javno dostupan alat koji se distribuira pod licencom NCSA
 otvorenog koda Univerziteta Ilinois. Služi za simboličko izvršavanje
@@ -14,7 +14,7 @@ razvijanje novih alata za analizu programa. KLEE ima dva cilja:
 Ukoliko prilikom generisanja test primera za neku od putanja, KLEE pronađe test primer koji izaziva grešku, onda će pored tog test primera
 biti generisane još dve datoteke:
 -   `test<N>.pc` - uslovi ograničenja koji važe za tu putanju i koji su
-    prosleđeni solveru u `KQuery` sintaksi [@kquery].
+    prosleđeni solveru u `KQuery` sintaksi.
 -   `test<N>.<TYPE>.err` - dodatne informacije o grešci
 
 `<TYPE>` označava tip detektovane greške. Neke od grešaka koje KLEE

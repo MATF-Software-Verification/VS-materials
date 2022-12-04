@@ -68,3 +68,12 @@ $ sudo apt-get install perf
 ## KLEE
 
 KLEE se može instalirati prateći uputstva na zvaničnoj [stranici](https://klee.github.io/getting-started/).
+## Provera modela
+
+### CBMC
+
+[CBMC](https://www.cprover.org/cbmc/) se na većini Linux distribucija može instalirati kroz paket `cbmc`. Npr., za Ubuntu:
+```sh
+$ sudo apt-get install cbmc
+```
+
