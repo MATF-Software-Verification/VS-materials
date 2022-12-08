@@ -447,7 +447,7 @@ State 21 file lock-example.c line 20 function main thread 0
 ----------------------------------------------------
     times=1713006976 (01100110000110100110100110000000)
 
-State 35 file lock-example.c line 31 function main thread 0
+State 35 file lock-example.c line 32 function main thread 0
 ----------------------------------------------------
     got_lock=4294967295 (11111111111111111111111111111111)
 
@@ -457,7 +457,7 @@ State 36 file lock-example.c line 32 function main thread 0
 ```
 
 Shvatamo da se u toj jednoj iteraciji naše petlje dogodilo da je
-izvršena linija `31` i smanjena vrednost od `get_lock`, a s obzirom da je tip
+izvršena linija `32` i smanjena vrednost od `get_lock`, a s obzirom da je tip
 `unsigned int`, dobila je vrednost najvećeg neoznačenog celog broja. To ne
 sme da se dogodi, jer je smisao te promenljive da se poveća kada se
 ostvari zaključavanje i da se smanji na `0` kada se otključa. Izmenimo kod
@@ -736,19 +736,19 @@ $ cbmc 09_abs.c –function abs –signed-overflow-check –show-goto-functions`
 ```
 Svojstva:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-properties`
+$ cbmc 09_abs.c –function abs –signed-overflow-check –show-properties
 ```
 Static Single Assign (SSA):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –program-only`
+$ cbmc 09_abs.c –function abs –signed-overflow-check –program-only
 ```
 Verification condition (VCC):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-vcc`
+$ cbmc 09_abs.c –function abs –signed-overflow-check –show-vcc
 ```
 Verify:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check`
+$ cbmc 09_abs.c –function abs –signed-overflow-check
 ```
 
 ### Uprošćavanje verifikacione formule
