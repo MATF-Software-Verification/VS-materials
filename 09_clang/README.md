@@ -5,7 +5,7 @@
 Clang statički analizator koristi razne implementacije [proveravača](https://clang-analyzer.llvm.org/available_checks.html) (engl. _checkers_) prilikom analize. Proveravači su kategorisani u familije - _podrazumevani_ i _eksperimentalni (alpha)_.
 
 Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje API funkcija, traže mrtav kod i ostale logičke greške. Neke kategorije podrazumevanih proveravača:
-- [Core checkers](https://clang-analyzer.llvm.org/available_checks.html#core_checkers) vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
+- [Core Checkers](https://clang-analyzer.llvm.org/available_checks.html#core_checkers) vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
 - [C++ Checkers](https://clang-analyzer.llvm.org/available_checks.html#cplusplus_checkers) vrše provere specifične za C++ programski jezik
 - [Dead Code Checkers](https://clang-analyzer.llvm.org/available_checks.html#deadcode_checkers) traže mrtav kod
 - [Nullability Checkers](https://clang-analyzer.llvm.org/available_checks.html#nullability_checkers) proveravaju dodele ili prosleđivanje NULL pokazivača u kontekstu gde se ne očekuje NULL pokazivač 
@@ -53,14 +53,24 @@ $ scan-build -internal-stats -stats \
 ```
 
 Česte opcije koje se prosleđuju `scan-build` alatu:
-| Option | Description | | | |
-|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|---|---|
-| -o                                                      | Target directory for HTML report files. Subdirectories will be created as needed to represent separate "runs" of the analyzer. If this option is not specified, a directory is created in /tmp to store the reports. |   |   |   |
-| -h (or no arguments)                                    | Display all scan-build options.                                                                                                                                                                                      |   |   |   |
-| -k --keep-going                                         | Add a "keep on going" option to the specified build command.  This option currently supports make and xcodebuild.   This is a convenience option; one can specify this behavior directly using build options.        |   |   |   |
-| -v                                                      | Verbose output from scan-build and the analyzer. A second and third "-v" increases verbosity, and is useful for filing bug reports against the analyzer.                                                             |   |   |   |
-| -V                                                      | View analysis results in a web browser when the build command completes.                                                                                                                                             |   |   |   |
-| --use-analyzer Xcode or  --use-analyzer [path to clang] | scan-build uses the 'clang' executable relative to itself for static analysis. One can override this behavior with this option by using the 'clang' packaged with Xcode (on OS X) or from the PATH.                  |   |   |   |
+
+| Option | Description |
+|---|---|
+| `-o` | Target directory for HTML report files. Subdirectories will be |
+|      | created as needed to represent separate "runs" of the analyzer. |
+|      | If this option is not specified, a directory is created in `/tmp` |
+|      | to store the reports. |
+| `-h` (or no arguments) | Display all scan-build options. |
+| `-k` `--keep-going` | Add a "keep on going" option to the specified build command. |
+| | This option currently supports make and xcodebuild. |
+| | This is a convenience option; one can specify this |
+| | behavior directly using build options. |
+| `-v` | Verbose output from scan-build and the analyzer. A second |
+| | and third `-v` increase verbosity.
+| `-V` | Open results in a web browser after the build is completed. |
+| `--use-analyzer Xcode` | scan-build uses the 'clang' executable relative to itself for static
+| (`--use-analyzer [clang path]`) | analysis. One can override this behavior with this option by using 
+| |  the 'clang' packaged with Xcode (on OS X) or from the PATH. |
 
 
 Izlaz `scan-build` alata je skup HTML fajlova od kojih svaki predstavlja zaseban izveštaj. Zbirni fajl `index.html` se kreira za lak pristup svim izveštajima. Opcija `-o` se može iskoristiti za promenu putanje gde će se sačuvati izveštaji. Ako opcija `-o` nije navedena, `scan-build` će izveštaje sačuvati u `/tmp` direktorijumu. Putanja do izveštaja će biti ispisana od strane `scan-build` alata. Moguće je automatski otvoriti izveštaje nakon završetka analize zadavanjem opcije `-V`. Alternativno, može se koristiti alat `scan-view` za prikazivanje izveštaja `scan-build` alata.
