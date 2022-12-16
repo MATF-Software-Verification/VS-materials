@@ -4272,7 +4272,7 @@ CBMC-ove korisničke specifikacije.
 Clang statički analizator koristi razne implementacije [proveravača](https://clang-analyzer.llvm.org/available_checks.html) (engl. _checkers_) prilikom analize. Proveravači su kategorisani u familije - _podrazumevani_ i _eksperimentalni (alpha)_.
 
 Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje API funkcija, traže mrtav kod i ostale logičke greške. Neke kategorije podrazumevanih proveravača:
-- [Core checkers](https://clang-analyzer.llvm.org/available_checks.html#core_checkers) vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
+- [Core Checkers](https://clang-analyzer.llvm.org/available_checks.html#core_checkers) vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
 - [C++ Checkers](https://clang-analyzer.llvm.org/available_checks.html#cplusplus_checkers) vrše provere specifične za C++ programski jezik
 - [Dead Code Checkers](https://clang-analyzer.llvm.org/available_checks.html#deadcode_checkers) traže mrtav kod
 - [Nullability Checkers](https://clang-analyzer.llvm.org/available_checks.html#nullability_checkers) proveravaju dodele ili prosleđivanje NULL pokazivača u kontekstu gde se ne očekuje NULL pokazivač 
@@ -4280,6 +4280,8 @@ Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje AP
 - [OS X Checkers](https://clang-analyzer.llvm.org/available_checks.html#osx_checkers) vrše provere specifične za Objective-C i proveravaju upotrebu Apple SDK-a (OS X i iOS)
 - [Security Checkers](https://clang-analyzer.llvm.org/available_checks.html#security_checkers) proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
 - [Unix Checkers](https://clang-analyzer.llvm.org/available_checks.html#unix_checkers) proveravaju upotrebu Unix i POSIX programerskih interfejsa
+
+Dodatno, postoje i [Alpha Checkers](https://clang-analyzer.llvm.org/alpha_checks.html) koji nisu podrazumevano uključeni pošto često daju lažne pozitivne rezultate. Uputstvo za implementaciju proveravača se može naći na sledećem [linku](https://clang-analyzer.llvm.org/checker_dev_manual.html).
 
 Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
 ```sh
@@ -4355,6 +4357,16 @@ Ako želimo deo koda da isključimo iz analize, to možemo uraditi ograđivanjem
 // Kod koji ne treba da se analizira
 #endif
 ```
+
+
+## Primeri
+
+U direktorijumu `09_clang/examples_individual` se mogu pronaći individualni izvorni kodovi koji se mogu analizirati. Primeri se mogu pokrenuti uz pomoć bash skripte `analyze`, dostupne u pomenutom direktorijumu:
+```sh
+$ ./analyze 01_struct_access.c core,security,alpha -v
+```
+
+Primer kompleksnijeg projekta koji koristi `make` sistem za izgradnju se može pronaći u direktorijumu `examples_make`.
 
 # Jezici za programiranje i formalnu verifikaciju (Dafny)
 
