@@ -14,6 +14,8 @@ Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje AP
 - [Security Checkers](https://clang-analyzer.llvm.org/available_checks.html#security_checkers) proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
 - [Unix Checkers](https://clang-analyzer.llvm.org/available_checks.html#unix_checkers) proveravaju upotrebu Unix i POSIX programerskih interfejsa
 
+Dodatno, postoje i [Alpha Checkers](https://clang-analyzer.llvm.org/alpha_checks.html) koji nisu podrazumevano uključeni pošto često daju lažne pozitivne rezultate. Uputstvo za implementaciju proveravača se može naći na sledećem [linku](https://clang-analyzer.llvm.org/checker_dev_manual.html).
+
 Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
 ```sh
 $ clang \
@@ -88,4 +90,14 @@ Ako želimo deo koda da isključimo iz analize, to možemo uraditi ograđivanjem
 // Kod koji ne treba da se analizira
 #endif
 ```
+
+
+## Primeri
+
+U direktorijumu `09_clang/examples_individual` se mogu pronaći individualni izvorni kodovi koji se mogu analizirati. Primeri se mogu pokrenuti uz pomoć bash skripte `analyze`, dostupne u pomenutom direktorijumu:
+```sh
+$ ./analyze 01_struct_access.c core,security,alpha -v
+```
+
+Primer kompleksnijeg projekta koji koristi `make` sistem za izgradnju se može pronaći u direktorijumu `examples_make`.
 
