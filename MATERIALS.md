@@ -4393,7 +4393,7 @@ Tipovi podataka u Dafny jeziku:
 - `array<T>`, `array2<T>`, `array3<T>` ... `arrayN<T>` - nizovni tipovi dimenzije `N`
 - `object` - nadtip svih klasnih tipova
 
-## Metode
+### Metode
 
 Deklaracija metoda ima sledeći oblik:
 ```cs
@@ -4419,7 +4419,7 @@ Podrazumevano, uslovi imaju vrednost `true` dok je `Frame` prazan skup. Ukoliko 
 
 Metode se mogu koristiti kao leme navođenjem ključne reči `lemma` umesto `method`.
 
-## Funkcije
+### Funkcije
 
 Primer definicije funkcije:
 ```cs
@@ -4447,7 +4447,7 @@ function Factorial(n: int): int
 
 Podrazumevano, funkcije su duhovi (`ghost`), dakle ne mogu se pozvati iz koda koji se izvršava. Ovo ponašanje se može pregaziti definisanjem funkcije kao `function method`. Specijalno, funkcije koje imaju povratnu vrednost `bool` se mogu deklarisati navođenjem ključne reči `predicate` umesto `function`.
 
-## Induktivni tipovi
+### Induktivni tipovi
 
 Induktivni tipovi su tipovi čije se vrednosti kreiraju iz fiksiranog skupa konstruktora. Na primer:
 ```cs
@@ -4465,7 +4465,7 @@ t1.Node?    // true
 t0.Node?    // false
 ```
 
-## Naredbe
+### Naredbe
 
 ```cs
 var LocalVariables := ExprList;
@@ -4502,7 +4502,7 @@ break;
 return;
 ```
 
-## Izrazi
+### Izrazi
 
 Izrazi u Dafny jeziku su slični izrazima u C sintaksi, sa malim izmenama/dodacima:
 - `==>` operator implikacije

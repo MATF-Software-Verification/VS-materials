@@ -4,7 +4,7 @@ U okviru [.NET ekosistema](https://dotnet.microsoft.com/) postoji bogat skup rad
 
 ### xUnit
 
-Osim jednostavnog interfejsa za pisanje testova nalik na JUnit u programskom jeziku Java, gde se testovi markiraju odgovarajućim anotacijama (što je i slučaj u xUnit radnom okviru markiranjem metoda atributom `[Fact]`), jedna od najpopularnijih osobina xUnit radnog okvira je mogućnost pisanja _teorija_ - šablona za testove. Umesto da pišemo isti skup pod-testova iznova i iznova za različite podatke (ili umesto da ih izdvajamo u funkcije), možemo zakačiti atribut [^1] `[Theory]`, a unutar atributa `[InlineData]` definisati podatke koji će biti ulaz za test:
+Osim jednostavnog interfejsa za pisanje testova nalik na JUnit u programskom jeziku Java, gde se testovi markiraju odgovarajućim anotacijama (što je i slučaj u xUnit radnom okviru markiranjem metoda atributom `[Fact]` [^1]), jedna od najpopularnijih osobina xUnit radnog okvira je mogućnost pisanja _teorija_ - šablona za testove. Umesto da pišemo isti skup pod-testova iznova i iznova za različite podatke (ili umesto da ih izdvajamo u funkcije), možemo zakačiti atribut [^1] `[Theory]`, a unutar atributa `[InlineData]` definisati podatke koji će biti ulaz za test:
 
 [^1]: Atributi u programskom jeziku C# su donekle ekvivalentni anotacijama u programskom jeziku Java. Za razumevanje primera nije neophodno duboko poznavanje koncepta atributa.
 
