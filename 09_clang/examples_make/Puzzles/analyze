@@ -1,0 +1,4 @@
+#!/bin/bash
+
+scan-build -o tmp -v -enable-checker core,deadcode,optin,security,unix make 
+scan-view tmp/*

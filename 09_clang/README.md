@@ -2,9 +2,9 @@
 
 [Clang](https://clang.llvm.org/) je kompilator otvorenog koda za C familiju jezika. Koristi [LLVM](https://llvm.org/) optimizator i generator koda. Više informacija zajedno sa uputstvima je moguće pronaći u [priručniku](https://clang.llvm.org/docs/UsersManual.html) za Clang kompilator. [Clang statički analizator](https://clang-analyzer.llvm.org/) je deo Clang projekta.
 
-Clang statički analizator koristi razne implementacije [proveravača](https://clang-analyzer.llvm.org/available_checks.html) (engl. _checkers_) prilikom analize. Proveravači su kategorisani u familije - _podrazumevani_ i _eksperimentalni (alpha)_.
+Clang statički analizator koristi razne implementacije [proveravača](https://clang-analyzer.llvm.org/available_checks.html) (engl. _checkers_) prilikom analize. Proveravači su kategorisani u familije - _podrazumevani_ i _eksperimentalni (alpha)_. Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje API funkcija, traže mrtav kod i ostale logičke greške. [Eksperimentalni (alpha) proveravači](https://clang-analyzer.llvm.org/alpha_checks.html) nisu podrazumevano uključeni pošto često daju lažne pozitivne rezultate. Uputstvo za implementaciju proveravača se može naći na sledećem [linku](https://clang-analyzer.llvm.org/checker_dev_manual.html).
 
-Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje API funkcija, traže mrtav kod i ostale logičke greške. Neke kategorije podrazumevanih proveravača:
+Neke kategorije podrazumevanih proveravača:
 - [Core Checkers](https://clang-analyzer.llvm.org/available_checks.html#core_checkers) vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
 - [C++ Checkers](https://clang-analyzer.llvm.org/available_checks.html#cplusplus_checkers) vrše provere specifične za C++ programski jezik
 - [Dead Code Checkers](https://clang-analyzer.llvm.org/available_checks.html#deadcode_checkers) traže mrtav kod
@@ -13,8 +13,6 @@ Podrazumevani proveravači izvršavanju bezbednosne provere, prate korišenje AP
 - [OS X Checkers](https://clang-analyzer.llvm.org/available_checks.html#osx_checkers) vrše provere specifične za Objective-C i proveravaju upotrebu Apple SDK-a (OS X i iOS)
 - [Security Checkers](https://clang-analyzer.llvm.org/available_checks.html#security_checkers) proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
 - [Unix Checkers](https://clang-analyzer.llvm.org/available_checks.html#unix_checkers) proveravaju upotrebu Unix i POSIX programerskih interfejsa
-
-Dodatno, postoje i [Alpha Checkers](https://clang-analyzer.llvm.org/alpha_checks.html) koji nisu podrazumevano uključeni pošto često daju lažne pozitivne rezultate. Uputstvo za implementaciju proveravača se može naći na sledećem [linku](https://clang-analyzer.llvm.org/checker_dev_manual.html).
 
 Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
 ```sh
