@@ -56,21 +56,22 @@ $ scan-build -internal-stats -stats \
 
 | Option | Description |
 |---|---|
-| `-o` | Target directory for HTML report files. Subdirectories will be |
-|      | created as needed to represent separate "runs" of the analyzer. |
-|      | If this option is not specified, a directory is created in `/tmp` |
-|      | to store the reports. |
+| `-o` | Target directory for HTML report files. Subdirectories |
+|      | will be created as needed to represent separate "runs" | 
+|      | of the analyzer. If this option is not specified, a |
+|      | directory is created in `/tmp` to store the reports. |
 | `-h` (or no arguments) | Display all scan-build options. |
-| `-k` `--keep-going` | Add a "keep on going" option to the specified build command. |
-| | This option currently supports make and xcodebuild. |
-| | This is a convenience option; one can specify this |
-| | behavior directly using build options. |
+| `-k` `--keep-going` | Add a "keep on going" option to the specified build |
+|      | command. This option currently supports `make` and 
+|      | `xcodebuild`. This is a convenience option; one can 
+|      | specify this behavior directly using build options. |
 | `-v` | Verbose output from scan-build and the analyzer. A second |
 | | and third `-v` increase verbosity.
 | `-V` | Open results in a web browser after the build is completed. |
-| `--use-analyzer Xcode` | scan-build uses the 'clang' executable relative to itself for static
-| (`--use-analyzer [clang path]`) | analysis. One can override this behavior with this option by using 
-| |  the 'clang' packaged with Xcode (on OS X) or from the PATH. |
+| `--use-analyzer Xcode` | scan-build uses the 'clang' executable relative to itself for 
+|      | static analysis. One can override this behavior with this 
+| (`--use-analyzer [clang path]`) | option by using the `clang` packaged with Xcode |
+|   |  (on OS X) or from the PATH. |
 
 
 Izlaz `scan-build` alata je skup HTML fajlova od kojih svaki predstavlja zaseban izveštaj. Zbirni fajl `index.html` se kreira za lak pristup svim izveštajima. Opcija `-o` se može iskoristiti za promenu putanje gde će se sačuvati izveštaji. Ako opcija `-o` nije navedena, `scan-build` će izveštaje sačuvati u `/tmp` direktorijumu. Putanja do izveštaja će biti ispisana od strane `scan-build` alata. Moguće je automatski otvoriti izveštaje nakon završetka analize zadavanjem opcije `-V`. Alternativno, može se koristiti alat `scan-view` za prikazivanje izveštaja `scan-build` alata.
