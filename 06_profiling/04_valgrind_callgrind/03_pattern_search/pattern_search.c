@@ -71,7 +71,7 @@ void search_boyer(char *txt, char *pat) {
 
 // C++ program for implementation of KMP pattern searching
 // algorithm
-//#include<bits/stdc++.h>
+// #include<bits/stdc++.h>
 
 void computeLPSArray(char *pat, int M, int *lps);
 

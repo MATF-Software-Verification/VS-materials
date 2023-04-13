@@ -1215,6 +1215,9 @@ Za nove (NEW) događaje, izlazna linija sadrži i informacije:
 
 - `MS: <n> <ops>` Broj i lista operacija mutacija koje su korišćene da bi se generisao nov ulaz.
 
+## tmux fuzz testiranje
+
+[Link](https://github.com/tmux/tmux/tree/master/fuzz)
 # Profajliranje
 
 _Profajliranje_ je vrsta dinamičke analize programa (program se analizira tokom izvršavanja) koja se sprovodi kako bi se izmerila, npr. količina memorije koju program zauzima, vreme koje program provodi u određenim funkcijama, iskorišćenost keša itd. Programi koji vrše profajliranje se zovu _profajleri_. Na ovom kursu će biti reči o popularnim profajlerima, njihovim prednosima i manama, uz primere upotrebe.
