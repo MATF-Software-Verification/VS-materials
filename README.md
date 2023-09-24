@@ -1,13 +1,16 @@
 ---
 title: "Verifikacija softvera - Vežbe"
-author: [Ivan Ristović, Ana Vulović]
-date: "2022-10-10"
+author: [Ivan Ristović]
+date: "2023"
 keywords: [Software Verification]
 abstract: |
 
     Kolekcija materijala sa vežbi za kurs [Verifikacija softvera](http://www.verifikacijasoftvera.matf.bg.ac.rs/) na Matematičkom fakultetu, Univerziteta u Beogradu.
 
     Teme i alati rađeni na vežbama:
+    - Dijagnoziranje problema
+        - Alati za analizu performansi Linux sistema
+        - Analiza programa metodom crne kutije
     - Debagovanje koristeći alate za debagovanje i razvojna okruženja
         - [`gdb`](https://www.sourceware.org/gdb/) - debagovanje koda na niskom nivou
         - [`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html) - debagovanje C/C++ kodova
