@@ -1,0 +1,38 @@
+#!/bin/bash
+## /usr/bin/env python3
+
+function usage () 
+{
+    panic "usage: $0 log_path"
+}
+
+function panic () 
+{
+    echo "$@"
+    exit 1
+}
+
+if [ $# -ne 1 ]; then
+    usage "$0"
+fi
+
+output_path="$(pwd)/$1"       # $PWD
+if [ -d "$output_path" ]; then
+    panic "$output_path already exists"
+fi
+
+if ! mkdir -p "$output_path"; then
+    panic "failed to create directory: $output_path"
+fi
+
+function exec_with_log ()
+{
+    log_file_name=$1
+    shift 1
+    "$@" 2>&1 | tee "$output_path/$log_file_name"
+}
+
+set -e;
+exec_with_log vmstat.log vmstat
+exec_with_log sar-net.log sar -n DEV 1 10
+# ...
