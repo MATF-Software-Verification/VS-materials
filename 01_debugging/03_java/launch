@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -xe;
+
+mvn package
+java -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar
+java -javaagent:./agent/target/agent-0.1-SNAPSHOT.jar=$PWD -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar 
+
