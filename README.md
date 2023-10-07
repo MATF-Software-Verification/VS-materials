@@ -34,12 +34,12 @@ abstract: |
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)
-        - [`Intel® VTune™`](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top.html)
+        - [`Intel VTune`](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top.html)
         - [`eBPF`](https://ebpf.io/)
     - Statička analiza
         - [`KLEE`](https://klee.github.io/)
         - [`CBMC`](https://www.cprover.org/cbmc/)
-        - [`Clang` statički analizator](https://clang.llvm.org/)
+        - [`Clang`](https://clang.llvm.org/)
     - Alati i jezici za formalnu verifikaciju softvera
         - [`Dafny`](https://dafny.org/)
 

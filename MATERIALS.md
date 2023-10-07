@@ -10,12 +10,11 @@ abstract: |
     Teme i alati rađeni na vežbama:
     - Dijagnoziranje problema
         - Alati za analizu performansi Linux sistema
-        - Analiza programa metodom crne kutije
+        - Analiza ponašanja programa metodom crne kutije
     - Debagovanje koristeći alate za debagovanje i razvojna okruženja
-        - [`gdb`](https://www.sourceware.org/gdb/) - debagovanje koda na niskom nivou
-        - [`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html) - debagovanje C/C++ kodova
-        <!--- - [`Intellij IDEA`](https://www.jetbrains.com/idea/) - debagovanje Java koda --->
-        <!--- - [`Visual Studio`](https://visualstudio.microsoft.com/) - debagovanje C, C++ i C# kodova --->
+        - Debagovanje na niskom nivou ([`gdb`](https://www.sourceware.org/gdb/))
+        - Debagovanje C/C++ kodova ([`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html))
+        - Debagovanje aplikacija nad JVM (Java) ili CLR (C#) ([`IntelliJ IDEA`](https://www.jetbrains.com/idea/), [`Rider`](https://www.jetbrains.com/rider/))
     - Testiranje jedinica koda
         - Pisanje testabilnog koda
         - [`QtTest`](https://doc.qt.io/qt-6/qttest-index.html)
@@ -29,23 +28,25 @@ abstract: |
     - Testiranje pomoću objekata imitatora
         - Ručno pisanje imitator klasa (C++)
         - Imitatori baza podataka (C#)
-        - [`Moq`](https://github.com/moq) (C#)
-    - Fuzz testiranje (libFuzzer)
+        - Biblioteke za testiranje koristeći objekte imitatore - [`Mockito`](https://site.mockito.org/) (Java), [`Moq`](https://github.com/moq) (C#)
+    - Fuzz testiranje
+        - [`LLVM libFuzzer`](https://llvm.org/docs/LibFuzzer.html)
     - Profajliranje
         - [`Valgrind`](https://valgrind.org/) (memcheck, cachegrind, callgrind, hellgrind, drd)
         - [`perf`](https://perf.wiki.kernel.org/)
-        <!--- - [`Intel® VTune™`](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top.html) --->
+        - [`Intel VTune`](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top.html)
+        - [`eBPF`](https://ebpf.io/)
     - Statička analiza
         - [`KLEE`](https://klee.github.io/)
         - [`CBMC`](https://www.cprover.org/cbmc/)
-        - [`Clang` statički analizator](https://clang.llvm.org/)
+        - [`Clang`](https://clang.llvm.org/)
     - Alati i jezici za formalnu verifikaciju softvera
         - [`Dafny`](https://dafny.org/)
 
 ...
 
 
-# Diagnoziranje problema
+# Dijagnoziranje problema
 
 **Ciljevi**: 
   - Posmatrati program kao crnu kutiju (često ne znamo koji se kod izvršava)
@@ -120,12 +121,12 @@ cpu:
 $ iostat -xmdz 1
 Linux [...]   09/23/2023      _x86_64_        (8 CPU)
 
-Device            r/s     rMB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wMB/s  ...
-dm-0             8.97      0.31     0.00   0.00    0.45    35.22   22.48      0.23  ...
-dm-1             0.06      0.00     0.00   0.00    0.26     5.58    0.07      0.00  ...
-loop0            0.00      0.00     0.00   0.00    0.00     1.27    0.00      0.00  ...
-nvme0n1          6.49      0.31     2.55  28.24    0.27    48.76   12.25      0.23  ...
-sda             25.68      3.00     0.46   1.78    2.95   119.49    0.52      0.08  ...
+Device    r/s     rMB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wMB/s  ...
+dm-0      8.97      0.31     0.00   0.00    0.45    35.22   22.48      0.23  ...
+dm-1      0.06      0.00     0.00   0.00    0.26     5.58    0.07      0.00  ...
+loop0     0.00      0.00     0.00   0.00    0.00     1.27    0.00      0.00  ...
+nvme0n1   6.49      0.31     2.55  28.24    0.27    48.76   12.25      0.23  ...
+sda      25.68      3.00     0.46   1.78    2.95   119.49    0.52      0.08  ...
 
 ^C
 ```
@@ -133,8 +134,8 @@ sda             25.68      3.00     0.46   1.78    2.95   119.49    0.52      0.
 ### `swapon`
 ```sh
 $ swapon -s
-Filename                                Type            Size            Used            Priority
-/dev/dm-1                               partition       17898688        3991268         -2
+Filename    Type            Size            Used            Priority
+/dev/dm-1   partition       17898688        3991268         -2
 ```
 
 ### `mpstat`
@@ -142,16 +143,16 @@ Filename                                Type            Size            Used    
 $ mpstat -P ALL 1
 Linux [...]   09/23/2023      _x86_64_        (8 CPU)
 
-02:37:06 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-02:37:07 PM  all    4.14    0.00    2.01    0.50    0.38    0.25    0.00    0.00    0.00   92.73
-02:37:07 PM    0    3.03    0.00    1.01    0.00    0.00    1.01    0.00    0.00    0.00   94.95
-02:37:07 PM    1    5.94    0.00    2.97    0.00    0.00    0.00    0.00    0.00    0.00   91.09
-02:37:07 PM    2    3.96    0.00    1.98    0.00    0.99    0.99    0.00    0.00    0.00   92.08
-02:37:07 PM    3    4.04    0.00    2.02    0.00    1.01    0.00    0.00    0.00    0.00   92.93
-02:37:07 PM    4    5.00    0.00    1.00    0.00    1.00    0.00    0.00    0.00    0.00   93.00
-02:37:07 PM    5    4.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   95.00
-02:37:07 PM    6    3.06    0.00    3.06    4.08    0.00    0.00    0.00    0.00    0.00   89.80
-02:37:07 PM    7    4.00    0.00    3.00    0.00    0.00    0.00    0.00    0.00    0.00   93.00
+CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+all    4.14    0.00    2.01    0.50    0.38    0.25    0.00    0.00    0.00   92.73
+  0    3.03    0.00    1.01    0.00    0.00    1.01    0.00    0.00    0.00   94.95
+  1    5.94    0.00    2.97    0.00    0.00    0.00    0.00    0.00    0.00   91.09
+  2    3.96    0.00    1.98    0.00    0.99    0.99    0.00    0.00    0.00   92.08
+  3    4.04    0.00    2.02    0.00    1.01    0.00    0.00    0.00    0.00   92.93
+  4    5.00    0.00    1.00    0.00    1.00    0.00    0.00    0.00    0.00   93.00
+  5    4.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   95.00
+  6    3.06    0.00    3.06    4.08    0.00    0.00    0.00    0.00    0.00   89.80
+  7    4.00    0.00    3.00    0.00    0.00    0.00    0.00    0.00    0.00   93.00
 ^C
 ```
 
@@ -258,8 +259,11 @@ lab001.c  lab003.c  lab005.c  lab007.c  lab013.c  README.md
 
 ### Analiza mreže
 
+Osim alata specifično namenjenih za duboku analizu mrežnih protokola (npr. [`Wireshark`](https://www.wireshark.org/)), korisno je znati kako brzo dobiti informacije o ostvarenim konekcijama i programima koji su se vezali na odgovarajuće portove.
+
 #### `tcpdump`
 
+Prikazuje odlazne/dolazne TCP pakete na odgovarajućem portu.
 ```sh
 $ sudo tcpdump dst port 123
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
@@ -272,6 +276,7 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
 
 #### `netstat` / `ss`
 
+Prikazuju informacije o konekcijama i soketima, konfigurabilni po protokolu i stanju.
 ```sh
 $ netstat -tulnp
 Active Internet connections (only servers)
@@ -293,6 +298,7 @@ udp6       0      0 :::5353                 :::*                                
 udp6       0      0 :::46653                :::*                                -
 ```
 
+`netstat` zamenjuje kompletniji alat `ss`.
 ```sh
 $ ss -tunpl
 Netid State  Recv-Q Send-Q  Local Address:Port    Peer Address:Port Process
@@ -355,8 +361,7 @@ Average:     nordlynx      1.00      2.00      0.34      1.08      0.00      0.0
 ## Primeri
 
 Primeri preuzeti sa [perf-labs](https://github.com/brendangregg/perf-labs) repozitorijuma [Brendana Gregg-a](https://www.brendangregg.com/), korišćeni tokom [prezentacije o alatima za merenje peformansi Linux kernel-a](https://youtu.be/FJW8nGV4jxY).
-
-### lab002 
+- lab002 
 ```sh
 $ top
 $ mpstat
@@ -369,7 +374,7 @@ $ vmstat 1
 $ strace -p $(pgrep lab002)
 ```
 
-### lab005
+- lab005
 
 USE (Utilization, Saturation, Errors) metodologija:
   - proverimo CPU, memoriju, disk, network IO
@@ -382,7 +387,7 @@ $ iostat -x 1        # primetimo da je disk vrlo zauzet
 $ sar -n DEV 1       # network IO nije problem
 ```
 
-### lab003
+- lab003
 
 ```sh
 $ vmstat 1           # veliki system i user time
@@ -422,25 +427,7 @@ Pokrenuti debug sesiju. Isprobati debug akcije za kontrolisanje izvršavanja pro
 - `Step out`
 - `Set/Remove breakpoint`
 
-Možemo testirati ponašanje programa tako što prvo unesemo ispravnu lozinku `MyPassword` a zatim i proizvoljnu neispravnu lozinku (npr. `SomePassword`). Program se naizgled ispravno ponaša ali to ne znači da je u potpunosti ispravan.
-
-Posmatrajući definicije promenljivih `password` i `ok`, možemo zaključiti da će se one na steku naći jedna do druge. Proverimo da li je zaista tako: desnim klikom na promenljive u prozoru za prikaz promenljivih na steku selektovati opciju `Open Memory Editor -> ... at object address ...`. Nastaviti izvršavanje i primetiti inicijalizaciju memorije za promenljivu `ok`. Pošto je promenljiva `password` neposredno pre promenljive `ok` u memoriji, i pošto se sadržaj promenljive `password` unosi sa standardnog ulaza, ukoliko uspemo da pređemo granice promenljive `password` onda možemo upisati proizvoljnu vrednost u promenljivu `ok` (pa i `"yes"`)!
-
-Posmatrajmo isečak koda:
-```c
-  scanf ("%s", password);
-```
-
-`scanf` nam ne garantuje da će učitati najviše `16` karaktera (koliko smo rezervisali za promenljivu `password`). Testirajmo ponašanje za niske dužine veće od 16 karaktera, npr. `WillThisPassNow?yes`. Vidimo da smo dobili privilegije iako lozinka nije ispravna.
-
-Postavimo uslovni _breakpoint_ nakon poziva `scanf`, da se program zaustavi ukoliko se promeni vrednost promenljive `ok`. Desnim klikom na `Breakpoint` i selekcijom opcije `Edit Breakpoint` možemo definisati uslov `ok != "no"` u `Condition` polju. Možemo takođe pratiti inicijalizaciju promenljive `ok` u `Memory Editor`-u. Nakon što se vrednost promeni, možemo je ručno vratiti na `"no"`.
-
-Tok izvršavanja možemo pratiti i preko prikaza steka, odakle možemo videti redosled pozivanja funkcija. Konkretnu liniju u kodu koja je sledeća za izvršavanje, QT obeležava žutom strelicom levo od koda. Ukoliko se dogodi da smo mnogo napredovali i želimo da se pomerimo na neku ranije naredbu, dovoljno je da strelicu prevučemo na naredbu koja nam je potrebna, bez potrebe za ponovnim pokretanjem programa. Za ispekciju asemblerskog koda možemo otvoriti _Disassembler_ prozor.
-
-Ostaje pitanje - šta naš program radi ukoliko je lozinka toliko dugačka da prevazilazi veličinu steka (npr. `ThisPasswordSimplyExceedsMaximumLengthAvailableOnStack`)? Dobićemo poruku `*** stack smashing detected ***`. To je posledica opcije `gcc`-a `-fstack-protector` koja generiše zaštitnu promenljivu koja je se dodeljuje osetljivim funkcijama. Osetljivim se smatraju one funkcije koje koriste dinamičku alokaciju ili imaju bafere veće od `8B`. Zaštitna promenljiva se inicijalizuje pri ulasku u funkciju i proverava se na izlasku. Ukoliko provera ne bude tačna, štampa se prikazana poruka i program prekida sa izvršavanjem. Ukoliko želimo da učinom kod još ranjivijim na ovakve napade, možemo pomenutu zaštitu isključiti opcijom `-fno-stack-protector`. U slučaju Qt projekta potrebno je dodati ovu opciju u `QMAKE_CFLAGS` promenljivu. U definiciji projekta (datoteci ekstenzije `.pro`) uneti sledeći red a zatim pozvati `qmake` i izvršiti ponovno prevoženje projekta:
-```
-QMAKE CFLAGS += -fno-stack-protector
-```
+**TODO:** Opis
 
 Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre programerske prakse i da se:
 - preoverava upravljanje memorijom tokom programa koristeci neki od alata poput `valgrind memcheck`
@@ -595,7 +582,7 @@ Testove da li se mreža ispravno kreira na osnovu konfiguracije možemo lako nap
 
 Da bismo implementirali ručne konfiguracije, primetimo da je `model.conf.GliderConfiguration` jedna implementacija ručne konfiguracije. Možemo da implementiramo naše specifične konfiguracije na sličan način, međutim imali bismo ponavljanje koda pošto bi se jedino menjao konstruktor klase. Apstrahujmo `GliderConfiguration` implementaciju - dodajemo klasu `ManualConfiguration` i menjamo klasu `GliderConfiguration` da nasleđuje klasu `ManualConfiguration`. Sada naše test konfiguracije mogu da instanciraju `ManualConfiguration` sa odgovarajućom konfiguracijom mreže, a takođe aplikacija može da se proširi dodavanjem novih predefinisanih konfiguracija.
 
-Slično kao u [kalkulator](../01_cpp_calculator/) primeru, treba apstrahovati rad sa standardnim izlazom kako bismo mogli da testiramo prikaz stanja igre. Prikaz stanja se trenutno vrši u glavnoj klasi aplikacije, što takođe nije optimalno. Dodajmo `views` paket sa implementacijom `View` interfejsa koji predstavlja apstraktnu implementaciju prikaza aplikacije. Sada možemo kreirati implementaciju koja ispisuje stanje igre na proizvoljni izlazni tok (`PrintStreamView`) odnosno `System.out` ukoliko izlazni tok nije naveden. Logiku ispisa stanja igre pomeramo iz `app.GameOfLife` u `view.ConsoleView`. 
+Slično kao u [kalkulator](02_refactoring/01_cpp_calculator) primeru, treba apstrahovati rad sa standardnim izlazom kako bismo mogli da testiramo prikaz stanja igre. Prikaz stanja se trenutno vrši u glavnoj klasi aplikacije, što takođe nije optimalno. Dodajmo `views` paket sa implementacijom `View` interfejsa koji predstavlja apstraktnu implementaciju prikaza aplikacije. Sada možemo kreirati implementaciju koja ispisuje stanje igre na proizvoljni izlazni tok (`PrintStreamView`) odnosno `System.out` ukoliko izlazni tok nije naveden. Logiku ispisa stanja igre pomeramo iz `app.GameOfLife` u `view.ConsoleView`. 
 ## C# - REST API klijent primer
 
 Aplikacija je primer [RESTful API](https://aws.amazon.com/what-is/restful-api/) klijenta koji prikazuje trenutnu temperaturu i dnevnu prognozu tako što kontaktira servis [OpenWeather](https://openweathermap.org/), tačnije njegov [API server](https://openweathermap.org/api) (*Napomena: pokretanje primera zahteva ključ koji aplikacija traži u fajlu `key.txt`*). Detalji funkcionalnosti ovog servisa nisu od značaja za razumevanje ovog primera. Pojednostavljeno, klijent će serveru poslati HTTP zahtev za odgovarajućim resursom (trenutna temperatura, prognoza, i sl.) i server će poslati objekat sa odgovarajućim informacijama serijalizovanim u JSON. Pogledajmo implementaciju:

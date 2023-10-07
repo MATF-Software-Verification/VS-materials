@@ -1,0 +1,14 @@
+\usepackage{fancyvrb,newverbs,xcolor}
+
+% inline code
+\definecolor{Light}{gray}{.95}
+\setlength\fboxsep{0pt}
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{
+  \colorbox{Light}{\oldtexttt{#1}}
+}
+
+% code block
+\renewenvironment{Shaded} {\begin{snugshade}\footnotesize} {\end{snugshade}}
+\def\verbatim@font{\linespread{1}\normalfont\ttfamily}
+

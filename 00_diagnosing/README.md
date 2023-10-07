@@ -1,4 +1,4 @@
-# Diagnoziranje problema
+# Dijagnoziranje problema
 
 **Ciljevi**: 
   - Posmatrati program kao crnu kutiju (često ne znamo koji se kod izvršava)
@@ -211,8 +211,11 @@ lab001.c  lab003.c  lab005.c  lab007.c  lab013.c  README.md
 
 ### Analiza mreže
 
+Osim alata specifično namenjenih za duboku analizu mrežnih protokola (npr. [`Wireshark`](https://www.wireshark.org/)), korisno je znati kako brzo dobiti informacije o ostvarenim konekcijama i programima koji su se vezali na odgovarajuće portove.
+
 #### `tcpdump`
 
+Prikazuje odlazne/dolazne TCP pakete na odgovarajućem portu.
 ```sh
 $ sudo tcpdump dst port 123
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
@@ -225,6 +228,7 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
 
 #### `netstat` / `ss`
 
+Prikazuju informacije o konekcijama i soketima, konfigurabilni po protokolu i stanju.
 ```sh
 $ netstat -tulnp
 Active Internet connections (only servers)
@@ -246,6 +250,7 @@ udp6       0      0 :::5353                 :::*                                
 udp6       0      0 :::46653                :::*                                -
 ```
 
+`netstat` zamenjuje kompletniji alat `ss`.
 ```sh
 $ ss -tunpl
 Netid State  Recv-Q Send-Q  Local Address:Port    Peer Address:Port Process

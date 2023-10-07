@@ -81,7 +81,7 @@ pandoc MATERIALS.md \
     --variable version=2.0 \
     --pdf-engine=xelatex \
     --include-in-header _pandoc/header.tex \
-    --include-in-header _pandoc/inline_code.tex \
+    --include-in-header _pandoc/code.tex \
     --highlight-style _pandoc/pygments.theme \
     -V colorlinks=true \
     --toc -V toc-title="Sadržaj" \
