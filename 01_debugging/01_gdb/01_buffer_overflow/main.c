@@ -5,15 +5,18 @@
 int debug = 0;
 const int PWD_SIZE = 16;
 
-#define dbg(fmt, args) if (debug) { printf("DEBUG: "); printf(fmt, args); }
+#define dbg(fmt, args)                                                         \
+    if (debug) {                                                               \
+        printf("DEBUG: ");                                                     \
+        printf(fmt, args);                                                     \
+    }
 
-int main()
-{
+int main() {
     char pwd[PWD_SIZE];
     int privileged = 0;
     char *sensitive_data = "xxxxxxxxxxxxxxx";
 
-    char* secret = getenv("SECRET");
+    char *secret = getenv("SECRET");
     if (secret == NULL) {
         secret = "ThisIsASecretPassword";
     }
