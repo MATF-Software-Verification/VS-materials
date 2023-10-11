@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -xe;
+
+src=HelloWorld
+img="${src:-out}.image"
+
+javac $src.java 
+java $src -arg1 -arg2
+
+$GRAALVM_HOME/bin/native-image \
+    -H:+UnlockExperimentalVMOptions -H:+SourceLevelDebug -H:-DeleteLocalSymbols \
+    -O0 "$@" -o "$img" -g "$src"
+./"$img" -arg1 -arg2
+

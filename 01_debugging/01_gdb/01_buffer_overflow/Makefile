@@ -1,2 +1,2 @@
 sample: main.c
-	gcc -fno-stack-protector $^ -o $@
+	gcc -g -fno-stack-protector $^ -o $@
