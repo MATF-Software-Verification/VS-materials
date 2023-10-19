@@ -3,14 +3,24 @@
 Primeri preuzeti sa [perf-labs](https://github.com/brendangregg/perf-labs) repozitorijuma [Brendana Gregg-a](https://www.brendangregg.com/), korišćeni tokom [prezentacije o alatima za merenje peformansi Linux kernel-a](https://youtu.be/FJW8nGV4jxY).
 - lab002 
 ```sh
+# CPU
 $ top
+$ htop
 $ mpstat
+$ mpstat 1
+$ mpstat -P ALL 1
+
+# IO
 $ iotop 
 $ iostat -x 1
+$ vmstat 1
+
+# network
+$ sar -n DEV 1 
 $ netstat -tulnp
 $ ss -tunlp
-$ sar -n DEV 1 
-$ vmstat 1
+
+# trace LISTEN
 $ strace -p $(pgrep lab002)
 ```
 
@@ -36,7 +46,7 @@ $ iostat -x 1        # da li je disk uzrok?
 $ sar -n DEV 1       # da li je mreza uzrok?
 $ vmstat 1           # da li swapujemo?
 
-$ strace -tp (pgrep lab003) 2>&1 | head -n 100
+$ strace -tp $(pgrep lab003) 2>&1 | head -n 100
 # vidimo da aplikacija cita 0 bajtova u petlji
 ```
 
