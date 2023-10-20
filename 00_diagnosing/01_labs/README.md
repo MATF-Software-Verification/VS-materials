@@ -26,8 +26,7 @@ $ strace -p $(pgrep lab002)
 
 - lab005
 
-USE (Utilization, Saturation, Errors) metodologija:
-  - proverimo CPU, memoriju, disk, network IO
+USE (Utilization, Saturation, Errors) metodologija: proverimo CPU, memoriju, disk, network IO
 
 ```sh
 $ htop               # primetimo kernel vreme, idle time i wait-io
