@@ -1,0 +1,33 @@
+#!/bin/bash
+
+echo "JAVA_HOME=$JAVA_HOME"
+if [ -z "$JAVA_HOME" ]; then
+    echo "JAVA_HOME not set"
+    exit 1
+fi
+
+set -xe;
+
+# Compile Java sources
+$JAVA_HOME/bin/javac HelloWorld.java
+
+# Generate .h files
+$JAVA_HOME/bin/javac -h . HelloWorld.java
+
+# Generate .o files
+rm -f *.o 
+gcc -shared -Wall -Werror -g \
+    -I"$JAVA_HOME"/include\
+    -I"$JAVA_HOME"/include/linux \
+    -o libHelloWorld.so -fPIC \
+    HelloWorld.c
+
+# Set library path for JVM
+export LD_LIBRARY_PATH=./
+
+# Run the app
+$JAVA_HOME/bin/java HelloWorld &
+pid=$!
+
+gdb -p $pid
+kill $pid
