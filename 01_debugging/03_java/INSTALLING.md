@@ -10,7 +10,7 @@ $ apt-get install maven
 $ mvn -version
 ```
 
-Za neke alate je neophodno postaviti `JAVA_HOME` promenljivu okruženja na direktorijum JDK instalacije:
+Za neke alate i skripte je neophodno postaviti `JAVA_HOME` promenljivu okruženja na direktorijum JDK instalacije:
 ```sh
 $ export JAVA_HOME=/path/to/jdk
 $ $JAVA_HOME/java -version
