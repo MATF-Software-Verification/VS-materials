@@ -29,10 +29,4 @@ Pokrenuti debug sesiju. Isprobati debug akcije za kontrolisanje izvršavanja pro
 - `Step out`
 - `Set/Remove breakpoint`
 
-**TODO:** Opis
-
-Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre programerske prakse i da se:
-- preoverava upravljanje memorijom tokom programa koristeci neki od alata poput `valgrind memcheck`
-- upotrebljava `fgets()` funkcije umesto `gets()` ili `scanf()` koje ne vrše provere granica promenljivih.
-- upotrebljava `strncmp()` umesto `strcmp()`, `strncpy()` umesto `strcpy()`, itd.
 

@@ -25,9 +25,9 @@ int main() {
         debug = 1;
     }
 
-    dbg("Address of user input array:'\t%p\n", pwd);
-    dbg("Address of password check var:\t%p\n", &privileged);
-    dbg("Address of stored secret array:\t%p\n", secret);
+    dbg("Address of user input array    : %p\n", pwd);
+    dbg("Address of password check var  : %p\n", &privileged);
+    dbg("Address of stored secret array : %p\n", secret);
     dbg("Current secret: %s\n", secret);
 
     printf("Input password:\n");
