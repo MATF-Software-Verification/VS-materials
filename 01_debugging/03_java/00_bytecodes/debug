@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "JAVA_HOME=$JAVA_HOME"
+if [ -z "$JAVA_HOME" ]; then
+    echo "JAVA_HOME not set"
+    exit 1
+fi
+
+set -xe;
+
+$JAVA_HOME/bin/java -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000 Hello
