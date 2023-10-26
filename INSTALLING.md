@@ -7,12 +7,41 @@
 
 Za većinu Linux distribucija je dostupan paket `gdb`. `gdb` je za neke distribucije deo paketa za razvoj (npr. `build-essential` za Ubuntu).
 
+Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
+- [gdb-dashboard](https://github.com/cyrus-and/gdb-dashboard)
+- [gdb-frontend](https://debugme.dev/) ([repozitorijum](https://github.com/rohanrhu/gdb-frontend))
+
 ### QtCreator
 
 Instalirati QtCreator sa [zvanične stranice](https://www.qt.io/download). Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
 
 Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
 
+### Java agenti
+
+Za pokretanje primera su dovoljni [JDK](https://www.oracle.com/java/technologies/downloads/) i [Maven](https://maven.apache.org/).
+Na primer, za Ubuntu OS, dovoljno je preuzeti OpenJDK i Maven:
+```sh
+$ apt-get install default-jdk    # JDK 8, 11, 17, 21 su LTS
+$ apt-get install openjdk-17-jdk # alternativno, specificna verzija
+$ java -version                  # proveriti instalaciju
+$ apt-get install maven
+$ mvn -version
+```
+
+Za neke alate i skripte je neophodno postaviti `JAVA_HOME` promenljivu okruženja na direktorijum JDK instalacije:
+```sh
+$ export JAVA_HOME=/path/to/jdk
+$ $JAVA_HOME/bin/java -version
+```
+
+Obično se `$JAVA_HOME/bin` postavi na `PATH` kako bi se `java*` alati lakše pokretali:
+```sh
+$ export PATH=$PATH:$JAVA_HOME/bin
+$ which java
+/path/to/jdk/bin/java
+$ java -version
+```
 ## Alati/Biblioteke za testiranje jedinica koda i pokrivenosti koda
 
 ### gcov, lcov

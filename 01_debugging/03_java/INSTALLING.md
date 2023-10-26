@@ -13,6 +13,13 @@ $ mvn -version
 Za neke alate i skripte je neophodno postaviti `JAVA_HOME` promenljivu okruženja na direktorijum JDK instalacije:
 ```sh
 $ export JAVA_HOME=/path/to/jdk
-$ $JAVA_HOME/java -version
+$ $JAVA_HOME/bin/java -version
 ```
 
+Obično se `$JAVA_HOME/bin` postavi na `PATH` kako bi se `java*` alati lakše pokretali:
+```sh
+$ export PATH=$PATH:$JAVA_HOME/bin
+$ which java
+/path/to/jdk/bin/java
+$ java -version
+```

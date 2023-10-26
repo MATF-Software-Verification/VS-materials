@@ -363,21 +363,30 @@ Average:     nordlynx      1.00      2.00      0.34      1.08      0.00      0.0
 Primeri preuzeti sa [perf-labs](https://github.com/brendangregg/perf-labs) repozitorijuma [Brendana Gregg-a](https://www.brendangregg.com/), korišćeni tokom [prezentacije o alatima za merenje peformansi Linux kernel-a](https://youtu.be/FJW8nGV4jxY).
 - lab002 
 ```sh
+# CPU
 $ top
+$ htop
 $ mpstat
+$ mpstat 1
+$ mpstat -P ALL 1
+
+# IO
 $ iotop 
 $ iostat -x 1
+$ vmstat 1
+
+# network
+$ sar -n DEV 1 
 $ netstat -tulnp
 $ ss -tunlp
-$ sar -n DEV 1 
-$ vmstat 1
+
+# trace LISTEN
 $ strace -p $(pgrep lab002)
 ```
 
 - lab005
 
-USE (Utilization, Saturation, Errors) metodologija:
-  - proverimo CPU, memoriju, disk, network IO
+USE (Utilization, Saturation, Errors) metodologija: proverimo CPU, memoriju, disk, network IO
 
 ```sh
 $ htop               # primetimo kernel vreme, idle time i wait-io
@@ -396,7 +405,7 @@ $ iostat -x 1        # da li je disk uzrok?
 $ sar -n DEV 1       # da li je mreza uzrok?
 $ vmstat 1           # da li swapujemo?
 
-$ strace -tp (pgrep lab003) 2>&1 | head -n 100
+$ strace -tp $(pgrep lab003) 2>&1 | head -n 100
 # vidimo da aplikacija cita 0 bajtova u petlji
 ```
 
@@ -405,33 +414,93 @@ $ strace -tp (pgrep lab003) 2>&1 | head -n 100
 
 ## gdb
 
-_GNU Debugger_ (gdb) je debugger koji se može koristiti za debagovanje (najčešće) C/C++ programa. Preko gdb je moguće pokrenuti program sa proizvoljnim argumentima komandne linije, posmatrati stanje promenljivih ili registara procesora, pratiti izvršavanje kroz naredbe originalnog ili asembliranog koda, postavljanje bezuslovnih ili uslovnih tačaka prekida i sl. Više o gdb se može pročitati [na ovom linku](https://www.sourceware.org/gdb/).
+_GNU Debugger_ (gdb) je debager koji se koristi za debagovanje (najčešće) C/C++ programa. Preko gdb je moguće pokrenuti program sa proizvoljnim argumentima komandne linije, posmatrati stanje promenljivih ili registara procesora, pratiti izvršavanje kroz naredbe originalnog ili asembliranog koda, postavljanje bezuslovnih ili uslovnih tačaka prekida i sl. 
 
-Koristeći gdb možemo učitati program iz prethodnog primera. 
-U slučaju da želimo da ručno prevedemo program, neophodno je da se postaramo da je prosleđen `-g` flag `gcc` kompilatoru:
-```sh
-$ gcc main.c -g -o BufferOverflow
-```
+Više informacija o gdb debageru se može pročitati [na ovom linku](https://www.sourceware.org/gdb/). 
 
-Pošto je QtCreator već preveo ovaj program i u `build-*` direktorijum ostavio izvršivi fajl, možemo ga direktno učitati u gdb:
+Iako se gdb-om najčešće debaguju C/C++ programi, nije nemoguće gdb koristiti i u druge svrhe. Moguće je gdb prikačiti na bilo koji pokrenuti proces ili debagovati proizvoljne programe. To uključuje debagovanje `native` funkcija Java virtualne mašine, ili unapred (ahead of time) prevedenih Java/C# programa. Korisno debagovanje svakako zahteva da su debug simboli dostupni (npr. opcija `-g` je prosleđena `gcc` kompilatoru prilikom kompilacije).
+
+### Buffer Overflow primer (gdb)
+
+Program od korisnika očekuje lozinku i, ukoliko je ona ispravna, daje privilegije korisniku i pristup podacima. Bez gledanja u izvorni kod programa, probajmo da "pogodimo" šifru, ili, još gore, da dobijemo privilegije bez pogađanja šifre.
+
+Prvi pokušaj:
 ```sh
-$ gdb BufferOverflow
+$ ./sample
+Input password:
+www
+Wrong password.
+$ strings sample
 ...
-Reading symbols from BufferOverflow...
-(gdb) 
-```
-Alternativno, možemo program učitati u već pokrenuti gdb proces:
-```sh
-$ gdb
+xxxxxxxxxxxxxxx
+SECRET
+ThisIsASecretPassword
+DEBUG
+DEBUG:
 ...
-(gdb) file BufferOverflow
-Reading symbols from BufferOverflow...
-(gdb)
+$  ./sample
+Input password:
+ThisIsASecretPassword
+Correct password.
+Password check verification passed!
+Sensitive data: xxxxxxxxxxxxxxx
+cat: /etc/shadow: Permission denied
 ```
 
-U slučaju da debug simboli nisu prisutni, možemo u definiciji projekta dodati odgovarajući flag (pod `QMAKE_CFLAGS`).
+Naravno, za svrhe ovog primera, lozinka je hardkodirana u samom izvršivom fajlu. Dodatno, ukoliko bismo programu dali privilegije, ispisao bi i sadržaj `/etc/shadow` fajla.
 
-Spisak komandi koje gdb pruža možemo dobiti komandom `help`. Za sve ove naredbe postoje i skraćene varijante - npr. za `running` možemo kucati `run` ili samo `r`.
+Pošto program ima polje za unos teksta, očekujemo da u programu postoji niz karaktera koji će čuvati uneti tekst. Taj niz ima neku predefinisanu dužinu - šta ako je na ulazu više karaktera nego što može da stane u taj niz? Probajmo da unesemo predugačku lozinku:
+```sh
+$ ./sample
+Input password:
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+[1]    230975 segmentation fault (core dumped)  ./sample
+$ ./sample
+Input password:
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+Wrong password.
+Password check verification passed!
+[1]    231459 segmentation fault (core dumped)  ./sample
+```
+
+Vidimo da, za veoma dugačke lozinke, program dobija `SIGSEGV`, što verovatno znači da prepisujemo memoriju van granica niza za lozinku. Pošto prepisujemo previše memorije, to se detektuje i program odmah dobija `SIGSEGV`. Međutim, ukoliko lozinka nije predugačka, vidimo da unos prolazi proveru lozinke pre dobijanja `SIGSEGV`! Zašto?
+
+Pogledajmo izvorni kod programa kako bismo razumeli šta se dešava. Vidimo da program prima promenljive okruženja (engl. *environment variables*) `DEBUG` i `SECRET` (na osnovu poziva `getenv` funkcije). `SECRET` promenljiva služi za promenu lozinke, dok `DEBUG` promenljiva služi za uključivanje debug moda:
+```sh
+$ DEBUG= ./sample
+DEBUG: Address of user input array:     0x7ffcab1ed9d0
+DEBUG: Address of password check var:   0x7ffcab1ed9ec
+DEBUG: Address of stored secret array:  0x55b2db0d5023
+DEBUG: Current secret: ThisIsASecretPassword
+Input password:
+wwww
+DEBUG: User entered: wwww
+DEBUG: Password check var value: 0
+Wrong password.
+```
+Vidimo da, ukoliko se unese pogrešna lozinka, promenljiva za proveru lozinke koja se koristi u uslovu nije ispravno postavljena:
+```sh
+$ DEBUG= ./sample
+DEBUG: Address of user input array:     0x7ffd1183dda0
+DEBUG: Address of password check var:   0x7ffd1183ddbc
+DEBUG: Address of stored secret array:  0x564acefaa023
+DEBUG: Current secret: ThisIsASecretPassword
+Input password:
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+DEBUG: User entered: wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+DEBUG: Password check var value: 2004318071
+Wrong password.
+Password check verification passed!
+Sensitive data:
+cat: /etc/shadow: Permission denied
+```
+
+Na osnovu ispisanih adresa, vidimo da se ta promenljiva nalazi odmah posle niza za unos. Ukoliko prekoračimo niz, prepisaćemo vrednost te promenljive. Iskoristimo `gdb` da bismo potvrdili da se to zapravo dešava (pritom sada pokrećemo program bez `DEBUG` promenljive):
+```sh
+$ gdb ./sample
+```
+
+Spisak komandi koje gdb pruža možemo dobiti komandom `help`. Za sve ove naredbe postoje i skraćene varijante - npr. za `running` možemo kucati `run` ili samo `r`. Prazna komanda ponavlja prethodno izvršenu komandu.
 
 ```sh
 (gdb) help
@@ -452,60 +521,81 @@ tracepoints -- Tracing of program execution without stopping the program.
 user-defined -- User-defined commands.
 ```
 
-Tačke prekida možemo postaviti komandom `breakpoints`, aktiviramo/deaktiviramo komandama `enable`/`disable`, a brišemo komandom `delete`. Komandom `continue` nastavljamo rad programa do naredne tačke prekida. Tačke prekida mogu biti linije, npr. `main.c:15` ali i funkcije, npr. `main` ili `main.c:grant_privilege`. Postavimo tačku prekida na funkciju `grant_privilege`, kontrolišimo izvršavanje programa naredbama `step` (nalik na _step into_) i `next` (nalik na _step over_):
-```txt
-(gdb) b main.c:grant_privilege
-Breakpoint 1 at 0x1171: file ../01_buffer_overflow/main.c, line 5.
-(gdb) r
-Starting program: BufferOverflow
-Breakpoint 1, grant_privilege () at ../01_buffer_overflow/main.c:5
-5       {
-(gdb) s
-7               char ok[16] = "no";
-(gdb) n
-9               printf("\n Enter the password : \n");
-(gdb) n
-
- Enter the password :
-10              scanf("%s", password);
-(gdb) n
-MyPassword12        if (strcmp(password, "MyPassword")) {
-(gdb) info locals
-password = "MyPassword\000\367\377\177\000"
-ok = "no", '\000' <repeats 13 times>
-(gdb) n
-15                      printf("\n Correct Password \n");
-(gdb) n
-
- Correct Password
-16                      strcpy(ok, "yes");
-(gdb) n
-19              if (strcmp(ok, "yes") == 0) {
-(gdb) n
-23                  printf("\n Root privileges given to the user \n\n");
-(gdb) n
-
- Root privileges given to the user
-
-25      }
-(gdb) finish
-Run till exit from 
-#0  grant_privilege () at ../01_buffer_overflow/main.c:25
-main () at ../01_buffer_overflow/main.c:43
-43              return 0;
-```
-
 Komandom `info` možemo dobiti informacije o lokalnim promenljivim, registrima itd. (npr. `info locals` tj. `info registers`).
 Komandom `info breakpoints` možemo videti spisak tačaka prekida.
 
 Alternativno, moguće je iskoristiti drugačiji korisnički interfejs, komandom `tui` npr. `tui enable`. Tako dobijamo pogled na izvorni kod na jednoj polovini korisničkog interfejsa. Komandom `tui reg` možemo dobiti i prikaz registara sa `tui reg all`.
 
+Tačke prekida možemo postaviti komandom `breakpoints`, aktiviramo/deaktiviramo komandama `enable`/`disable`, a brišemo komandom `delete`. Komandom `continue` nastavljamo rad programa do naredne tačke prekida. Tačke prekida mogu biti linije, npr. `main.c:15` ali i funkcije, npr. `main` ili `main.c:main`. 
 Koristeći gdb možemo dodati i uslovne tačke prekida, npr.: 
 ```txt
-(gdb) b grant_privilege:12 if ok != "no"
+(gdb) b main.c:36 if privileged != 0
 ```
-### Buffer Overflow primer (gdb)
 
+Postavimo tačku prekida na funkciju `main`, i kontrolišimo izvršavanje programa naredbama `step` (nalik na _step into_) i `next` (nalik na _step over_):
+```txt
+(gdb) b main.c:main
+Breakpoint 1 at 0x1192: file main.c, line 14.
+(gdb) r
+Starting program: ... /sample
+Breakpoint 1, main () at main.c:14
+14      int main() {
+(gdb) s
+15          char pwd[PWD_SIZE];
+(gdb) s
+16          int privileged = 0;
+(gdb) s
+17          char *sensitive_data = "xxxxxxxxxxxxxxx";
+(gdb) s
+19          char *secret = getenv("SECRET");
+(gdb) n
+20          if (secret == NULL) {
+(gdb) n
+21              secret = "ThisIsASecretPassword";
+(gdb) n
+24          if (getenv("DEBUG") != NULL) {
+(gdb) n
+28          dbg("Address of user input array    : %p\n", pwd);
+(gdb) n
+29          dbg("Address of password check var  : %p\n", &privileged);
+(gdb) n
+30          dbg("Address of stored secret array : %p\n", secret);
+(gdb) n
+31          dbg("Current secret: %s\n", secret);
+(gdb) n
+33          printf("Input password:\n");
+(gdb) n
+Input password:
+34          scanf("%s", pwd);
+(gdb) n
+wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+36          dbg("User entered: %s\n", pwd);
+(gdb) info locals
+pwd = 'w' <repeats 16 times>
+privileged = 2004318071
+sensitive_data = 0x555555550077 <error: Cannot access memory at address 0x555555550077>
+secret = 0x555555556023 "ThisIsASecretPassword"
+(gdb) p pwd
+$1 = 'w' <repeats 16 times>
+(gdb) p privileged
+$2 = 2004318071
+(gdb) p &pwd
+$1 = (char (*)[16]) 0x7fffffffce80
+(gdb) p &privileged
+$2 = (int *) 0x7fffffffce9c
+(gdb) p pwd[17]
+$6 = 119 'w'
+(gdb) p/x privileged
+$1 = 0x77777777
+(gdb) finish
+```
+
+Karakter `'w'` ima heksadecimalni kod 77, i vidimo da promenljiva `privileged` takođe ima vrednost `0x77777777` - dakle naš unos je pregazio memoriju promenljive. Jasno je da smo mogli da pažljivo odaberemo unos tako da promenljivu postavimo na koju god vrednost želimo! 
+
+Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre programerske prakse i da se:
+- preoverava upravljanje memorijom tokom programa koristeci neki od alata poput `valgrind memcheck`
+- upotrebljava `fgets()` funkcije umesto `gets()` ili `scanf()` koje ne vrše provere granica promenljivih.
+- upotrebljava `strncmp()` umesto `strcmp()`, `strncpy()` umesto `strcpy()`, itd.
 ## QtCreator Debugger
 
 QtCreator dolazi sa debugger-om koji predstavlja interfejs između QtCreator-a i native debugger-a (gdb, CDB, LLDB, ...). Moguće je debagovati Qt aplikacije, ali i native C/C++ aplikacije, kačiti se na već pokrenute procese i formirati debug sesije, i mnogo toga.
@@ -543,12 +633,49 @@ Pokrenuti debug sesiju. Isprobati debug akcije za kontrolisanje izvršavanja pro
 - `Step out`
 - `Set/Remove breakpoint`
 
-**TODO:** Opis
 
-Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre programerske prakse i da se:
-- preoverava upravljanje memorijom tokom programa koristeci neki od alata poput `valgrind memcheck`
-- upotrebljava `fgets()` funkcije umesto `gets()` ili `scanf()` koje ne vrše provere granica promenljivih.
-- upotrebljava `strncmp()` umesto `strcmp()`, `strncpy()` umesto `strcpy()`, itd.
+## Debagovanje i instrumentovanje Java bajtkoda
+
+### Java agenti
+
+Java agenti su specijalni tip klase koji koristi Java Instrumentation API da modifikuje bajtkod aplikacija koje rade na JVM. Java agenti postoje od ranih verzija Java jezika (tačnije, od verzije 5). Instrumentovanje koda je korisno jer ne zahteva modifikovanje originalnog koda, stoga se agenti mogu "uključiti" u već postojeće aplikacije - to se radi zadavanjem odgovarajućih argumenata u komandnoj liniji prilikom pozivanja aplikacije. Jedan primer agenta može biti i debager - na kraju krajeva, debager treba da posmatra bajtkod i unosi instrukcije za praćenje rada aplikacije, za šta su agenti i namenjeni. Drugi primer upotrebe agenta može biti praćenje pokrivenosti, što je upravo način rada popularnih biblioteka za praćenje pokrivenosti kao npr. [JaCoCo](https://github.com/jacoco/jacoco).
+
+Agent je zapravo normalna Java klasa koja ima specijalni metod `premain`, sa jednim od potpisa:
+```java
+public static void premain(String agentArgs, Instrumentation inst)
+public static void premain(String agentArgs) 
+```
+Kada se JVM inicijalizuje, poziva `premain` metod svakog priključenog agenta. Nakon što se svi `premain` metodi izvrše, poziva se `main` metod same aplikacije.
+
+Agenti alternativno mogu da imaju metod `agentmain` umesto metoda `premain`, sa jednim od potpisa:
+```java
+public static void agentmain(String agentArgs, Instrumentation inst) 
+public static void agentmain(String agentArgs)
+```
+Metod `agentmain` se poziva nakon JVM inicijalizacije, i *nakon* pokretanja originalne aplikacije. Agent može imati i `premain` i `agentmain`, ali u tom slučaju će se pozvati samo `premain`.
+
+
+#### Primer
+
+Kao primer, data je jednostavna Maven aplikacija. Pokrenimo je:
+```sh
+$ mvn package
+[...]
+$ java -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar
+Original method
+```
+
+U primeru je dat agent koji modifikuje bajtkod jedne metode date aplikacije. Da bismo priključili agenta, pozovimo opet aplikaciju, ali ovaj put sa dodatnim JVM argumentom `-javaagent`. 
+Sintaksa argumenta je: `-javaagent:<putanja_do_agenta>[=<argumenti_agenta>]`. Kao putanju prosleđujemo generisani JAR agenta, koji je dobijen kao artifakt izgradnje aplikacije Maven-om.
+Kao argument prosleđujemo putanju do trenutnog direktorijuma pošto agent treba lokacija klase kako bi promenio njen bajtkod.
+```sh
+$ java -javaagent:./agent/target/agent-0.1-SNAPSHOT.jar=$PWD -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar
+Method hacked
+```
+
+Vidimo da je agent uspešno modifikovao bajtkod metoda pre izvršavanja aplikacije. Modifikacija je urađena korišćenjem biblioteke [`Javassist`](https://www.javassist.org/).
+
+Agent takođe ima i metod `agentmain`, ali on se ne izvršava jer agent ima i `premain` koji ima veći prioritet.
 
 # Pisanje testabilnog koda
 
@@ -4892,12 +5019,41 @@ Izrazi u Dafny jeziku su slični izrazima u C sintaksi, sa malim izmenama/dodaci
 
 Za većinu Linux distribucija je dostupan paket `gdb`. `gdb` je za neke distribucije deo paketa za razvoj (npr. `build-essential` za Ubuntu).
 
+Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
+- [gdb-dashboard](https://github.com/cyrus-and/gdb-dashboard)
+- [gdb-frontend](https://debugme.dev/) ([repozitorijum](https://github.com/rohanrhu/gdb-frontend))
+
 ### QtCreator
 
 Instalirati QtCreator sa [zvanične stranice](https://www.qt.io/download). Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
 
 Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
 
+### Java agenti
+
+Za pokretanje primera su dovoljni [JDK](https://www.oracle.com/java/technologies/downloads/) i [Maven](https://maven.apache.org/).
+Na primer, za Ubuntu OS, dovoljno je preuzeti OpenJDK i Maven:
+```sh
+$ apt-get install default-jdk    # JDK 8, 11, 17, 21 su LTS
+$ apt-get install openjdk-17-jdk # alternativno, specificna verzija
+$ java -version                  # proveriti instalaciju
+$ apt-get install maven
+$ mvn -version
+```
+
+Za neke alate i skripte je neophodno postaviti `JAVA_HOME` promenljivu okruženja na direktorijum JDK instalacije:
+```sh
+$ export JAVA_HOME=/path/to/jdk
+$ $JAVA_HOME/bin/java -version
+```
+
+Obično se `$JAVA_HOME/bin` postavi na `PATH` kako bi se `java*` alati lakše pokretali:
+```sh
+$ export PATH=$PATH:$JAVA_HOME/bin
+$ which java
+/path/to/jdk/bin/java
+$ java -version
+```
 ## Alati/Biblioteke za testiranje jedinica koda i pokrivenosti koda
 
 ### gcov, lcov
