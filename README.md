@@ -11,10 +11,16 @@ abstract: |
     - Dijagnoziranje problema
         - Alati za analizu performansi Linux sistema
         - Analiza ponašanja programa metodom crne kutije
-    - Debagovanje koristeći alate za debagovanje i razvojna okruženja
+    - Debagovanje
         - Debagovanje na niskom nivou ([`gdb`](https://www.sourceware.org/gdb/))
-        - Debagovanje C/C++ kodova ([`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html))
-        - Debagovanje aplikacija nad JVM (Java) ili CLR (C#) ([`IntelliJ IDEA`](https://www.jetbrains.com/idea/), [`Rider`](https://www.jetbrains.com/rider/))
+        - Debagovanje C/C++ programa ([`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html))
+        <!-- - Debagovanje aplikacija nad JVM (Java) ili CLR (C#) ([`IntelliJ IDEA`](https://www.jetbrains.com/idea/), [`Rider`](https://www.jetbrains.com/rider/)) -->
+        - JDWP protokol za debagovanje Java metoda
+        - Debagovanje Java `native` metoda
+        - Debagovanje Java/C# aplikacija kompajliranih unapred u izvršivi program
+    - Instrumentovanje
+        - Introspekcija i format kompiliranih Java klasa 
+        - Instrumentovanje Java bajtkoda - Java agenti
     - Testiranje jedinica koda
         - Pisanje testabilnog koda
         - [`QtTest`](https://doc.qt.io/qt-6/qttest-index.html)
