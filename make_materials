@@ -71,7 +71,9 @@ echo "# Instalacije" >> $installing_path
 collect_materials
 cat $installing_path >> $materials_path
 
-set -x;
+set +e;
+echo 
+echo "creating pdf..."
 pandoc MATERIALS.md \
     -o MATERIALS.pdf \
     -f gfm \
@@ -89,3 +91,14 @@ pandoc MATERIALS.md \
     # -V 'mainfont:DejaVuSerif.ttf' \
     # -V 'sansfont:DejaVuSans.ttf' \
     # -V 'mathfont:texgyredejavu-math.otf' \
+exc=$?
+
+echo 
+echo 
+if [ $exc -eq 0 ]; then
+    echo "SUCCESS"
+else
+    echo "ERROR code $exc"
+    echo "NOTE: if you see verbatim errors, make sure to have qualified codeblocks with language, e.g., \`\`\`txt instead of just \'\'\'"
+fi
+

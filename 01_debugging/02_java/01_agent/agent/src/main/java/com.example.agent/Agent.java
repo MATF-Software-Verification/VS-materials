@@ -11,6 +11,7 @@ import java.security.ProtectionDomain;
 
 public class Agent {
 
+    // Invoked during JVM initialization
     public static void premain(String agentArgs, Instrumentation inst) {
 
         System.out.println("premain() called with args: " + agentArgs);
@@ -38,6 +39,7 @@ public class Agent {
         });
     }
 
+    // Invoked before application main method
     public static void agentmain(String agentArgs) {
         System.out.println("agentmain() called with args: " + agentArgs);
     }

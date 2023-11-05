@@ -16,7 +16,6 @@ Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
 Instalirati QtCreator sa [zvanične stranice](https://www.qt.io/download). Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
 
 Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
-
 ### Java agenti
 
 Za pokretanje primera su dovoljni [JDK](https://www.oracle.com/java/technologies/downloads/) i [Maven](https://maven.apache.org/).

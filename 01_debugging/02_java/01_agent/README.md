@@ -30,7 +30,7 @@ Original method
 ```
 
 U primeru je dat agent koji modifikuje bajtkod jedne metode date aplikacije. Da bismo priključili agenta, pozovimo opet aplikaciju, ali ovaj put sa dodatnim JVM argumentom `-javaagent`:
-```
+```txt
 -javaagent:<putanja_do_agenta>[=<argumenti_agenta>]`
 ```
 Kao putanju prosleđujemo generisani JAR agenta, koji je dobijen kao artifakt izgradnje aplikacije Maven-om. Kao argument prosleđujemo putanju do trenutnog direktorijuma pošto agent treba lokacija klase kako bi promenio njen bajtkod.
