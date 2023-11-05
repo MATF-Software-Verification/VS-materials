@@ -76,6 +76,7 @@ echo
 echo "creating pdf..."
 pandoc MATERIALS.md \
     -o MATERIALS.pdf \
+    --verbose \
     -f gfm \
     -N \
     --variable "geometry=margin=1.2in" \
@@ -88,9 +89,13 @@ pandoc MATERIALS.md \
     -V colorlinks=true \
     --toc -V toc-title="Sadržaj" \
     -V 'monofont:DejaVuSansMono' \
+    2>&1 | tee make_materials.log
+
+# Other useful pandoc options
     # -V 'mainfont:DejaVuSerif.ttf' \
     # -V 'sansfont:DejaVuSans.ttf' \
     # -V 'mathfont:texgyredejavu-math.otf' \
+
 exc=$?
 
 echo 
