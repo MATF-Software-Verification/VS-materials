@@ -11,10 +11,16 @@ abstract: |
     - Dijagnoziranje problema
         - Alati za analizu performansi Linux sistema
         - Analiza ponašanja programa metodom crne kutije
-    - Debagovanje koristeći alate za debagovanje i razvojna okruženja
+    - Debagovanje
         - Debagovanje na niskom nivou ([`gdb`](https://www.sourceware.org/gdb/))
-        - Debagovanje C/C++ kodova ([`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html))
-        - Debagovanje aplikacija nad JVM (Java) ili CLR (C#) ([`IntelliJ IDEA`](https://www.jetbrains.com/idea/), [`Rider`](https://www.jetbrains.com/rider/))
+        - Debagovanje C/C++ programa ([`QtCreator`](https://doc.qt.io/qtcreator/creator-debugging.html))
+        <!-- - Debagovanje aplikacija nad JVM (Java) ili CLR (C#) ([`IntelliJ IDEA`](https://www.jetbrains.com/idea/), [`Rider`](https://www.jetbrains.com/rider/)) -->
+        - JDWP protokol za debagovanje Java metoda
+        - Debagovanje Java `native` metoda
+        - Debagovanje Java/C# aplikacija kompajliranih unapred u izvršivi program
+    - Instrumentovanje
+        - Introspekcija i format kompiliranih Java klasa 
+        - Instrumentovanje Java bajtkoda - Java agenti
     - Testiranje jedinica koda
         - Pisanje testabilnog koda
         - [`QtTest`](https://doc.qt.io/qt-6/qttest-index.html)
@@ -412,6 +418,22 @@ $ strace -tp $(pgrep lab003) 2>&1 | head -n 100
 
 # Debagovanje
 
+| Interpreter                 | Just-In-Time (JIT)                 | Ahead-Of-Time (AOT)             |
+|-----------------------------|------------------------------------|---------------------------------|
+| interpretation              | interpretation + compilation       | compilation (and optimization!) |
+| quick development feedback  | quick development feedback         | slow development feedback       |
+| executes only some paths    | compilation to intermediate format | full compilation/optimization   |
+| (runtime errors)            | + runtime compilation/optimization |                                 |
+| portable code               | portable code                      | limited portability             |
+| slow startup                | slow startup                       | fast startup                    |
+| slow peak performance       | highest peak performance           | high(est?) peak performance     |
+| easy to profile             | easy to profile (builtin)          | hard to profile                 |
+| easy to instrument          | relatively easy to instrument      | hard to instrument              |
+| dynamic features            | dynamic features                   | usually no dynamic features     |
+| highest memory footprint    | high memory footprint              | low memory footprint            |
+| runtime required            | runtime required                   | no runtime required             | 
+|                             |                                    | (e.g., static compilation)      |
+
 ## gdb
 
 _GNU Debugger_ (gdb) je debager koji se koristi za debagovanje (najčešće) C/C++ programa. Preko gdb je moguće pokrenuti program sa proizvoljnim argumentima komandne linije, posmatrati stanje promenljivih ili registara procesora, pratiti izvršavanje kroz naredbe originalnog ili asembliranog koda, postavljanje bezuslovnih ili uslovnih tačaka prekida i sl. 
@@ -596,11 +618,14 @@ Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre 
 - preoverava upravljanje memorijom tokom programa koristeci neki od alata poput `valgrind memcheck`
 - upotrebljava `fgets()` funkcije umesto `gets()` ili `scanf()` koje ne vrše provere granica promenljivih.
 - upotrebljava `strncmp()` umesto `strcmp()`, `strncpy()` umesto `strcpy()`, itd.
+
+
 ## QtCreator Debugger
 
 QtCreator dolazi sa debugger-om koji predstavlja interfejs između QtCreator-a i native debugger-a (gdb, CDB, LLDB, ...). Moguće je debagovati Qt aplikacije, ali i native C/C++ aplikacije, kačiti se na već pokrenute procese i formirati debug sesije, i mnogo toga.
 
 Više informacija je moguće pronaći u [Qt dokumentaciji](https://doc.qt.io/qtcreator/creator-debugging.html).
+
 
 ### Debagovanje spoljašnje aplikacije kroz QtCreator
 
@@ -665,9 +690,11 @@ $ java -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar
 Original method
 ```
 
-U primeru je dat agent koji modifikuje bajtkod jedne metode date aplikacije. Da bismo priključili agenta, pozovimo opet aplikaciju, ali ovaj put sa dodatnim JVM argumentom `-javaagent`. 
-Sintaksa argumenta je: `-javaagent:<putanja_do_agenta>[=<argumenti_agenta>]`. Kao putanju prosleđujemo generisani JAR agenta, koji je dobijen kao artifakt izgradnje aplikacije Maven-om.
-Kao argument prosleđujemo putanju do trenutnog direktorijuma pošto agent treba lokacija klase kako bi promenio njen bajtkod.
+U primeru je dat agent koji modifikuje bajtkod jedne metode date aplikacije. Da bismo priključili agenta, pozovimo opet aplikaciju, ali ovaj put sa dodatnim JVM argumentom `-javaagent`:
+```txt
+-javaagent:<putanja_do_agenta>[=<argumenti_agenta>]`
+```
+Kao putanju prosleđujemo generisani JAR agenta, koji je dobijen kao artifakt izgradnje aplikacije Maven-om. Kao argument prosleđujemo putanju do trenutnog direktorijuma pošto agent treba lokacija klase kako bi promenio njen bajtkod.
 ```sh
 $ java -javaagent:./agent/target/agent-0.1-SNAPSHOT.jar=$PWD -jar ./prog-test/target/prog-test-0.1-SNAPSHOT.jar
 Method hacked
@@ -5028,7 +5055,6 @@ Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
 Instalirati QtCreator sa [zvanične stranice](https://www.qt.io/download). Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
 
 Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
-
 ### Java agenti
 
 Za pokretanje primera su dovoljni [JDK](https://www.oracle.com/java/technologies/downloads/) i [Maven](https://maven.apache.org/).
