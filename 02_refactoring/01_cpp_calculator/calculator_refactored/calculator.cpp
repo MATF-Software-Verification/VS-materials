@@ -10,6 +10,11 @@ void showChoices(std::ostream &ostr) {
     ostr << "Enter your choice: ";
 }
 
+// If we want to keep the old interface:
+// void showChoices() {
+//     return showChoices(std::cout);
+// }
+
 bool readChoice(std::istream &istr, int *x) {
     istr >> *x;
     if (*x < 1 || *x > 5)
