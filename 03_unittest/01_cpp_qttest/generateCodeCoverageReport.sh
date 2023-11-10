@@ -23,7 +23,7 @@
 #############################################################################
 
 if [ $# -lt 2 ]; then
-  echo "usage: ${0}  <source_dir> <test_executable_in_source_dir> [<target-dir>]"
+  echo "usage: ${0}  <dir_with_coverage files> <executable> [<target-dir>]"
   exit 0
 else
   if  [ $# -eq 2 ]; then
@@ -96,19 +96,19 @@ echo ""
 echo "Create coverage:"
 echo ""
 # create coverage report for the test
-lcov --rc lcov_branch_coverage=1  -c -d $SOURCE_DIR -o $TARGET_DIR/coverage-test.info
+lcov --rc branch_coverage=1  -c -d $SOURCE_DIR -o $TARGET_DIR/coverage-test.info
 
 #combine with previous coverage-init
-lcov -a $TARGET_DIR/coverage-init.info -a $TARGET_DIR/coverage-test.info --rc lcov_branch_coverage=1 -o $TARGET_DIR/coverage.info
+lcov -a $TARGET_DIR/coverage-init.info -a $TARGET_DIR/coverage-test.info --rc branch_coverage=1 -o $TARGET_DIR/coverage.info
 
 # remove system files from coverage, because we do not try to cover them
-lcov --rc lcov_branch_coverage=1 -r $TARGET_DIR/coverage.info '/usr/*' '*.moc' -o $TARGET_DIR/coverage-filtered.info
+lcov --rc branch_coverage=1 -r $TARGET_DIR/coverage.info '/usr/*' '*.moc' -o $TARGET_DIR/coverage-filtered.info
 
 echo ""
 echo "Generate HTML for coverage:"
 echo ""
 #create html report from filtered coverage
-genhtml --rc lcov_branch_coverage=1 -legend -o $TARGET_DIR/Reports $TARGET_DIR/coverage-filtered.info
+genhtml --rc branch_coverage=1 -legend -o $TARGET_DIR/Reports $TARGET_DIR/coverage-filtered.info
 
 #view report in brower
 $BROWSER $TARGET_DIR/Reports/index.html &

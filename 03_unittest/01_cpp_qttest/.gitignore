@@ -1,3 +1,19 @@
+.qmake.stash
+Makefile
+Calculator/Calculator
+Calculator/Makefile
+CalculatorTest/CalculatorTest
+CalculatorTest/Makefile
+CalculatorTest/Reports/
+CalculatorTest/coverage.info
+CalculatorTest/coverage-filtered.info
+CalculatorTest/coverage-init.info
+CalculatorTest/coverage-test.info
+CalculatorTest/moc_predefs.h
+CalculatorTest/target_wrapper.sh
+CalculatorTest/tst_tst_calculatortest.moc
+
+
 ### C
 # Prerequisites
 *.d
@@ -126,3 +142,10 @@ dkms.conf
 *.cflags
 
 *.pro.user
+### Gcov
+# gcc coverage testing tool files
+
+*.gcno
+*.gcda
+*.gcov
+
