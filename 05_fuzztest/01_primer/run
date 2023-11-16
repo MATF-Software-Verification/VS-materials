@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -xe;
+
+# Compile with fuzzer
+clang++ -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
+
+# Make test corpus dir
+mkdir -p test_corpus
+
+# Invoke program
+./fuzz_me test_corpus/
+./fuzz_me -only_ascii=1 test_corpus/
+
+

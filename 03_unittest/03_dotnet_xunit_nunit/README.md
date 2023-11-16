@@ -44,10 +44,10 @@ public class ParameterizedTests
     [Fact]
     public void SampleFact()
     {
-        Assert.True(PerformAsserts(4, 4, 4, 4));
-        Assert.True(PerformAsserts(3, 2, 2, 3));
-        Assert.True(PerformAsserts(7, 0, 0, 7));
-        Assert.True(PerformAsserts(0, 7, 7, 0));
+        PerformAsserts(4, 4, 4, 4);
+        PerformAsserts(3, 2, 2, 3);
+        PerformAsserts(7, 0, 0, 7);
+        PerformAsserts(0, 7, 7, 0);
 
         void PerformAsserts(int a, int b, int c, int d) 
         {
