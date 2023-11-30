@@ -38,7 +38,7 @@ Broj promašaja u `main` funkciji bi mogao da se smanji razdvajanjem obrade svak
 Izvršavati svaki program i meriti vreme:
 ```sh
 $ time ./matrix_slowest
-$ time valgrind --tool=cachegrind ./matrix_slowest
+$ time valgrind --tool=cachegrind --cache-sim=yes ./matrix_slowest
 ```
 i primetiti koliko puta Valgrind usporava rad programa.
 

@@ -17,12 +17,11 @@ void multiply(float *A, float *B, float *out, int size) {
     float *temp = new float[size];
 
     for (int col = 0; col < size; col++) {
-        for (int i = 0; i < size; i++) // stores column into sequential array
+        for (int i = 0; i < size; i++)
             temp[i] = B[i * size + col];
         for (int row = 0; row < size; row++)
             out[row * size + col] =
-                dotProduct(&A[row], temp,
-                           size); // uses function above for dot product.
+                dotProduct(&A[row], temp, size);
     }
 
     delete[] temp;
