@@ -30,4 +30,4 @@ matrix_meduimish.out: matrix_meduimish.o
 
 clean:
 	$(RM) *.o callgrind.out.* cachegrind.out*
-	$(RM) matrix_slowest matrix_slower matrix_slow matrix_meduim matrix_meduimish 
+	$(RM) matrix_*.out
