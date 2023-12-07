@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -xe;
+
 gunzip -c ./FlameGraph/example-perf-stacks.txt.gz \
     | ./FlameGraph/stackcollapse-perf.pl --all \
     | ./FlameGraph/flamegraph.pl --color=java --hash \
     > example-java.svg
 
-
+echo "Generated example-java.svg"

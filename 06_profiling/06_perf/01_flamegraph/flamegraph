@@ -9,3 +9,4 @@ sudo perf script \
     | ./FlameGraph/flamegraph.pl \
     > example.svg
 
+echo "Generated example.svg"
