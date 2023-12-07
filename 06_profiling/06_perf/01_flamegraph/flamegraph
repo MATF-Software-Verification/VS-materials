@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -xe;
+
+sudo perf record -F 99 -a -g -- sleep 10
+
+sudo perf script \
+    | ./FlameGraph/stackcollapse-perf.pl \
+    | ./FlameGraph/flamegraph.pl \
+    > example.svg
+
