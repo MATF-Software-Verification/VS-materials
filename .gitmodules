@@ -4,3 +4,6 @@
 [submodule "03_unittest/03_dotnet_xunit_nunit/samples-xunit"]
 	path = 03_unittest/03_dotnet_xunit_nunit/samples-xunit
 	url = https://github.com/xunit/samples.xunit.git
+[submodule "06_profiling/06_perf/01_flamegraph/FlameGraph"]
+	path = 06_profiling/06_perf/01_flamegraph/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph
