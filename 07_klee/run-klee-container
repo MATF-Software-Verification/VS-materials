@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -xe;
+
+docker pull klee/klee:3.0
+docker run --rm -ti --ulimit='stack=-1:-1' -v $PWD:/home/klee/vs klee/klee:3.0
