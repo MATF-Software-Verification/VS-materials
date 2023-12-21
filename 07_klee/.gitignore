@@ -1,3 +1,6 @@
+*.ll
+report_*.txt
+
 ### KLEE
 *.bc
 klee-*
