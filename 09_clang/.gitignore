@@ -1,3 +1,4 @@
+*.plist
 tmp/
 out/
 result*/
