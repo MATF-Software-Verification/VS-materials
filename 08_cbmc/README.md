@@ -349,7 +349,7 @@ $ cbmc 03_binsearch.c --function binsearch --bounds-check
 Primetićemo da se odmotavanje petlje ne zaustavlja samo od sebe jer
 CBMC ne uspeva da otkrije gornje ograničenje za broj iteracija ove
 petlje. U tom slučaju gornje ograničenje za odmotavanje petlje mora da
-se zada preko opcije `–unwind n`, gde `n` zapravo predstavlja broj
+se zada preko opcije `–-unwind n`, gde `n` zapravo predstavlja broj
 provera uslova ostanka u petlji:
 ```sh
 $ cbmc 03_binsearch.c --function binsearch --unwind 6  --bounds-check
@@ -357,10 +357,10 @@ $ cbmc 03_binsearch.c --function binsearch --unwind 6  --bounds-check
 
 CBMC potvrđuje da su svi pristupi elementima niza u okviru granica
 iako to u ovom slučaju zavisi od šiftovanja u desno. Ukoliko se upotrebi
-opcija `–unwinding-assertions`, proveravaće da li je dovoljno odmotana
+opcija `-–unwinding-assertions`, proveravaće da li je dovoljno odmotana
 petlja. Za kraća odmotavanja od 6 bili bi ispisani koraci izvršavanja
 koji zahtevaju više odmotavanja petlje. Ukoliko je pozvan i sa opcijom
-`–trace`, generisaće nam i kontraprimer.
+`-–trace`, generisaće nam i kontraprimer.
 ```sh
 $ cbmc 03_binsearch.c --function binsearch --unwind 5 --unwinding-assertions  --bounds-check --trace
 ```
@@ -381,12 +381,12 @@ svojstvom koje je korisnik definisao, navodeći `assert` naredbe u kodu.
 `while` petlja nema konkretnu gornju granicu broja iteracija. Stoga,
 mora se naglasiti koliko odmotavanja petlje treba CBMC da izvrši.
 Postoje dva načina da se tako nešto postigne:
--   opcijom `–unwind` da se ograniči koliko puta su pelje odmotane.
--   opcijom `–depth` da se ograniči broj koraka program koje treba
+-   opcijom `–-unwind` da se ograniči koliko puta su pelje odmotane.
+-   opcijom `-–depth` da se ograniči broj koraka program koje treba
     pratiti.
 
-Ukoliko navedemo i opciju `–unwinding-assertions`, CBMC će proveriti
-da li je argument uz opciju `–unwind` dovoljno veliki da pokrije sve
+Ukoliko navedemo i opciju `–-unwinding-assertions`, CBMC će proveriti
+da li je argument uz opciju `–-unwind` dovoljno veliki da pokrije sve
 putanje kroz program. Ukoliko je premali, detektovaće nam da nije
 dovoljno odmotavanja izvršeno.
 
@@ -397,14 +397,14 @@ $ cbmc 04_lock-example.c  --unwind 1 --unwinding-assertions
 
 Ne prijavljuje nam grešku (osim da imamo premalo odmotavanja). Ukoliko se
 izostavi poslednja opcija, neće ni to prijavljivati. Već sa ograničenjem
-`2`, CBMC detektuje grešku. Upotrebom opcije `–trace` generisaće nam se
+`2`, CBMC detektuje grešku. Upotrebom opcije `-–trace` generisaće nam se
 kontraprimer koji narušava važenje tvrđenja, (*eng. assertion*).
 ```sh
 $ cbmc 04_lock-example.c  --unwind 1 --trace
 ```
 
 Bez prijave o nedovoljnom odmotavanju petlje ili korišćenjem opcije
-`–depth`, CBMC ne dokazuje korektnost programa, ali je i dalje
+`-–depth`, CBMC ne dokazuje korektnost programa, ali je i dalje
 koristan za nalaženje grešaka.
 
 Pokrećemo CBMC ponovo sa ciljem da proverimo ima li program grešaka.
@@ -530,7 +530,7 @@ $ cbmc 05_loop1.c  --unwind 2 --unwinding-assertions
 ```
 
 Ukoliko ograničimo razmotavanje petlje, i pri tom ne navedemo opciju
-`–unwinding-assertions` , posle određenog broja iteracija, pretpostaviće
+`-–unwinding-assertions` , posle određenog broja iteracija, pretpostaviće
 se da više ne važi uslov ostanka u petlji i nastaviće se dalje. Dakle
 sve preostale putanje kroz petlju biće ignorisane.
 ```c
@@ -573,7 +573,7 @@ funkcije `f()`.CBMC može automatski da odmota petlju do završetka. To
 automatsko detektovanje granice odmotavanja petlji može biti neuspešno
 ukoliko broj iteracija petlje veoma zavisi od podataka. Takođe, broj
 iteracija može biti i mnogo veliki ili jednostavno neograničen. U tim
-slučajevima je bolje korisiti opciju komandne linije ` –unwind B`, gde
+slučajevima je bolje korisiti opciju komandne linije `-–unwind B`, gde
 `B` označava broj provera uslova ostanka u petlji tj. skokova na
 početak. Tada se telo petlje izvršava `B-1` put.
 
@@ -604,7 +604,7 @@ int main() {
 ```
 
 Da bismo zadali za svaku petlju posebno ograničenje prvo pokrenim
-program sa opcijom `–show-loops` da bismo dobili listu svih pelji u
+program sa opcijom `-–show-loops` da bismo dobili listu svih pelji u
 programu i njihove identifikatore.
 ```sh
 $ cbmc 07_loop3.c --show-loops
@@ -626,7 +626,7 @@ Loop main.1:
 ```
 
 Za program sa 2 petlje zadajemo ograničenja odmotavanja za petlje redom,
-10, odnosno 20, opcijom `–unwindset`.
+10, odnosno 20, opcijom `-–unwindset`.
 ```sh
 $ cbmc 07_loop3.c --unwindset main.0:10,main.1:20 --unwinding-assertions
 ```
@@ -695,7 +695,7 @@ int main() {
 
 U ovom primeru za malo ograničenje odmotavanja petlje provera posle
 petlje neće biti izvršena. Ako se smatra da neka petlja nije bitna za
-kod koji sledi posle nje, možemo koristiti opciju ` –partial-loops`. Ova
+kod koji sledi posle nje, možemo koristiti opciju `-–partial-loops`. Ova
 opcija dozvoljava da se delimično izvrše putanje kroz petlju i time i za
 mala ograničenja odmotavanja pronalazi se kontraprimer za proveru koja
 se izvršava posle petlje.
@@ -705,9 +705,9 @@ $ cbmc 08_loop4.c  --unwind 1 --partial-loops
 
 Problem sa delimičnim izvršavanjem petlje je što putanja koja na kraju
 bude izvršena ne mora biti jedna od validnih putanja kroz petlju u
-originalnom programu. Opcijom `–partial-loops` stavlja se `break`
+originalnom programu. Opcijom `-–partial-loops` stavlja se `break`
 naredba na mestu gde stoji `assert`, odnosno `assume`, prilikom
-ograničenog razmotavanja petlje sa opcijom `–unwinding-assertions`,
+ograničenog razmotavanja petlje sa opcijom `–-unwinding-assertions`,
 odnosno bez nje.
 
 Pozivom:
@@ -722,7 +722,7 @@ da se petlja razmota 10001 put, da bi se stiglo do ostatka programa.
 
 Ograničenje za broj odmotavanja petlje nekada nije dovoljno. U
 situacijama kada je teško kontrolisati veličinu generisane formule samo
-opcijom `–unwind` option. Tada opcijom ` –depth D` zadajemo da je
+opcijom `-–unwind` option. Tada opcijom `-–depth D` zadajemo da je
 odmotavanje petlje ograničeno brojem instrukcija koje su izvršene na toj
 putanji, nebitno od rednog broja iteracija petlje. CBMC koristi broj
 instrukcija u grafu kontrole toka (*eng. control flow graph*), a ne broj
@@ -732,23 +732,23 @@ instrukcija u izvornom kodu.
 
 Instrumentacija:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-goto-functions`
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check -–show-goto-functions`
 ```
 Svojstva:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-properties
+$ cbmc 09_abs.c –-function abs –-signed-overflow-check –-show-properties
 ```
 Static Single Assign (SSA):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –program-only
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check -–program-only
 ```
 Verification condition (VCC):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-vcc
+$ cbmc 09_abs.c –-function abs -–signed-overflow-check -–show-vcc
 ```
 Verify:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check
 ```
 
 ### Uprošćavanje verifikacione formule
@@ -758,7 +758,7 @@ $ cbmc 10_escapefunction.c --function escape --pointer-check --bounds-check \
     --slice-formula --unwind 4
 ```
 
-Opcija `–slice-formula` uklanja nepotrebne dodele, tj. dodele koje nisu
+Opcija `-–slice-formula` uklanja nepotrebne dodele, tj. dodele koje nisu
 u vezi sa svojstvima koje proveravamo. Na taj način uprošćava formulu
 koja se šalje SAT solveru i ubrzava proveru modela. Ispravimo
 prijavljene greške i proverimo ponovo. Nije moguće rešiti problem što
@@ -941,7 +941,7 @@ poslednjoj liniji funkcije `next_data` vraćamo ne vrednost koju smo
 upisali u niz već narednu. Popravljamo da se vrati vrednost na indeksu
 `data_pos-1`.
 
-Opcija komandne linije `–unwind 7` utiče na međusobno isključenje niti,
+Opcija komandne linije `-–unwind 7` utiče na međusobno isključenje niti,
 jer nam utiče na petlju u kojoj se čeka na dozvolu za ulazak u kritičnu
 sekciju. Petlja se izvršava kao da smo dodali `break` nakon 6.
 iteracije. Zbog toga nam se mogu dogoditi nejasne greške da na primer

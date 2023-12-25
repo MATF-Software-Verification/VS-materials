@@ -14,10 +14,9 @@ Neke kategorije podrazumevanih proveravača:
 - [Security Checkers](https://clang-analyzer.llvm.org/available_checks.html#security_checkers) proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
 - [Unix Checkers](https://clang-analyzer.llvm.org/available_checks.html#unix_checkers) proveravaju upotrebu Unix i POSIX programerskih interfejsa
 
-Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
+Spisak proveravača možemo dobiti opcijom `-Xanalyzer -analyzer-list-enabled-checkers`. Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
 ```sh
 $ clang \
-    -Xanalyzer -analyzer-list-enabled-checkers \
     -Xanalyzer -analyzer-checker=alpha \
     --analyze divzero.c
 ```
