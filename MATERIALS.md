@@ -741,7 +741,7 @@ Da bismo implementirali ručne konfiguracije, primetimo da je `model.conf.Glider
 Slično kao u [kalkulator](02_refactoring/01_cpp_calculator) primeru, treba apstrahovati rad sa standardnim izlazom kako bismo mogli da testiramo prikaz stanja igre. Prikaz stanja se trenutno vrši u glavnoj klasi aplikacije, što takođe nije optimalno. Dodajmo `views` paket sa implementacijom `View` interfejsa koji predstavlja apstraktnu implementaciju prikaza aplikacije. Sada možemo kreirati implementaciju koja ispisuje stanje igre na proizvoljni izlazni tok (`PrintStreamView`) odnosno `System.out` ukoliko izlazni tok nije naveden. Logiku ispisa stanja igre pomeramo iz `app.GameOfLife` u `view.ConsoleView`. 
 ## C# - REST API klijent primer
 
-Aplikacija je primer [RESTful API](https://aws.amazon.com/what-is/restful-api/) klijenta koji prikazuje trenutnu temperaturu i dnevnu prognozu tako što kontaktira servis [OpenWeather](https://openweathermap.org/), tačnije njegov [API server](https://openweathermap.org/api) (*Napomena: pokretanje primera zahteva ključ koji aplikacija traži u fajlu `key.txt`*). Detalji funkcionalnosti ovog servisa nisu od značaja za razumevanje ovog primera. Pojednostavljeno, klijent će serveru poslati HTTP zahtev za odgovarajućim resursom (trenutna temperatura, prognoza, i sl.) i server će poslati objekat sa odgovarajućim informacijama serijalizovanim u JSON. Pogledajmo implementaciju:
+Aplikacija je primer [RESTful API](https://www.redhat.com/en/topics/api/what-is-a-rest-api) klijenta koji prikazuje trenutnu temperaturu i dnevnu prognozu tako što kontaktira servis [OpenWeather](https://openweathermap.org/), tačnije njegov [API server](https://openweathermap.org/api) (*Napomena: pokretanje primera zahteva ključ koji aplikacija traži u fajlu `key.txt`*). Detalji funkcionalnosti ovog servisa nisu od značaja za razumevanje ovog primera. Pojednostavljeno, klijent će serveru poslati HTTP zahtev za odgovarajućim resursom (trenutna temperatura, prognoza, i sl.) i server će poslati objekat sa odgovarajućim informacijama serijalizovanim u JSON. Pogledajmo implementaciju:
 - prostor imena `Common` sadrži klase koje se koriste za deserijalizaciju odgovora servera
 - prostor imena `Services` sadrži klasu `WeatherService` koja će biti meta naših testova
 - glavni prostor imena koristi `WeatherService` da prikaže trenutnu temperaturu i prognozu za odgovarajući upit
@@ -1132,10 +1132,10 @@ public class ParameterizedTests
     [Fact]
     public void SampleFact()
     {
-        Assert.True(PerformAsserts(4, 4, 4, 4));
-        Assert.True(PerformAsserts(3, 2, 2, 3));
-        Assert.True(PerformAsserts(7, 0, 0, 7));
-        Assert.True(PerformAsserts(0, 7, 7, 0));
+        PerformAsserts(4, 4, 4, 4);
+        PerformAsserts(3, 2, 2, 3);
+        PerformAsserts(7, 0, 0, 7);
+        PerformAsserts(0, 7, 7, 0);
 
         void PerformAsserts(int a, int b, int c, int d) 
         {
@@ -1760,7 +1760,7 @@ Ukoliko se ne zada vrednost argumenta `--tool` podrazumeva se `memcheck`.
 
 Prve tri linije izlazne poruke štampaju se prilikom pokretanja bilo kog alata koji je u sklopu Valgrinda. U nastavku se prikazuju poruke o greškama koje je alat pronašao u programu. Zatim sledi izlaz samog programa, praćen sumiranim izveštajem o greškama.
 
-Nekada informacija koja se dobije o grešci nije dovoljno detaljna da se u hiljadama linija koda nade pravo mesto. Da bismo u okviru poruke o grešci imali i informaciju o liniji koda u kojoj je detektovana potrebno je da program prevedemo sa debug simbolima (opcija `-g` za `gcc`). Da se ne bi dogodilo da se ne prijavljuje tačna linija u kojoj je detektovana greška preporučuje se da se isključe optimizacije (opcija `-O0` za `gcc`).
+Nekada informacija koja se dobije o grešci nije dovoljno detaljna da se u hiljadama linija koda nade pravo mesto. Da bismo u okviru poruke o grešci imali i informaciju o liniji koda u kojoj je detektovana potrebno je da program prevedemo sa debug simbolima (opcija `-g` za `gcc`). Da se ne bi dogodilo da se ne prijavljuje tačna linija u kojoj je detektovana greška preporučuje se da se isključe optimizacije (opcija `-O0` za `gcc`). Nepotpuni stek okviri se manifestuju linijama koje sadrže nepoznate simbole (`???`), u kom slučaju se zarad njihovog poboljšanja, osim kompajlerskih opcija `-g` i `-O` mogu koristiti i [neke Valgrind opcije](https://valgrind.org/docs/manual/faq.html#faq.unhelpful).
 ### Memcheck
 
 Memcheck detektuje memorijske greške korisničkog programa. Kako ne vrši analizu izvornog koda već mašinskog, Memcheck ima mogućnost analize programa pisanom u bilo kom programskom jeziku. Za programe pisane u jezicima C i C++ detektuje sledeće probleme:
@@ -2120,7 +2120,7 @@ Na grafu je simbolom `#` predstavljen još jedan detaljan presek koji je obraden
 Alat Massif meri samo hip memoriju, tj. onu koju smo alocirali funkcijama `malloc`, `calloc`, `realloc`, `memalign`, `new`, `new[]`. Ne meri memoriju alociranu sistemskim pozivima kao što su `mmap`, `mremap`, `brk`. Ukoliko nam je od značaja merenje celokupne alocirane memorije, potrebno je uključiti opciju `--pages-as-heap=yes`. Sa ovom opcijom Massif neće profajlirati hip memoriju, već stranice u memoriji.
 ### Cachegrind
 
-Merenje performansi keša je postalo važno jer se eksponencijalno pove ́ćava razlika u brzini RAM memorije i performansi procesora. Uloga keša je da premosti tu razliku u brzini. Da bismo utvrdili koliko je keš sposoban da to učini prate se pogodci (_hits_) i promašaji (_misses_) keša. Jedan od koraka za poboljšanje je da se smanji broj promašaja na najvišim nivoima keša.
+Merenje performansi keša je postalo važno jer se eksponencijalno povećava razlika u brzini RAM memorije i performansi procesora. Uloga keša je da premosti tu razliku u brzini. Da bismo utvrdili koliko je keš sposoban da to učini prate se pogodci (_hits_) i promašaji (_misses_) keša. Jedan od koraka za poboljšanje je da se smanji broj promašaja na najvišim nivoima keša.
 
 Cachegrind je alat koji omogućava softversko profajliranje keš memorije tako što simulira i prati pristup keš memoriji mašine na kojoj se program, koji se analizira, izvršava. Može se koristiti i za profajliranje izvršavanja grana, korišćenjem opcije `--branch-sim=yes`. Cachegrind simulira memoriju mašine, koja ima prvi nivo keš memorije podeljene u dve odvojene nezavisne sekcije:
 **I1** - sekcija keš memorije u koju se smeštaju instrukcije
@@ -2170,7 +2170,7 @@ Dakle, ne treba se uzdati da su podaci veoma precizni, ali su svakako korisni.
 Matrica se popunjava u `main` funkciji, a čita u funkciji `array_sum`.
 Iz konzole izvršavamo komandu:
 ```sh
-$ valgrind --tool=cachegrind ./loops-fast
+$ valgrind --tool=cachegrind --cache-sim=yes ./loops-fast
 $ kcachegrind cachegrind.out.*
 ```
 
@@ -2202,7 +2202,7 @@ u main funkciji.
 
 Ponovo pokrećemo program, ali ovaj put Cachegrind -u zadajemo 16MB za veličinu LL keša:
 ```sh
-$ valgrind --tool=cachegrind --LL=16777216,8,64 ./loops-fast
+$ valgrind --tool=cachegrind --cache-sim=yes --LL=16777216,8,64 ./loops-fast
 ```
 
 Izveštaj možemo iz konzole čitati komandom
@@ -2233,15 +2233,15 @@ Auto-annotation:  on
 --------------------------------------------------------------------------------
        Ir I1mr ILmr        Dr    D1mr DLmr        Dw    D1mw    DLmw  file:function
 --------------------------------------------------------------------------------
-5,004,015    2    2 1,000,004       3    1 1,000,002 125,002 124,928  /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c:main
-4,004,004    1    1 1,000,001 125,001    0         0       0       0  /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c:array_sum
+5,004,015    2    2 1,000,004       3    1 1,000,002 125,002 124,928  loops-fast.c:main
+4,004,004    1    1 1,000,001 125,001    0         0       0       0  loops-fast.c:array_sum
    56,470    9    9    13,757   1,047  868        17       2       1  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-addr.c:_dl_addr
    21,444   20   20     7,663     187  133     3,329      11       6  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-lookup.c:do_lookup_x
    17,173   10   10     3,626      92   80     1,993      12       8  /build/glibc-Cl5G7W/glibc-2.23/elf/dl-lookup.c:_dl_lookup_symbol_x
    16,311   20   20     3,949     555  535     2,048     243     235  /build/glibc-Cl5G7W/glibc-2.23/elf/../sysdeps/x86_64/dl-machine.h:_dl_relocate_object
 
 --------------------------------------------------------------------------------
--- Auto-annotated source: /home/ana/Fax/Nastava/2017_18/vs/priprema/05/callgrind/loops-fast.c
+-- Auto-annotated source: loops-fast.c
 --------------------------------------------------------------------------------
        Ir I1mr ILmr        Dr    D1mr DLmr        Dw    D1mw    DLmw
 
@@ -2302,7 +2302,7 @@ ili otvaranjem u KCachegrind -u.
 
 U programu `loops_slow` se elementima matrice ne pristupa po vrstama već po kolonama.
 ```sh
-$ valgrind --tool=cachegrind ./loops-slow
+$ valgrind --tool=cachegrind --cache-sim=yes ./loops-slow
 ```
 
 Prilikom učitavanja podataka u keš, učitavaju se zajedno podaci koji su blizu u memoriji pod pretpostavkom da će biti uskoro upotrebljeni. Tako se učitava pored jednog elementa vrste i oni koji su za njim u vrsti jer nam je matrica tako alocirana. U petlji u main funkciji pristupamo jednom elementu, a potom narednom elementu iz iste kolone. Ta dva elementa, za dovoljno veliku matricu ne moraju biti zajedno učitani u keš. Ukoliko je D1 keš veličine 32KB i ako je veličina linije keša 64B, tj. 8 double vrednosti, imamo 512 linija keša. Prilikom pristupanja elementu `a[0][0]`, potrebno ga je dovući u keš D1. Sa njim će u D1 biti učitano i narednih 7, do `a[0][7]`. U narednom koraku nam treba element `a[1][0]` i njega nema u kešu, imamo još jedan promašaj. Možemo imati najviše 512 linija istovremeno prisutnih u kešu stoga posle prvog elementa 512. vrste, moraće da se izbacuju najranije učitane linije, da bi se napravio prostor za nove podatke [^2]. Iz tog razloga imamo 1000000 promašaja na D1 prilikom pisanja u matricu. Nijedan element matrice nije u D1 kešu u trenutku kada je potreban.
@@ -2314,7 +2314,7 @@ Prilikom učitavanja podataka u keš, učitavaju se zajedno podaci koji su blizu
 Ukoliko povećamo D1 keš na 64KB, imaćemo sličnu situaciju kao sa prethodnim programom sa ∼125000 promašaja prilikom pisanja na kešu D1.
 
 ```sh
-$ valgrind --tool=cachegrind --D1=65536,8,64 ./loops-slow
+$ valgrind --tool=cachegrind --cache-sim=yes --D1=65536,8,64 ./loops-slow
 ```
 
 Sa toliko velikim D1 kešom možemo imati 1024 linije u jednom trenutku, pa je onda nakon prvih 1000 promašaja za prvi element svake vrste, istovremeno u D1 keš učitano prvih 8 kolona matrice, pa za narednih 7 kolona nećemo imati promašaje. Dakle, otprilike svaka 8 kolona će generisati novih 1000 promašaja. Iz tog razloga imamo oko 125000
@@ -2360,7 +2360,7 @@ Broj promašaja u `main` funkciji bi mogao da se smanji razdvajanjem obrade svak
 Izvršavati svaki program i meriti vreme:
 ```sh
 $ time ./matrix_slowest
-$ time valgrind --tool=cachegrind ./matrix_slowest
+$ time valgrind --tool=cachegrind --cache-sim=yes ./matrix_slowest
 ```
 i primetiti koliko puta Valgrind usporava rad programa.
 
@@ -2373,7 +2373,7 @@ Podaci koji se analiziraju i nakon završetka rada programa i alata zapisuju u d
 
 Program `callgrind_control` omogućava interaktivnu kontrolu i  nadgledanje programa prilikom izvršavanja. Mogu se dobiti informacije o stanju na steku, može se takode u svakom trenutku generisati profil.
 
-Alat Cachegrind sakuplja podatke, odnosno broji dogadaje koji se dešavaju direktno u jednoj funkciji. Ovaj mehanizam sakupljanja podataka se naziva ekskluzivnim. Ovu funkcionalnost proširuje tako što propagira cenu funkcije preko njenih granica. Na primer, ako funkcija `foo` poziva funkciju `bar`, cena funkcije `bar` se dodaje funkciji `foo`. Kada se ovaj mehanizam primeni na celu funkciju, dobija se slika takozvanih inkluzivnih poziva, gde cena svake funkcije uključuje i cene svih funkcija koje ona poziva, direktno ili indirektno.
+Alat Cachegrind sakuplja podatke, odnosno broji dogadaje koji se dešavaju direktno u jednoj funkciji. Ovaj mehanizam sakupljanja podataka se naziva ekskluzivnim. Callgrind ovu funkcionalnost proširuje tako što propagira cenu funkcije preko njenih granica. Na primer, ako funkcija `foo` poziva funkciju `bar`, cena funkcije `bar` se dodaje funkciji `foo`. Kada se ovaj mehanizam primeni na celu funkciju, dobija se slika takozvanih inkluzivnih poziva, gde cena svake funkcije uključuje i cene svih funkcija koje ona poziva, direktno ili indirektno.
 
 Zahvaljujući grafu poziva, može da se odredi, počevši od `main` funkcije, koja funkcija ima najveću cenu poziva. Pozivaoc/pozvan cena je izuzetno korisna za profilisanje funkcija koje imaju više poziva iz raznih funkcija, i gde imamo priliku optimizacije našeg programa menjajući kod u funkciji koja je pozivaoc, tačnije redukovanjem broja poziva.
 
@@ -2403,7 +2403,7 @@ Program pretražuje nisku `txt` tražeći podnisku `pat`. U programu se 10 puta 
 koristeći 3 različita algoritma. Pomoću Callgrind-a možemo utvrditi koji od algoritama najviše instrukcija izvršava.
 #### Primer: Sortiranje
 
-Program izvršava funkcije koje implementiraju različite algoritme sortiranja, na rastu će ili opadajuće sortiranom nizu ili nasumice generisanom nizu celih brojeva. U zavisnosti od izbora ulaznog niza neki algoritmi se pokazuju daleko bolje od očekivanog.
+Program izvršava funkcije koje implementiraju različite algoritme sortiranja, na rastuće ili opadajuće sortiranom nizu ili nasumice generisanom nizu celih brojeva. U zavisnosti od izbora ulaznog niza neki algoritmi se pokazuju daleko bolje od očekivanog.
 
 ### Helgrind / DRD
 
@@ -4161,7 +4161,7 @@ $ cbmc 03_binsearch.c --function binsearch --bounds-check
 Primetićemo da se odmotavanje petlje ne zaustavlja samo od sebe jer
 CBMC ne uspeva da otkrije gornje ograničenje za broj iteracija ove
 petlje. U tom slučaju gornje ograničenje za odmotavanje petlje mora da
-se zada preko opcije `–unwind n`, gde `n` zapravo predstavlja broj
+se zada preko opcije `–-unwind n`, gde `n` zapravo predstavlja broj
 provera uslova ostanka u petlji:
 ```sh
 $ cbmc 03_binsearch.c --function binsearch --unwind 6  --bounds-check
@@ -4169,10 +4169,10 @@ $ cbmc 03_binsearch.c --function binsearch --unwind 6  --bounds-check
 
 CBMC potvrđuje da su svi pristupi elementima niza u okviru granica
 iako to u ovom slučaju zavisi od šiftovanja u desno. Ukoliko se upotrebi
-opcija `–unwinding-assertions`, proveravaće da li je dovoljno odmotana
+opcija `-–unwinding-assertions`, proveravaće da li je dovoljno odmotana
 petlja. Za kraća odmotavanja od 6 bili bi ispisani koraci izvršavanja
 koji zahtevaju više odmotavanja petlje. Ukoliko je pozvan i sa opcijom
-`–trace`, generisaće nam i kontraprimer.
+`-–trace`, generisaće nam i kontraprimer.
 ```sh
 $ cbmc 03_binsearch.c --function binsearch --unwind 5 --unwinding-assertions  --bounds-check --trace
 ```
@@ -4193,12 +4193,12 @@ svojstvom koje je korisnik definisao, navodeći `assert` naredbe u kodu.
 `while` petlja nema konkretnu gornju granicu broja iteracija. Stoga,
 mora se naglasiti koliko odmotavanja petlje treba CBMC da izvrši.
 Postoje dva načina da se tako nešto postigne:
--   opcijom `–unwind` da se ograniči koliko puta su pelje odmotane.
--   opcijom `–depth` da se ograniči broj koraka program koje treba
+-   opcijom `–-unwind` da se ograniči koliko puta su pelje odmotane.
+-   opcijom `-–depth` da se ograniči broj koraka program koje treba
     pratiti.
 
-Ukoliko navedemo i opciju `–unwinding-assertions`, CBMC će proveriti
-da li je argument uz opciju `–unwind` dovoljno veliki da pokrije sve
+Ukoliko navedemo i opciju `–-unwinding-assertions`, CBMC će proveriti
+da li je argument uz opciju `–-unwind` dovoljno veliki da pokrije sve
 putanje kroz program. Ukoliko je premali, detektovaće nam da nije
 dovoljno odmotavanja izvršeno.
 
@@ -4209,14 +4209,14 @@ $ cbmc 04_lock-example.c  --unwind 1 --unwinding-assertions
 
 Ne prijavljuje nam grešku (osim da imamo premalo odmotavanja). Ukoliko se
 izostavi poslednja opcija, neće ni to prijavljivati. Već sa ograničenjem
-`2`, CBMC detektuje grešku. Upotrebom opcije `–trace` generisaće nam se
+`2`, CBMC detektuje grešku. Upotrebom opcije `-–trace` generisaće nam se
 kontraprimer koji narušava važenje tvrđenja, (*eng. assertion*).
 ```sh
 $ cbmc 04_lock-example.c  --unwind 1 --trace
 ```
 
 Bez prijave o nedovoljnom odmotavanju petlje ili korišćenjem opcije
-`–depth`, CBMC ne dokazuje korektnost programa, ali je i dalje
+`-–depth`, CBMC ne dokazuje korektnost programa, ali je i dalje
 koristan za nalaženje grešaka.
 
 Pokrećemo CBMC ponovo sa ciljem da proverimo ima li program grešaka.
@@ -4342,7 +4342,7 @@ $ cbmc 05_loop1.c  --unwind 2 --unwinding-assertions
 ```
 
 Ukoliko ograničimo razmotavanje petlje, i pri tom ne navedemo opciju
-`–unwinding-assertions` , posle određenog broja iteracija, pretpostaviće
+`-–unwinding-assertions` , posle određenog broja iteracija, pretpostaviće
 se da više ne važi uslov ostanka u petlji i nastaviće se dalje. Dakle
 sve preostale putanje kroz petlju biće ignorisane.
 ```c
@@ -4385,7 +4385,7 @@ funkcije `f()`.CBMC može automatski da odmota petlju do završetka. To
 automatsko detektovanje granice odmotavanja petlji može biti neuspešno
 ukoliko broj iteracija petlje veoma zavisi od podataka. Takođe, broj
 iteracija može biti i mnogo veliki ili jednostavno neograničen. U tim
-slučajevima je bolje korisiti opciju komandne linije ` –unwind B`, gde
+slučajevima je bolje korisiti opciju komandne linije `-–unwind B`, gde
 `B` označava broj provera uslova ostanka u petlji tj. skokova na
 početak. Tada se telo petlje izvršava `B-1` put.
 
@@ -4416,7 +4416,7 @@ int main() {
 ```
 
 Da bismo zadali za svaku petlju posebno ograničenje prvo pokrenim
-program sa opcijom `–show-loops` da bismo dobili listu svih pelji u
+program sa opcijom `-–show-loops` da bismo dobili listu svih pelji u
 programu i njihove identifikatore.
 ```sh
 $ cbmc 07_loop3.c --show-loops
@@ -4438,7 +4438,7 @@ Loop main.1:
 ```
 
 Za program sa 2 petlje zadajemo ograničenja odmotavanja za petlje redom,
-10, odnosno 20, opcijom `–unwindset`.
+10, odnosno 20, opcijom `-–unwindset`.
 ```sh
 $ cbmc 07_loop3.c --unwindset main.0:10,main.1:20 --unwinding-assertions
 ```
@@ -4507,7 +4507,7 @@ int main() {
 
 U ovom primeru za malo ograničenje odmotavanja petlje provera posle
 petlje neće biti izvršena. Ako se smatra da neka petlja nije bitna za
-kod koji sledi posle nje, možemo koristiti opciju ` –partial-loops`. Ova
+kod koji sledi posle nje, možemo koristiti opciju `-–partial-loops`. Ova
 opcija dozvoljava da se delimično izvrše putanje kroz petlju i time i za
 mala ograničenja odmotavanja pronalazi se kontraprimer za proveru koja
 se izvršava posle petlje.
@@ -4517,9 +4517,9 @@ $ cbmc 08_loop4.c  --unwind 1 --partial-loops
 
 Problem sa delimičnim izvršavanjem petlje je što putanja koja na kraju
 bude izvršena ne mora biti jedna od validnih putanja kroz petlju u
-originalnom programu. Opcijom `–partial-loops` stavlja se `break`
+originalnom programu. Opcijom `-–partial-loops` stavlja se `break`
 naredba na mestu gde stoji `assert`, odnosno `assume`, prilikom
-ograničenog razmotavanja petlje sa opcijom `–unwinding-assertions`,
+ograničenog razmotavanja petlje sa opcijom `–-unwinding-assertions`,
 odnosno bez nje.
 
 Pozivom:
@@ -4534,7 +4534,7 @@ da se petlja razmota 10001 put, da bi se stiglo do ostatka programa.
 
 Ograničenje za broj odmotavanja petlje nekada nije dovoljno. U
 situacijama kada je teško kontrolisati veličinu generisane formule samo
-opcijom `–unwind` option. Tada opcijom ` –depth D` zadajemo da je
+opcijom `-–unwind` option. Tada opcijom `-–depth D` zadajemo da je
 odmotavanje petlje ograničeno brojem instrukcija koje su izvršene na toj
 putanji, nebitno od rednog broja iteracija petlje. CBMC koristi broj
 instrukcija u grafu kontrole toka (*eng. control flow graph*), a ne broj
@@ -4544,23 +4544,23 @@ instrukcija u izvornom kodu.
 
 Instrumentacija:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-goto-functions`
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check -–show-goto-functions`
 ```
 Svojstva:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-properties
+$ cbmc 09_abs.c –-function abs –-signed-overflow-check –-show-properties
 ```
 Static Single Assign (SSA):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –program-only
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check -–program-only
 ```
 Verification condition (VCC):
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check –show-vcc
+$ cbmc 09_abs.c –-function abs -–signed-overflow-check -–show-vcc
 ```
 Verify:
 ```sh
-$ cbmc 09_abs.c –function abs –signed-overflow-check
+$ cbmc 09_abs.c -–function abs -–signed-overflow-check
 ```
 
 ### Uprošćavanje verifikacione formule
@@ -4570,7 +4570,7 @@ $ cbmc 10_escapefunction.c --function escape --pointer-check --bounds-check \
     --slice-formula --unwind 4
 ```
 
-Opcija `–slice-formula` uklanja nepotrebne dodele, tj. dodele koje nisu
+Opcija `-–slice-formula` uklanja nepotrebne dodele, tj. dodele koje nisu
 u vezi sa svojstvima koje proveravamo. Na taj način uprošćava formulu
 koja se šalje SAT solveru i ubrzava proveru modela. Ispravimo
 prijavljene greške i proverimo ponovo. Nije moguće rešiti problem što
@@ -4753,7 +4753,7 @@ poslednjoj liniji funkcije `next_data` vraćamo ne vrednost koju smo
 upisali u niz već narednu. Popravljamo da se vrati vrednost na indeksu
 `data_pos-1`.
 
-Opcija komandne linije `–unwind 7` utiče na međusobno isključenje niti,
+Opcija komandne linije `-–unwind 7` utiče na međusobno isključenje niti,
 jer nam utiče na petlju u kojoj se čeka na dozvolu za ulazak u kritičnu
 sekciju. Petlja se izvršava kao da smo dodali `break` nakon 6.
 iteracije. Zbog toga nam se mogu dogoditi nejasne greške da na primer
@@ -4781,10 +4781,9 @@ Neke kategorije podrazumevanih proveravača:
 - [Security Checkers](https://clang-analyzer.llvm.org/available_checks.html#security_checkers) proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
 - [Unix Checkers](https://clang-analyzer.llvm.org/available_checks.html#unix_checkers) proveravaju upotrebu Unix i POSIX programerskih interfejsa
 
-Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
+Spisak proveravača možemo dobiti opcijom `-Xanalyzer -analyzer-list-enabled-checkers`. Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije `--analyze`):
 ```sh
 $ clang \
-    -Xanalyzer -analyzer-list-enabled-checkers \
     -Xanalyzer -analyzer-checker=alpha \
     --analyze divzero.c
 ```
@@ -4933,6 +4932,8 @@ function F(a: A, b: B, c: C): T
   Body
 }
 ```
+
+Za razliku od metoda, funkcije mogu imati samo jedan **izraz** (ne naredbu) u telu (`Body`), dok metode mogu imati više izraza ili drugih naredbi u svom telu.
 
 Preduslov omogućava funkciji da bude definisana uslovno - Dafny će verifikovati da preduslov važi prilikom svakog poziva funkcije. Postuslov može biti dobro mesto za navođenje svojstava funkcije koja zahtevaju induktivni dokaz.
 
@@ -5136,7 +5137,11 @@ $ sudo apt-get install perf
 
 ### KLEE
 
-KLEE se može instalirati prateći uputstva na zvaničnoj [stranici](https://klee.github.io/getting-started/).
+KLEE se može instalirati prateći uputstva na zvaničnoj [stranici](https://klee.github.io/getting-started/). Preporučeno je koristiti Docker kontejner:
+```sh
+$ docker pull klee/klee:3.0
+$ docker run --rm -ti --ulimit='stack=-1:-1' klee/klee:3.0
+```
 ## Provera modela
 
 ### CBMC

@@ -20,8 +20,7 @@ void multiply(float *A, float *B, float *out, int size) {
         for (int i = 0; i < size; i++)
             temp[i] = B[i * size + col];
         for (int row = 0; row < size; row++)
-            out[row * size + col] =
-                dotProduct(&A[row], temp, size);
+            out[row * size + col] = dotProduct(&A[row], temp, size);
     }
 
     delete[] temp;
