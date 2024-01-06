@@ -65,6 +65,8 @@ function F(a: A, b: B, c: C): T
 }
 ```
 
+Za razliku od metoda, funkcije mogu imati samo jedan **izraz** (ne naredbu) u telu (`Body`), dok metode mogu imati više izraza ili drugih naredbi u svom telu.
+
 Preduslov omogućava funkciji da bude definisana uslovno - Dafny će verifikovati da preduslov važi prilikom svakog poziva funkcije. Postuslov može biti dobro mesto za navođenje svojstava funkcije koja zahtevaju induktivni dokaz.
 
 Na primer, definicija ispod navodi postuslov da je rezultat rada funkcije uvek pozitivan (funkcija referiše na samu sebe u postuslovu):
