@@ -1,6 +1,7 @@
 package test;
 
 import com.company.Main;
+import com.company.SudokuWrapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
 
+import static com.company.UserChoosingDifficulty.difficulty;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MainTest {
@@ -33,6 +35,18 @@ class MainTest {
     public void setUpInput(String input) {
         testIn = new ByteArrayInputStream(input.getBytes());
         System.setIn(testIn);
+    }
+
+    @Test
+    public void testDifficultyEasy() {
+        // Setup fake input
+        setUpInput("1\n");
+
+        // Act
+        int result = difficulty(new SudokuWrapper(null));
+
+        // Assert
+        assertEquals(1, result);
     }
 
     @Test
