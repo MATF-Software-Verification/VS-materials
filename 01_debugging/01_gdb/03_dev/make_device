@@ -1,0 +1,3 @@
+#!/bin/bash
+
+echo -ne "\x61\x61\x61\x61\x62\x62\x62\x62\x01" > dev.bin
