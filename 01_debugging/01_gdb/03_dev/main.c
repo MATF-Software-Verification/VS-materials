@@ -38,4 +38,6 @@ int main()
            gadget->command, gadget->data, gadget->isBusy);
 
     SendCommand(gadget, 0x41, 0x42);
+
+    munmap(gadget, sizeof(MyHardwareGadget));
 }
