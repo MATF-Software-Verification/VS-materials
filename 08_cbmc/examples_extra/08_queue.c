@@ -144,5 +144,4 @@ void queue_harness() {
     /* Write your test harness for the queue implementation here */
 }
 
-void queue_copy_harness() { /* Write your test harness for queue_copy here */
-}
+void queue_copy_harness() { /* Write your test harness for queue_copy here */ }

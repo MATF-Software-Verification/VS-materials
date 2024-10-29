@@ -1,6 +1,4 @@
-## Debagovanje i instrumentovanje Java bajtkoda
-
-### Java agenti
+## Instrumentovanje Java bajtkoda - Java agenti
 
 Java agenti su specijalni tip klase koji koristi Java Instrumentation API da modifikuje bajtkod aplikacija koje rade na JVM. Java agenti postoje od ranih verzija Java jezika (tačnije, od verzije 5). Instrumentovanje koda je korisno jer ne zahteva modifikovanje originalnog koda, stoga se agenti mogu "uključiti" u već postojeće aplikacije - to se radi zadavanjem odgovarajućih argumenata u komandnoj liniji prilikom pozivanja aplikacije. Jedan primer agenta može biti i debager - na kraju krajeva, debager treba da posmatra bajtkod i unosi instrukcije za praćenje rada aplikacije, za šta su agenti i namenjeni. Drugi primer upotrebe agenta može biti praćenje pokrivenosti, što je upravo način rada popularnih biblioteka za praćenje pokrivenosti kao npr. [JaCoCo](https://github.com/jacoco/jacoco).
 
@@ -19,7 +17,7 @@ public static void agentmain(String agentArgs)
 Metod `agentmain` se poziva nakon JVM inicijalizacije, i *nakon* pokretanja originalne aplikacije. Agent može imati i `premain` i `agentmain`, ali u tom slučaju će se pozvati samo `premain`.
 
 
-#### Primer
+### Primer
 
 Kao primer, data je jednostavna Maven aplikacija. Pokrenimo je:
 ```sh

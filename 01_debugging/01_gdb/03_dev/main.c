@@ -11,8 +11,7 @@ typedef struct {
     int8_t isBusy;
 } MyHardwareGadget;
 
-void SendCommand(MyHardwareGadget* gadget, int command, int data)
-{
+void SendCommand(MyHardwareGadget *gadget, int command, int data) {
     // wait while the gadget is busy:
     while (gadget->isBusy) {
     }
@@ -24,18 +23,17 @@ void SendCommand(MyHardwareGadget* gadget, int command, int data)
     gadget->command = command;
 }
 
-int main()
-{
+int main() {
     int fd = open("dev.bin", O_RDWR);
     assert(fd >= 0);
 
-    MyHardwareGadget* gadget = (MyHardwareGadget*) mmap(NULL, sizeof(MyHardwareGadget), 
-                                                        PROT_READ | PROT_WRITE, MAP_SHARED, 
-                                                        fd, 0);
+    MyHardwareGadget *gadget =
+        (MyHardwareGadget *)mmap(NULL, sizeof(MyHardwareGadget),
+                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     assert(gadget != MAP_FAILED);
 
-    printf("dev->cmd : %d\ndev->data: %d\ndev->busy: %d\n", 
-           gadget->command, gadget->data, gadget->isBusy);
+    printf("dev->cmd : %d\ndev->data: %d\ndev->busy: %d\n", gadget->command,
+           gadget->data, gadget->isBusy);
 
     SendCommand(gadget, 0x41, 0x42);
 
