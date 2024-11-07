@@ -10,7 +10,7 @@ SOURCES +=  tst_tst_calculatortest.cpp \
     ../Calculator/calculator.cpp
 
 HEADERS += \
-    ../Calculator/calculator.h
+    ../Calculator/calculator.hpp
 
 
 QMAKE_CXXFLAGS += -g -Wall -O0 --coverage
