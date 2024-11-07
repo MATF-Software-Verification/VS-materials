@@ -1,5 +1,5 @@
 package model.conf;
 
 public interface Configuration {
-    boolean isCellALiveAt(int x, int y);
+    boolean isCellAliveAt(int x, int y);
 }
