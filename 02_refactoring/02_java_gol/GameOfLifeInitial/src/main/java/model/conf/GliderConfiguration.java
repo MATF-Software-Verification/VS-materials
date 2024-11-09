@@ -14,7 +14,7 @@ public class GliderConfiguration implements Configuration {
     }
 
     @Override
-    public boolean isCellALiveAt(int x, int y) {
+    public boolean isCellAliveAt(int x, int y) {
         if ((x >= 0 && x < field.length) && (y >= 0 && y < field[0].length))
             return field[x][y] == 'O';
         return false;

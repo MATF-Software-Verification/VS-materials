@@ -1,4 +1,4 @@
-#include "../Calculator/calculator.h"
+#include "../Calculator/calculator.hpp"
 #include <QtTest>
 #include <sstream>
 using namespace std;

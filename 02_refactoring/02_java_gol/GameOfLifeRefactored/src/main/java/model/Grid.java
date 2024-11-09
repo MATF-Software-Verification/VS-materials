@@ -26,7 +26,7 @@ public class Grid {
         for (int i = 1; i < height - 1; i++) {
             for (int j = 1; j < width - 1; j++) {
                 newGrid[i][j] = new Cell(i - 1, j - 1);
-                if (conf.isCellALiveAt(i - 1, j - 1))
+                if (conf.isCellAliveAt(i - 1, j - 1))
                     newGrid[i][j].resurrect();
                 else
                     newGrid[i][j].kill();
