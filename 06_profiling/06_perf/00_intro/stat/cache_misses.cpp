@@ -2,8 +2,7 @@
 #include <list>
 #include <vector>
 
-template <typename Container>
-Container build() {
+template <typename Container> Container build() {
     int test_size = 100000;
     Container container;
     for (int i = 0; i < test_size; ++i) {
@@ -13,15 +12,15 @@ Container build() {
 }
 
 template <typename Container>
-typename Container::value_type test(Container& container) {
+typename Container::value_type test(Container &container) {
     auto ret = typename Container::value_type();
-    for (auto&& value : container) {
+    for (auto &&value : container) {
         ret += value;
     }
     return ret;
 }
 
-int main(int argc, char** /* argv */) {
+int main(int argc, char ** /* argv */) {
     if (argc > 1) { // list
         auto list = build<std::list<int>>();
         printf("result list: %d\n", test(list));

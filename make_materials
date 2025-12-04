@@ -104,6 +104,7 @@ if [ $exc -eq 0 ]; then
     echo "SUCCESS"
 else
     echo "ERROR code $exc"
-    echo "NOTE: if you see verbatim errors, make sure to have qualified codeblocks with language, e.g., \`\`\`txt instead of just \'\'\'"
 fi
+
+echo "NOTE: if you see verbatim errors, make sure to have qualified codeblocks with language, e.g., \`\`\`txt instead of just \'\'\'"
 

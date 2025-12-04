@@ -53,6 +53,44 @@ $ perf stat -h
     -B, --big-num         print large numbers with thousands' separators
 ```
 
+Kontrola dozvola pristupa odgovarajućim događajima se može izmeniti kroz fajl [`/proc/sys/kernel/perf_event_paranoid`](https://www.kernel.org/doc/Documentation/sysctl/kernel.txt):
+```txt
+perf_event_paranoid:
+
+Controls use of the performance events system by unprivileged
+users (without CAP_SYS_ADMIN).  The default value is 2.
+
+ -1: Allow use of (almost) all events by all users
+     Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
+>=0: Disallow ftrace function tracepoint by users without CAP_SYS_ADMIN
+     Disallow raw tracepoint access by users without CAP_SYS_ADMIN
+>=1: Disallow CPU event access by users without CAP_SYS_ADMIN
+>=2: Disallow kernel profiling by users without CAP_SYS_ADMIN
+```
+
+Da bismo izmenili trenutnu vrednost u `perf_event_paranoid` fajlu, potrebne su root privilegije:
+```sh
+$ echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+```
+
+Dodatno, poželjno je podesiti i [`kptr_restrict`](https://docs.kernel.org/admin-guide/sysctl/kernel.html#kptr-restrict) podešavanje:
+```txt
+kptr_restrict
+
+This toggle indicates whether restrictions are placed on exposing kernel addresses via /proc and other interfaces.
+
+When kptr_restrict is set to 0 (the default) the address is hashed before printing. (This is the equivalent to %p.)
+
+When kptr_restrict is set to 1, kernel pointers printed using the %pK format specifier will be replaced with 0s unless the user has CAP_SYSLOG and effective user and group ids are equal to the real ids. This is because %pK checks are done at read() time rather than open() time, so if permissions are elevated between the open() and the read() (e.g via a setuid binary) then %pK will not leak kernel pointers to unprivileged users. Note, this is a temporary solution only. The correct long-term solution is to do the permission checks at open() time. Consider removing world read permissions from files that use %pK, and using dmesg_restrict to protect against uses of %pK in dmesg(8) if leaking kernel pointer values to unprivileged users is a concern.
+
+When kptr_restrict is set to 2, kernel pointers printed using %pK will be replaced with 0s regardless of privileges.
+```
+
+Da bismo izmenili trenutnu vrednost u `kptr_restrict` fajlu, potrebne su root privilegije:
+```sh
+$ echo 0 | sudo tee /proc/sys/kernel/kptr_restrict
+```
+
 ### Događaji 
 
 Perf može da meri događaje iz raznih izvora i oni se dele u kategorije:

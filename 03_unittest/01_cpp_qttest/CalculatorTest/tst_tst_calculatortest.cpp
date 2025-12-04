@@ -4,7 +4,7 @@
 using namespace std;
 
 class tst_calculatorTest : public QObject {
-    Q_OBJECT public : tst_calculatorTest();
+  Q_OBJECT public : tst_calculatorTest();
     ~tst_calculatorTest();
 
   private slots:

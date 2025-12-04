@@ -7,7 +7,7 @@ using namespace std;
 // add necessary includes here
 
 class MockForTest : public QObject {
-    Q_OBJECT public : MockForTest();
+  Q_OBJECT public : MockForTest();
     ~MockForTest();
 
   private slots:
