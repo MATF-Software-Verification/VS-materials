@@ -15,6 +15,32 @@ void showChoices(std::ostream &ostr) {
 //     return showChoices(std::cout);
 // }
 
+// We can also use an enum for the op:
+// typedef enum Operation {
+//     OP_INVALID  = 0,
+//     OP_ADD      = 1,
+//     OP_SUBTRACT = 2,
+//     OP_MULTIPLY = 3,
+//     OP_DIVIDE   = 4,
+//     OP_EXIT     = 5,
+// } Operation;
+//
+// Operation readChoice(std::istream &istr) {
+//     int opcode;
+// 
+//     istr >> opcode;
+//     if (opcode < 1 || opcode > 5)
+//         opcode = 0;
+// 
+//     Operation op = (Operation) opcode; 
+//     return op;
+// }
+//
+// Operation op = OP_INVALID;
+// while ((op == readChoice(std::cin)) == OP_INVALID) {
+//     cout << "Invalid input" << endl;
+// }
+
 bool readChoice(std::istream &istr, int *x) {
     istr >> *x;
     if (*x < 1 || *x > 5)
@@ -26,6 +52,7 @@ bool readChoice(std::istream &istr, int *x) {
 void readOperands(std::istream &istr, float *x, float *y) { istr >> *x >> *y; }
 
 void calculate(int choice, float x, float y, float *result) {
+    /* macro_assert(isValid(op))  */
 
     if (!(choice >= 1 && choice < 5))
         throw std::invalid_argument("Bad choice. Should be between 1 and 5.");
