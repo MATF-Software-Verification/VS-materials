@@ -1,6 +1,6 @@
-#include "../MockClock/mock_clock.h"
-#include "../MockClock/play_time.h"
-#include "../MockClock/system_clock.h"
+#include "../play_time_refactored/mock_clock.h"
+#include "../play_time_refactored/play_time.h"
+#include "../play_time_refactored/system_clock.h"
 #include <QtTest>
 using namespace std;
 
