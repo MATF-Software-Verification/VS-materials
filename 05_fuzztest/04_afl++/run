@@ -1,0 +1,36 @@
+#!/bin/bash
+
+dir="/ramfs"
+
+set -xe;
+
+cd "$dir"
+
+if [ ! -d AFLplusplus ]; then
+    git clone https://github.com/AFLplusplus/AFLplusplus
+    cd AFLplusplus
+    make all
+    cd "$dir"
+fi
+
+git clone https://gitlab.gnome.org/GNOME/libxml2.git
+cd libxml2
+
+./autogen.sh
+./configure --enable-shared=no
+
+export AFL_USE_UBSAN=1
+export AFL_USE_ASAN=1
+
+make CC="$dir"/AFLplusplus/afl-clang-fast CXX="$dir"/AFLplusplus/afl-clang-fast++ LD="$dir"/AFLplusplus/afl-clang-fast
+
+mkdir fuzz
+cp xmllint fuzz/xmllint_cov
+
+mkdir fuzz/in
+cp test/*.xml fuzz/in/
+
+cd fuzz
+
+sudo "$dir"/AFLplusplus/afl-system-config
+"$dir"/AFLplusplus/afl-fuzz -i in/ -o out -- ./xmllint_cov @@
