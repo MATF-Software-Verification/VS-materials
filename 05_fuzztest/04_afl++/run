@@ -1,36 +1,47 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-dir="/ramfs"
+set -euo pipefail
+set -x
 
-set -xe;
+workdir="${AFL_WORKDIR:-${TMPDIR:-/tmp}/afl-libxml2}"
+run_system_config="${AFL_RUN_SYSTEM_CONFIG:-0}"
 
-cd "$dir"
+mkdir -p "$workdir"
+cd "$workdir"
 
 if [ ! -d AFLplusplus ]; then
     git clone https://github.com/AFLplusplus/AFLplusplus
-    cd AFLplusplus
-    make all
-    cd "$dir"
+    make -C AFLplusplus all
 fi
 
-git clone https://gitlab.gnome.org/GNOME/libxml2.git
+if [ ! -d libxml2 ]; then
+    git clone https://gitlab.gnome.org/GNOME/libxml2.git
+fi
+
 cd libxml2
 
-./autogen.sh
+if [ ! -x configure ]; then
+    ./autogen.sh
+fi
+
 ./configure --enable-shared=no
 
-export AFL_USE_UBSAN=1
-export AFL_USE_ASAN=1
+export AFL_USE_UBSAN="${AFL_USE_UBSAN:-1}"
+export AFL_USE_ASAN="${AFL_USE_ASAN:-1}"
 
-make CC="$dir"/AFLplusplus/afl-clang-fast CXX="$dir"/AFLplusplus/afl-clang-fast++ LD="$dir"/AFLplusplus/afl-clang-fast
+make clean || true
+make CC="$workdir"/AFLplusplus/afl-clang-fast CXX="$workdir"/AFLplusplus/afl-clang-fast++ LD="$workdir"/AFLplusplus/afl-clang-fast
 
-mkdir fuzz
+mkdir -p fuzz
 cp xmllint fuzz/xmllint_cov
 
-mkdir fuzz/in
+mkdir -p fuzz/in
 cp test/*.xml fuzz/in/
 
 cd fuzz
 
-sudo "$dir"/AFLplusplus/afl-system-config
-"$dir"/AFLplusplus/afl-fuzz -i in/ -o out -- ./xmllint_cov @@
+if [ "$run_system_config" = "1" ]; then
+    sudo "$workdir"/AFLplusplus/afl-system-config
+fi
+
+exec "$workdir"/AFLplusplus/afl-fuzz -i in -o out -- ./xmllint_cov @@

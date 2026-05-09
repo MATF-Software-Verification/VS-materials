@@ -1,0 +1,130 @@
+% Converted from README.md
+\subsection{KLEE heuristike}\label{klee-heuristike}
+
+KLEE je primenjen na svih 89 programa u verziji 6.10 paketa GNU Coreutils, koji obuhvata oko 80,000 linija koda biblioteka i 61,000 linija iz konkretnih programa. Ti programi interaguju sa okruženjem da bi omogućili različite funkcionalnosti, kao što je manipulisanje sistemom datoteka (npr. \texttt{ls}, \texttt{dd}, \texttt{chmod}), prikazivanje i konfigurisanje svojstava sistema (npr. \texttt{hostname}, \texttt{logname}, \texttt{printenv}), kontrolu poziva komandi (npr. \texttt{nohup}, \texttt{nice}, \texttt{env}), obrada tekstualnih datoteka (npr. \texttt{sort}, \texttt{od}, \texttt{patch}), itd.
+
+Svaki program iz paketa Coreutils dolazi sa velikim skupom ručno pisanih testova, koji se proširuje sa svakom novo otkrivenom greškom ili dodatom opcijom. KLEE je nadmašio ručno pisani skup testova u pogledu ukupne pokrivenosti linija (84.5\% nasuprot 67.7\%) i prosečne pokrivenosti po alatu (90.9\% nasuprot 68.4\%). Postigao je 100\% pokrivenost na 16 programa i preko 90\% na 56 programa dok ručno pisani testovi imaju 100\% pokrivenost samo na jednom programu (\texttt{true}) i preko 90\% samo na 7 programa. U suštini, za 89h, tj. 1h po programu, KLEE je za 16.8\% premašio pokrivenost skupa ručno pisanih testova u periodu od 15 godina.
+
+KLEE je pronašao 10 grešaka u Coreutils (uglavnom grešaka sa memorijom). U tabeli ispod je dat spisak poziva koje je KLEE generisao za pronađene greške. Prve tri greške postoje bar od 1992. godine, dok su ostale novije. U trenutku objavljivanja rezultata greška za \texttt{seq} je već bila ispravljena u neobjavljenoj verziji, a ostale greške su potvrđene i ispravljene u toku od 2 dana od prijavljivanja. Dodatno, od tada se u zvaničnom skupu testova nalaze i KLEE-om generisani testovi za ove greške.
+
+\begin{minted}{text}
+paste -d\\ abcdefghijklmnopqrstuvwxyz
+pr -e t2.txt
+tac -r t3.txt t3.txt
+mkdir -Z a b
+mkfifo -Z a b
+mknod -Z a b p
+md5sum -c t1.txt
+ptx -F abcdefghijklmnopqrstuvwxyz
+ptx x t4.txt
+seq -f %0 1
+\end{minted}
+
+\begin{minted}{text}
+t1.txt: "\t \tMD5("
+t2.txt: "\b\b\b\b\b\b\b\t"
+t3.txt: "\n"
+t4.txt: "a"
+\end{minted}
+
+\subsubsection{Korišćenje različitih heuristika za pretragu}\label{koriux161ux107enje-razliux10ditih-heuristika-za-pretragu}
+
+KLEE koristi sledeće heuristike za pretragu putanja:
+
+\begin{itemize}
+\tightlist
+\item
+  Depth-First Search (DFS)
+\item
+  Random State Search
+\item
+  Random Path Selection
+\item
+  Non Uniform Random Search (NURS)
+\end{itemize}
+
+Heuristika se može izabrati KLEE-ovom opcijom \texttt{-search}, npr. \texttt{-search=dfs}. Za \emph{NURS} se mora dodati opcija za heuristiku kojom se dodeljuju težine pojedinim putanjama i tako odlučuje koja će biti naredna praćena:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{nurs:covnew}: koristi \emph{Coverage-New} heuristiku kojom se daje veća težina putanji koja će pokriti nepokriven deo koda;
+\item
+  \texttt{nurs:md2u}: koristi \emph{Min-Dist-to-Uncovered} heuristiku kojom se bira putanja najbliža nepokrivenoj instrukciji;
+\item
+  \texttt{nurs:depth}: koristi \emph{\texttt{2\^{}\{depth\}}} heuristiku
+\item
+  \texttt{nurs:icnt}: koristi \emph{Instr-Count} heuristiku
+\item
+  \texttt{nurs:cpicnt}: koristi \emph{CallPath-Instr-Count} heuristiku
+\item
+  \texttt{nurs:qc}: koristi \emph{Query-Cost} heuristiku
+\end{itemize}
+
+KLEE-u se može zadati da koristi više heuristika na \emph{round-robin} način, da bi se sprečilo da pojedine heuristike zaglave u lokalnom maksimumu.
+
+Podrazumevana je \emph{random-path} ukomponovan sa \texttt{nurs:covnew}.
+
+Moguće je zadati željenu heuristiku korišćenjem opcije \texttt{-{}-search}. Detaljnije informacije u vezi sa parametrima za ovu opciju možete dobiti pozivom KLEE-a sa opcijom \texttt{-{}-help}.
+
+\subsubsection{Testiranje heuristika}\label{testiranje-heuristika}
+
+Testiraćemo izbor putanja različitih heuristika na primerima koji imaju \texttt{N} simboličkih promenljivih i za svaku od njih imamo \texttt{if-else} grane. Nakon tih provera imamo i računanje količnika. Zbog toga što je nedozvoljeno deliti nulom, KLEE implicitno za tu naredbu dodaje proveru. Takvo ponašanje se javlja kod svih kritičnih mesta u kôdu. Za svaki broj simboličkih promenljivih imamo 3 verzije programa. Verzije sa sufiksom \texttt{-1.c} i \texttt{-2.c} imaju deljenje nulom samo na različitim putanjama, dok verzija sa sufiksom \texttt{-v.c} nema spornu putanju.
+
+Ukoliko želimo da vidimo za svaki generisani test primer putanju i upit koji je slan solveru, prilikom poziva KLEE-a treba zadati opciju \texttt{-{}-write-paths}.
+
+Za potrebe testiranja dodaćemo i opciju \texttt{-exit-on-error} da se prekine sa simboličkim izvršavanjem čim se dođe do sporne putanje.
+
+Merenje je automatizovano skriptom \texttt{measure\_time.sh}.
+
+Pokrećemo sa \texttt{./measure\_time.sh\ dfs\ yes\ 15} da se dfs heuristika koristi za izbor putanje, da nam se generišu sve putanje i upiti za solver i da ne pokrećemo programe sa više od 15 simboličkih promenljivih.
+
+Za verzije \texttt{*-1.c}, ako se koristi opcija \texttt{-{}-search=dfs}, odmah se nailazi na spornu putanju. Stoga se test primer za nju generiše uvek kao \texttt{test1}. Nije potrebno čekati kraj cele pretrage jer se greška odmah prijavljuje.
+
+Za verzije \texttt{*-2.c}, ako se koristi opcija \texttt{-{}-search=dfs}, sporna putanja je poslednja koja se obilazi. Do nje se neće doći brzo; vreme zavisi od broja putanja koje joj prethode.
+
+Sa opcijom \texttt{-{}-search=random\_path} primenjenom na programe sa većim brojem promenljivih, KLEE možda neće pronaći spornu putanju. Uzrok je vrlo razgranato stablo izvršavanja, tj. veliki broj putanja.
+
+Ukoliko otvorimo generisanu datoteku sa izveštajem \texttt{report\_dfs.txt} videćemo da su verzije \texttt{*-1.c} uvek ranije dolazile do greške i prekidale dalje simboličko izvršavanje. U odgovarajućem direktorijumu naći ćemo testove. Za test1 nas interesuje putanja. Primećujemo da je uvek birana \texttt{else} grana i da smo tako odmah došli do sporne putanje. Verzija \texttt{*-2.c} je tako napisana da \texttt{dfs} heuristikom tek na kraju obilazimo spornu putanju. Kod složenijih stabala izvršavanja, tj. kod programa sa većim brojem simboličkih promenljivih može se dogoditi i da je ne pronađe pre nego što potroši resurse.
+
+Ako imamo \texttt{N} promenljivih i za svaku od njih po grananje imamo \(2^N\) putanja. Verovatnoća da heuristika \texttt{random-path} ubode spornu putanju je \texttt{1/\{2\^{}N\}}. To se može dogoditi ranije ili kasnije, ali se može desiti da se i ne isprati ta putanja pre prekoračenja memorijskog prostora, zbog prevelike razgranatosti stabla.
+
+Problem sa memorijom nastaje jer je KLEE program koji se izvršava u okviru jednog procesa i celo stablo mora biti u svakom trenutku u memoriji. Bolje performanse se postižu paralelizacijom. \emph{Cloud9} je program koji dinamički distribuira delove stabla između POSIX niti koje izvršavaju simboličko izvršavanje programa bazirano na KLEE-u. Time postiže bolju pokrivenost za kraće vreme.
+
+Ipak, ukoliko se iskoristi KLEE-ova opcija \texttt{-optimize} primenjuju se optimizacije kompajlera i izvršavanje je višestruko brže. Samim tim pronalaze se sporne putanje i na programima sa vrlo razgranatim stablom.
+
+\subsubsection{Kreiranje nove heuristike za KLEE}\label{kreiranje-nove-heuristike-za-klee}
+
+Kôd vezan za heuristike u KLEE-u se nalazi u datotekama \texttt{~/build/klee/lib/Core/Searcher.h} i \texttt{~/build/klee/lib/Core/Searcher.cpp}. Nova heuristika treba da bude pisana u klasi koja će naslediti klasu \texttt{Searcher}. Kôd nove heuristike uneti u pomenute datoteke. Navesti ime nove heuristike u \texttt{CoreSearchType} i dopuniti metode klase \texttt{UserSearcher} sa informacijama o novoj heuristici. Klasa \texttt{Executor} svojom metodom \texttt{run} kreira stablo izvršavanja, kreira objekat klase \texttt{UserSearcher} i prati i izvršava stanja programa, tj. objekata klase \texttt{ExecutionState}.
+
+Nakon izmena koda bilo potrebno i ponovo izgraditi KLEE. Zato se treba pozicionirati u KLEE-ov direktorijum.
+
+\begin{minted}{bash}
+$ cd /klee/dir
+$ LLVM_VERSION=6.0 SANITIZER_BUILD= BASE="/libc++/path/" \
+    ./scripts/build/build.sh libcxx
+$ mkdir build
+$ cd build
+$ cmake \
+    -DENABLE_SOLVER_STP=ON \
+    -DENABLE_SOLVER_Z3=ON  \
+    -DENABLE_POSIX_RUNTIME=ON \
+    -DENABLE_KLEE_UCLIBC=ON \
+    -DKLEE_UCLIBC_PATH="/klee-uclibc/path/" \
+    -DUSE_CMAKE_FIND_PACKAGE_LLVM=OFF  \
+    -DLLVM_CONFIG_BINARY="/bin/llvm-config" \
+    -DLLVMCC="/bin/clang" \
+    -DLLVMCXX="/bin/clang++" \
+    -DENABLE_DOCS=ON \
+    -DENABLE_DOXYGEN=ON \
+    -DENABLE_KLEE_LIBCXX=ON \
+    -DLIT_ARGS="-v" \
+    -DLIT_TOOL="/usr/bin/"   \
+    -DENABLE_UNIT_TESTS=OFF \
+    -DENABLE_SYSTEM_TESTS=ON \
+    -DCMAKE_BUILD_TYPE="Debug" \
+    ../
+
+$ make
+$ sudo make install
+\end{minted}

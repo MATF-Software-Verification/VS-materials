@@ -1,0 +1,10 @@
+\subsubsection{LLVM XRay}\label{instalacija-llvm-xray}
+
+Za LLVM XRay potrebni su Clang, XRay runtime i alat \texttt{llvm-xray}. Nazivi paketa zavise od distribucije i verzije LLVM-a.
+
+\begin{minted}{bash}
+$ clang++ --version
+$ llvm-xray --version
+\end{minted}
+
+Na Debian/Ubuntu sistemima paketi su obično vezani za verziju LLVM-a, na primer \texttt{clang}, \texttt{llvm} i \texttt{compiler-rt}. Ako linkovanje primera prijavi da XRay runtime nije dostupan, instalirati odgovarajući \texttt{compiler-rt} paket za istu LLVM verziju.

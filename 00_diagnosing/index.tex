@@ -1,0 +1,546 @@
+% Converted from README.md
+\section{Dijagnoziranje problema}\label{dijagnoziranje-problema}
+
+\textbf{Ciljevi}:
+
+\begin{itemize}
+\tightlist
+\item
+  Posmatrati program kao crnu kutiju (često ne znamo koji se kod izvršava)
+\item
+  Analizirati ponašanje kako bi se pronašli uzroci problema
+\item
+  Proširiti znanje o osnovnim alatima za merenje performansi
+\item
+  Napraviti temelj za metodičnu analizu sistema - ne možemo raditi kvalitetnu analizu ako ne znamo šta i kako možemo analizirati
+\end{itemize}
+
+\subsection{Alati za analizu performansi}\label{alati-za-analizu-performansi}
+
+Prvi korak u dijagnozi problema je određivanje opsega: da li je problem na nivou celog sistema, jednog procesa, jedne niti, diska, mreže ili spoljnog servisa. Alati iz ovog poglavlja ne traže poznavanje izvornog koda programa. Njihov cilj je da daju merenja i tragove koji usmeravaju dalju analizu.
+
+Tipičan redosled rada je:
+
+\begin{enumerate}
+\tightlist
+\item
+  zabeležiti vreme, komandu, ulaz i simptome problema;
+\item
+  proveriti opšte stanje sistema pomoću \texttt{uptime}, \texttt{top}, \texttt{vmstat} ili \texttt{sar};
+\item
+  suziti problem na proces ili nit pomoću \texttt{ps}, \texttt{pidstat}, \texttt{lsof} i \texttt{ss};
+\item
+  proveriti konkretan resurs: CPU pomoću \texttt{mpstat}, disk pomoću \texttt{iostat}, mrežu pomoću \texttt{ss} i \texttt{tcpdump};
+\item
+  ako je potrebno, analizirati sistemske pozive pomoću \texttt{strace}.
+\end{enumerate}
+
+\subsubsection{Kako birati sledeći alat}\label{dijagnoziranje-izbor-alata}
+
+U praksi je najvažnije brzo preći sa opšteg simptoma na alat koji meri bliži nivo sistema. Sledeća tabela daje početni izbor alata. Nije zamena za detaljnu analizu, već mapa za prvi sledeći korak.
+
+\begin{longtable}{@{}p{0.24\linewidth}p{0.34\linewidth}p{0.34\linewidth}@{}}
+\toprule
+Simptom & Prvi alati & Sledeći korak \\
+\midrule
+\endhead
+Visok CPU na sistemu & \texttt{uptime}, \texttt{top}, \texttt{mpstat} & Ako je kriv jedan proces, preći na \texttt{pidstat}, debager ili uzorkujući profajler. \\
+Proces troši CPU & \texttt{top -H}, \texttt{pidstat}, \texttt{strace -c} & Ako nema mnogo sistemskih poziva, uzorkovati stek pomoću \texttt{perf}-a ili otvoriti proces u debageru. \\
+Proces spava ili deluje zaglavljeno & \texttt{ps}, \texttt{pidstat -w}, \texttt{strace -tt -T} & Tražiti sistemski poziv u kome proces čeka: \texttt{accept}, \texttt{read}, \texttt{futex}, disk I/O ili mrežu. \\
+Disk je spor ili zauzet & \texttt{iostat -x}, \texttt{pidstat -d}, \texttt{lsof} & Povezati uređaj, proces i datoteku, pa proveriti obrazac čitanja ili upisa. \\
+Mrežna konekcija ne radi & \texttt{ss}, \texttt{lsof -i}, \texttt{tcpdump} & Prvo potvrditi da proces sluša, zatim da paket stiže do mašine i da odgovor izlazi. \\
+Proces koristi previše memorije & \texttt{top}, \texttt{ps}, \texttt{pmap} & Za C/C++ programe preći na Massif, DHAT, Memcheck ili sanitizer; za JVM/.NET koristiti odgovarajući runtime alat. \\
+\bottomrule
+\end{longtable}
+
+\subsubsection{Obrazac laboratorijske vežbe}\label{dijagnoziranje-obrazac-laboratorije}
+
+Svaku laboratorijsku vežbu treba dokumentovati istim redosledom:
+
+\begin{enumerate}
+\tightlist
+\item
+  \textbf{Simptom}: šta se vidi spolja, bez čitanja izvornog koda.
+\item
+  \textbf{Reprodukcija}: tačna komanda, ulaz i vreme pokretanja.
+\item
+  \textbf{Prvo merenje}: sistemski pregled koji potvrđuje da se simptom zaista dešava.
+\item
+  \textbf{Sužavanje}: proces, nit, resurs ili sistemski poziv koji objašnjava simptom.
+\item
+  \textbf{Potvrda}: alat bliži uzroku, na primer debager, profajler, sanitizer, Valgrind, KLEE ili CBMC.
+\item
+  \textbf{Tumačenje}: šta iz izlaza alata dokazuje uzrok i šta bi bio sledeći inženjerski korak.
+\end{enumerate}
+
+Korisno je znati gde Linux čuva sirove podatke o procesima, jezgrima, uređajima i sistemskoj konfiguraciji:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{/proc} sadrži informacije o procesima, memoriji, CPU jezgrima, montiranim sistemima datoteka i parametrima kernela.
+\item
+  \texttt{/sys} prikazuje model uređaja, drajvere, klase uređaja i deo konfiguracije hardvera.
+\end{itemize}
+
+Mnogi alati prikazani u nastavku čitaju podatke iz ovih direktorijuma i formatiraju ih u oblik pogodan za brzu analizu.
+
+\pandocbounded{\includegraphics[keepaspectratio]{linux_observability_tools.png}} Širi pregled Linux observability alata može se naći na \href{https://www.brendangregg.com/linuxperf.html}{linku}.
+
+\subsubsection{\texorpdfstring{\texttt{uptime}}{uptime}}\label{uptime}
+
+\texttt{uptime} daje najbrži odgovor na pitanje da li je sistem opterećen. Prikazuje trenutno vreme, koliko dugo sistem radi, broj korisnika i prosečno opterećenje u poslednjih 1, 5 i 15 minuta.
+
+Alat je koristan kada treba brzo proveriti:
+
+\begin{itemize}
+\tightlist
+\item
+  da li je problem kratkotrajan ili traje duže;
+\item
+  da li se opterećenje povećava ili smanjuje;
+\item
+  da li ima smisla odmah preći na detaljnije alate kao što su \texttt{top}, \texttt{vmstat} ili \texttt{pidstat}.
+\end{itemize}
+
+\begin{minted}{bash}
+$ uptime
+14:17:27 up  5:43,  1 user,  load average: 0.41, 0.93, 1.06
+\end{minted}
+
+Prosek opterećenja dat je u intervalima od približno 1, 5 i 15 minuta. Vrednost predstavlja broj zadataka koji su spremni za izvršavanje ili čekaju neprekidiv I/O događaj. Zato visok load ne znači uvek da je CPU zauzet; uzrok može biti i spor disk ili mrežni sistem datoteka.
+
+\subsubsection{\texorpdfstring{\texttt{top} / \texttt{htop}}{top / htop}}\label{top--htop}
+
+\texttt{top} i \texttt{htop} prikazuju interaktivni pregled sistema i procesa. Koriste se kada treba brzo videti koji proces troši CPU, memoriju ili veliki broj niti, kao i da li se stanje menja tokom vremena.
+
+Najčešće se posmatraju:
+
+\begin{itemize}
+\tightlist
+\item
+  opšti CPU i memorijski redovi na vrhu prikaza;
+\item
+  kolone \texttt{\%CPU}, \texttt{\%MEM}, \texttt{RES}, \texttt{S}, \texttt{TIME+} i \texttt{COMMAND};
+\item
+  procesi koji često menjaju stanje ili zauzimaju jedno CPU jezgro;
+\item
+  niti procesa, ako se prikaz proširi na thread-ove.
+\end{itemize}
+
+Ovi alati su dobri za interaktivnu analizu dugotrajnog problema. Manje su pogodni za procese koji traju kratko, jer uzorkuju stanje u intervalima. Za takve slučajeve korisniji su \texttt{pidstat}, \texttt{sar} ili alat koji čuva istoriju, kao što je \texttt{atop}. \texttt{top} i \texttt{htop} takođe troše resurse, pa ih treba pažljivo koristiti na već opterećenom sistemu.
+
+\subsubsection{\texorpdfstring{\texttt{ps}}{ps}}\label{ps}
+
+\texttt{ps} prikazuje trenutni snimak procesa. Za razliku od \texttt{top}, ne prati promene tokom vremena. Koristan je kada treba sačuvati stanje sistema u izveštaju, proveriti hijerarhiju procesa, argumente kojima je proces pokrenut ili stanje procesa.
+
+\texttt{ps -ef f} prikazuje roditelj-dete odnose u obliku stabla. To je korisno kod servera koji pokreću radne procese, shell skripti koje pokreću druge programe i aplikacija koje ostavljaju procese nakon završetka roditelja.
+
+\begin{minted}{bash}
+$ ps -ef f
+[...]
+root        1044       1  0 08:34 ?        Ssl    0:00 /usr/bin/lightdm
+root        1056    1044  7 08:34 tty7     Ssl+  26:47  \_ /usr/lib/Xorg :0 -seat seat0 -auth /run/lightdm/root/:0
+root        1088    1044  0 08:34 ?        Sl     0:00  \_ lightdm --session-child 13 16
+ivan        1118    1088  0 08:34 ?        Ss     0:08      \_ i3
+root        1050       1  0 08:34 ?        Ssl    0:00 /usr/lib/accounts-daemon
+ivan        1095       1  0 08:34 ?        Ss     0:00 /usr/lib/systemd/systemd --user
+ivan        1096    1095  0 08:34 ?        S      0:00  \_ (sd-pam)
+[...]
+\end{minted}
+
+\subsubsection{\texorpdfstring{\texttt{vmstat}}{vmstat}}\label{vmstat}
+
+\texttt{vmstat} daje sistemski pregled procesa, memorije, swap-a, ulaza/izlaza, prekida, promene konteksta i CPU vremena. Nema detalje po procesu, ali je veoma koristan za prvi pregled jer pokriva više klasa problema u jednom prikazu.
+
+Tipična upotreba je pokretanje sa intervalom od jedne sekunde dok se problem reprodukuje. Prvi red često predstavlja prosek od pokretanja sistema, pa se za aktivnu dijagnozu obično gledaju redovi koji dolaze posle njega.
+
+\begin{minted}{bash}
+$ vmstat -Sm 1
+procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu
+ 2  0     46    782    251   7993    0    0  3406   312 6224   35 12  4 83  1  0  0
+ 1  0     46    806    251   7986    0    0     0     0 2564 6940  4  3 93  0  0  0
+ 1  0     46    802    251   7986    0    0     0     0 1713 4499  3  2 95  0  0  0
+ 0  0     46    801    251   7986    0    0     0     0 1730 4536  2  2 96  0  0  0
+^C
+\end{minted}
+
+Važne kolone:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{r} označava broj procesa spremnih za izvršavanje; trajno visoka vrednost ukazuje na CPU čekanje.
+\item
+  \texttt{b} označava procese blokirane na I/O operacijama.
+\item
+  \texttt{si} i \texttt{so} pokazuju čitanje iz swap-a i pisanje u swap; nenulte vrednosti tokom problema često ukazuju na memorijski pritisak.
+\item
+  \texttt{bi} i \texttt{bo} pokazuju ulaz i izlaz prema blok uređajima.
+\item
+  \texttt{us} je korisničko CPU vreme, odnosno vreme aplikacije, JVM-a ili runtime-a.
+\item
+  \texttt{sy} je sistemsko CPU vreme, odnosno vreme provedeno u kernelu.
+\item
+  \texttt{wa} je čekanje na I/O; visoka vrednost upućuje na disk, mrežni storage ili blokirajući uređaj.
+\end{itemize}
+
+\subsubsection{\texorpdfstring{\texttt{iostat}}{iostat}}\label{iostat}
+
+\texttt{iostat} analizira opterećenje blok uređaja. Koristi se kada \texttt{vmstat} ili \texttt{top} pokažu čekanje na I/O, kada aplikacija sporo čita ili piše podatke, ili kada treba uporediti više diskova i particija.
+
+Opcija \texttt{-x} daje proširenu statistiku, \texttt{-m} prikazuje protok u MB/s, \texttt{-d} ograničava prikaz na uređaje, a \texttt{-z} izostavlja uređaje bez aktivnosti.
+
+\begin{minted}{bash}
+$ iostat -xmdz 1
+Linux [...]   09/23/2023      _x86_64_        (8 CPU)
+
+Device    r/s     rMB/s   rrqm/s  %rrqm r_await rareq-sz     w/s     wMB/s  ...
+dm-0      8.97      0.31     0.00   0.00    0.45    35.22   22.48      0.23  ...
+dm-1      0.06      0.00     0.00   0.00    0.26     5.58    0.07      0.00  ...
+loop0     0.00      0.00     0.00   0.00    0.00     1.27    0.00      0.00  ...
+nvme0n1   6.49      0.31     2.55  28.24    0.27    48.76   12.25      0.23  ...
+sda      25.68      3.00     0.46   1.78    2.95   119.49    0.52      0.08  ...
+
+^C
+\end{minted}
+
+Važno je posmatrati i protok i kašnjenje. Velik \texttt{rMB/s} ili \texttt{wMB/s} znači da uređaj radi mnogo posla, dok veliki \texttt{await} znači da operacije čekaju. Ako je \texttt{\%util} blizu 100\% i \texttt{await} raste, disk ili storage sloj je verovatan uzrok usporenja.
+
+\subsubsection{\texorpdfstring{\texttt{swapon}}{swapon}}\label{swapon}
+
+\texttt{swapon} prikazuje aktivne swap prostore. Samo postojanje swap-a nije problem; problem je kada sistem tokom reprodukcije aktivno prebacuje stranice memorije između RAM-a i swap-a. Zato se \texttt{swapon} obično koristi zajedno sa kolonama \texttt{si} i \texttt{so} iz \texttt{vmstat}-a ili memorijskim izveštajem iz \texttt{sar}-a.
+
+\begin{minted}{bash}
+$ swapon -s
+Filename    Type            Size            Used            Priority
+/dev/dm-1   partition       17898688        3991268         -2
+\end{minted}
+
+\subsubsection{\texorpdfstring{\texttt{mpstat}}{mpstat}}\label{mpstat}
+
+\texttt{mpstat} prikazuje CPU statistiku po jezgru. Koristi se kada prosečna zauzetost CPU-a ne objašnjava problem, na primer kada je samo jedno jezgro stalno zauzeto, a ostatak sistema deluje neiskorišćeno.
+
+Opcija \texttt{-P ALL} prikazuje sva jezgra. To pomaže kod aplikacija koje imaju usko grlo u jednoj niti, kod procesa vezanih za određeni CPU, kod softirq opterećenja i kod sistema na kojima raspodela posla nije ravnomerna.
+
+\begin{minted}{bash}
+$ mpstat -P ALL 1
+Linux [...]   09/23/2023      _x86_64_        (8 CPU)
+
+CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+all    4.14    0.00    2.01    0.50    0.38    0.25    0.00    0.00    0.00   92.73
+  0    3.03    0.00    1.01    0.00    0.00    1.01    0.00    0.00    0.00   94.95
+  1    5.94    0.00    2.97    0.00    0.00    0.00    0.00    0.00    0.00   91.09
+  2    3.96    0.00    1.98    0.00    0.99    0.99    0.00    0.00    0.00   92.08
+  3    4.04    0.00    2.02    0.00    1.01    0.00    0.00    0.00    0.00   92.93
+  4    5.00    0.00    1.00    0.00    1.00    0.00    0.00    0.00    0.00   93.00
+  5    4.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   95.00
+  6    3.06    0.00    3.06    4.08    0.00    0.00    0.00    0.00    0.00   89.80
+  7    4.00    0.00    3.00    0.00    0.00    0.00    0.00    0.00    0.00   93.00
+^C
+\end{minted}
+
+\subsubsection{\texorpdfstring{\texttt{lsof}}{lsof}}\label{lsof}
+
+\texttt{lsof} prikazuje otvorene datotečne deskriptore. Na Linux sistemu to obuhvata regularne datoteke, direktorijume, biblioteke, pipe-ove, socket-e, terminale i anoniman kernel objekat izložen kao datotečni deskriptor.
+
+Alat je koristan kada treba odgovoriti na pitanja:
+
+\begin{itemize}
+\tightlist
+\item
+  koji proces drži otvorenu datoteku, port ili socket;
+\item
+  zašto se direktorijum, disk ili mount tačka ne mogu demontirati;
+\item
+  da li proces curi datotečne deskriptore;
+\item
+  da li proces i dalje drži obrisanu datoteku, pa prostor na disku nije oslobođen.
+\end{itemize}
+
+\begin{minted}{bash}
+$ lsof -p <PID>
+$ lsof -iTCP -sTCP:LISTEN -P -n
+$ lsof +L1
+\end{minted}
+
+Opcije \texttt{-P} i \texttt{-n} izbegavaju prevođenje portova i adresa u imena. To ubrzava prikaz i uklanja zavisnost od DNS-a tokom dijagnoze.
+
+\subsubsection{\texorpdfstring{\texttt{pidstat}}{pidstat}}\label{pidstat}
+
+\texttt{pidstat} meri potrošnju resursa po procesu ili niti kroz vreme. Koristi se kada \texttt{top} pokaže sumnjiv proces, ali je potrebno sačuvati precizniji vremenski trag ili razdvojiti CPU, memoriju, disk i promene konteksta.
+
+Korisne varijante su:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{pidstat -p <PID> 1} za praćenje jednog procesa;
+\item
+  \texttt{pidstat -t -p <PID> 1} za praćenje niti unutar procesa;
+\item
+  \texttt{pidstat -d 1} za I/O po procesu;
+\item
+  \texttt{pidstat -r 1} za memoriju po procesu;
+\item
+  \texttt{pidstat -w 1} za dobrovoljne i nedobrovoljne promene konteksta.
+\end{itemize}
+
+\begin{minted}{bash}
+$ pidstat -t 1
+11:04:46 AM   UID       PID    %usr %system  %guest   %wait    %CPU   CPU  Command
+11:04:46 AM     0         1    0.00    0.00    0.00    0.00    0.01     1  systemd
+11:04:46 AM     0         2    0.00    0.00    0.00    0.00    0.00     3  kthreadd
+11:04:46 AM     0        15    0.00    0.00    0.00    0.00    0.00     0  ksoftirqd/0
+11:04:46 AM     0        16    0.00    0.02    0.00    0.01    0.02     4  rcu_preempt
+11:04:46 AM     0        18    0.00    0.00    0.00    0.00    0.00     0  migration/0
+11:04:46 AM     0        24    0.00    0.00    0.00    0.00    0.00     1  migration/1
+11:04:46 AM     0        25    0.00    0.00    0.00    0.00    0.00     1  ksoftirqd/1
+11:04:46 AM     0        30    0.00    0.00    0.00    0.00    0.00     2  migration/2
+11:04:46 AM     0        31    0.00    0.01    0.00    0.00    0.01     2  ksoftirqd/2
+11:04:46 AM     0        36    0.00    0.00    0.00    0.00    0.00     3  migration/3
+11:04:46 AM     0        37    0.00    0.00    0.00    0.00    0.00     3  ksoftirqd/3
+^C
+\end{minted}
+
+\subsubsection{\texorpdfstring{\texttt{strace}}{strace}}\label{strace}
+
+\texttt{strace} prati sistemske pozive procesa. Koristi se kada se problem vidi kao interakcija programa sa operativnim sistemom: otvaranje datoteka, mrežne konekcije, procesi, signali, čekanje na lock ili čitanje i pisanje.
+
+Tipični slučajevi upotrebe su:
+
+\begin{itemize}
+\tightlist
+\item
+  program ne nalazi konfiguracionu datoteku ili biblioteku;
+\item
+  program dobija \texttt{EACCES}, \texttt{ENOENT}, \texttt{ECONNREFUSED} ili sličnu grešku;
+\item
+  proces je blokiran, pa treba videti da li čeka na \texttt{read}, \texttt{futex}, \texttt{poll}, \texttt{connect} ili drugi sistemski poziv;
+\item
+  potrebno je proveriti koje child procese program pokreće;
+\item
+  potrebno je dobiti sažetak najčešćih sistemskih poziva.
+\end{itemize}
+
+\texttt{strace} je baziran na \texttt{ptrace} mehanizmu i može značajno usporiti program. Zbog toga se na produkcionim sistemima najpre ograničava opseg: bira se konkretan PID, grupa sistemskih poziva ili kratko vreme reprodukcije.
+
+\begin{minted}{bash}
+$ strace ls
+execve("/usr/bin/ls", ["ls"], 0x7fffc329f270 /* 131 vars */) = 0
+brk(NULL)                               = 0x55e00371d000
+
+[...]
+
+close(3)                                = 0
+openat(AT_FDCWD, "/usr/lib/libcap.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0 s\0\0\0\0\0\0"..., 832) = 832
+newfstatat(3, "", {st_mode=S_IFREG|0755, st_size=42992, ...}, AT_EMPTY_PATH) = 0
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f76305ec000
+mmap(NULL, 45128, PROT_READ, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f76305e0000
+mmap(0x7f76305e3000, 20480, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x3000) = 0x7f76305e3000
+mmap(0x7f76305e8000, 8192, PROT_READ, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x8000) = 0x7f76305e8000
+mmap(0x7f76305ea000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x9000) = 0x7f76305ea000
+close(3)
+
+[...]
+\end{minted}
+
+\begin{minted}{bash}
+$ strace -e close ls
+close(3)                                = 0
+close(3)                                = 0
+close(3)                                = 0
+close(3)                                = 0
+close(3)                                = 0
+INDEX     lab002.c  lab004.c  lab006.c  lab008.c  Makefile
+lab001.c  lab003.c  lab005.c  lab007.c  lab013.c  README.md
+close(1)                                = 0
+close(2)                                = 0
++++ exited with 0 +++
+\end{minted}
+
+Opcija \texttt{-e} ograničava praćenje na izabrane sistemske pozive ili grupe poziva. Na primer, \texttt{-e trace=file} prati pristup datotekama, \texttt{-e trace=network} mrežne pozive, a \texttt{-e trace=process} kreiranje i završavanje procesa.
+
+\begin{minted}{bash}
+$ strace -t -r -p <PID> -o <REPORT_OUTPUT>
+# -t - timestamp
+# -r - relative time for each syscall
+# -p - PID
+# -o - output path
+\end{minted}
+
+Kada se \texttt{strace} priključi na postojeći proces, korisno je zapisati izlaz u datoteku. Opcija \texttt{-t} dodaje vreme događaja, a \texttt{-r} vreme proteklo od prethodnog sistemskog poziva. To pomaže da se pronađu dugi zastoji.
+
+\begin{minted}{bash}
+$ strace -c ls
+INDEX     lab002.c  lab004.c  lab006.c  lab008.c  Makefile
+lab001.c  lab003.c  lab005.c  lab007.c  lab013.c  README.md
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+  0.00    0.000000           0         2           read
+  0.00    0.000000           0         2           write
+  0.00    0.000000           0         7           close
+  0.00    0.000000           0        13           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         3           brk
+  0.00    0.000000           0         2           ioctl
+  0.00    0.000000           0         2           pread64
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         6         4 prctl
+  0.00    0.000000           0         2         1 arch_prctl
+  0.00    0.000000           0         2           getdents64
+  0.00    0.000000           0         1           set_tid_address
+  0.00    0.000000           0         5           openat
+  0.00    0.000000           0         6           newfstatat
+  0.00    0.000000           0         1           set_robust_list
+  0.00    0.000000           0         1           prlimit64
+  0.00    0.000000           0         1           getrandom
+  0.00    0.000000           0         1           rseq
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000000           0        64         6 total
+
+\end{minted}
+
+Opcija \texttt{-c} daje agregirani izveštaj. Ona je korisna kada ne treba čitati svaki poziv, već samo proceniti gde proces provodi vreme i koji pozivi se ponavljaju. Za programe koji pokreću child procese često se dodaje i \texttt{-f}, kako bi se pratio ceo procesni skup.
+
+\subsubsection{Analiza mreže}\label{analiza-mreux17ee}
+
+Mrežni problem se često prvo vidi kao spor odgovor aplikacije, odbijena konekcija, zauzet port ili timeout. Pre detaljne analize protokola korisno je proveriti da li proces sluša na očekivanom portu, da li postoji konekcija ka udaljenom sistemu i da li paketi zaista prolaze kroz interfejs.
+
+Za duboku analizu protokola koristi se alat kao što je \href{https://www.wireshark.org/}{\texttt{Wireshark}}. U komandnoj liniji se najčešće kombinuju \texttt{ss}, \texttt{lsof}, \texttt{strace} i \texttt{tcpdump}.
+
+\paragraph{\texorpdfstring{\texttt{tcpdump}}{tcpdump}}\label{tcpdump}
+
+\texttt{tcpdump} hvata pakete na mrežnom interfejsu. Koristi se kada treba dokazati da paket napušta mašinu, da odgovor stiže, da se koristi pogrešan port ili da mrežni tok izgleda drugačije od očekivanog.
+
+Alat često zahteva administratorske privilegije. Na zauzetim sistemima treba koristiti filtere, jer sirov mrežni saobraćaj brzo postaje prevelik za čitanje.
+
+\begin{minted}{bash}
+$ sudo tcpdump dst port 123
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 65535 bytes
+21:02:19.112502 IP test33.ntp > 199.30.140.74.ntp: NTPv4, Client, length 48
+21:02:19.113888 IP 216.239.35.0.ntp > test33.ntp: NTPv4, Server, length 48
+21:02:20.150347 IP test33.ntp > 216.239.35.0.ntp: NTPv4, Client, length 48
+21:02:20.150991 IP 216.239.35.0.ntp > test33.ntp: NTPv4, Server, length 48
+\end{minted}
+
+\begin{minted}{bash}
+$ sudo tcpdump -nn -i any host <HOST> and port <PORT>
+$ sudo tcpdump -nn -i any -w trace.pcap
+\end{minted}
+
+Opcija \texttt{-nn} isključuje razrešavanje imena i portova. Opcija \texttt{-i any} hvata saobraćaj sa svih interfejsa, što je korisno kada nije jasno kojim putem paket ide. Zapis u \texttt{pcap} datoteku se kasnije može otvoriti u Wireshark-u.
+
+\paragraph{\texorpdfstring{\texttt{netstat} / \texttt{ss}}{netstat / ss}}\label{netstat--ss}
+
+\texttt{netstat} i \texttt{ss} prikazuju socket-e, konekcije, portove i procese koji ih koriste. \texttt{netstat} je stariji alat, dok je \texttt{ss} deo modernog \texttt{iproute2} skupa i obično daje brži i potpuniji prikaz.
+
+Ovi alati se koriste kada treba proveriti:
+
+\begin{itemize}
+\tightlist
+\item
+  da li servis sluša na očekivanom portu;
+\item
+  koji proces je zauzeo port;
+\item
+  da li su konekcije u stanjima \texttt{LISTEN}, \texttt{ESTABLISHED}, \texttt{TIME-WAIT} ili \texttt{CLOSE-WAIT};
+\item
+  da li redovi \texttt{Recv-Q} i \texttt{Send-Q} rastu, što može ukazati na zagušenje ili aplikaciju koja ne čita podatke.
+\end{itemize}
+
+\begin{minted}{bash}
+$ netstat -tulnp
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 127.0.0.1:57343         0.0.0.0:*               LISTEN      3501/steam
+tcp        0      0 0.0.0.0:27036           0.0.0.0:*               LISTEN      3501/steam
+tcp        0      0 127.0.0.1:33095         0.0.0.0:*               LISTEN      3501/steam
+tcp        0      0 127.0.0.1:35831         0.0.0.0:*               LISTEN      3501/steam
+tcp        0      0 127.0.0.1:43221         0.0.0.0:*               LISTEN      -
+tcp        0      0 127.0.0.1:27060         0.0.0.0:*               LISTEN      3501/steam
+tcp6       0      0 ::1:631                 :::*                    LISTEN      -
+tcp6       0      0 :::6600                 :::*                    LISTEN      1135/mpd
+udp        0      0 0.0.0.0:27036           0.0.0.0:*                           3501/steam
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           -
+udp        0      0 0.0.0.0:46653           0.0.0.0:*                           -
+udp        0      0 0.0.0.0:38865           0.0.0.0:*                           -
+udp6       0      0 :::44350                :::*                                -
+udp6       0      0 :::5353                 :::*                                -
+udp6       0      0 :::46653                :::*                                -
+\end{minted}
+
+\texttt{ss} je preporučeni izbor za nove analize:
+
+\begin{minted}{bash}
+$ ss -tunpl
+Netid State  Recv-Q Send-Q  Local Address:Port    Peer Address:Port Process
+udp   UNCONN 0      0             0.0.0.0:27036        0.0.0.0:*     users:(("steam",pid=3501,fd=123))
+udp   UNCONN 0      0             0.0.0.0:5353         0.0.0.0:*
+udp   UNCONN 0      0             0.0.0.0:46653        0.0.0.0:*
+udp   UNCONN 0      0             0.0.0.0:38865        0.0.0.0:*
+udp   UNCONN 0      0                [::]:44350           [::]:*
+udp   UNCONN 0      0                [::]:5353            [::]:*
+udp   UNCONN 0      0                [::]:46653           [::]:*
+tcp   LISTEN 0      128         127.0.0.1:57343        0.0.0.0:*     users:(("steam",pid=3501,fd=48))
+tcp   LISTEN 0      128           0.0.0.0:27036        0.0.0.0:*     users:(("steam",pid=3501,fd=124))
+tcp   LISTEN 0      4096        127.0.0.1:631          0.0.0.0:*
+tcp   LISTEN 0      128         127.0.0.1:33095        0.0.0.0:*     users:(("steam",pid=3501,fd=53))
+tcp   LISTEN 0      128         127.0.0.1:35831        0.0.0.0:*     users:(("steam",pid=3501,fd=83))
+tcp   LISTEN 0      4096        127.0.0.1:43221        0.0.0.0:*
+tcp   LISTEN 0      128         127.0.0.1:27060        0.0.0.0:*     users:(("steam",pid=3501,fd=84))
+tcp   LISTEN 0      4096            [::1]:631             [::]:*
+tcp   LISTEN 0      5                   *:6600               *:*     users:(("mpd",pid=1135,fd=4))
+\end{minted}
+
+Opcije u primeru znače: \texttt{-t} za TCP, \texttt{-u} za UDP, \texttt{-n} za numerički prikaz adresa i portova, \texttt{-p} za proces, a \texttt{-l} za socket-e koji slušaju.
+
+\subsubsection{\texorpdfstring{System Activity Reporter (\texttt{sar})}{System Activity Reporter (sar)}}\label{system-activity-reporter-sar}
+
+\texttt{sar} prikuplja i prikazuje sistemske metrike kroz vreme. Pripada paketu \texttt{sysstat}. Koristan je kada problem nije moguće uhvatiti interaktivno, jer se na mnogim sistemima podaci periodično čuvaju i mogu se analizirati naknadno.
+
+\texttt{sar} može da prati CPU, memoriju, swap, mrežne uređaje, diskove i druge sistemske metrike. U nastavku su tri česta preseka: CPU, memorija i mreža.
+
+\begin{minted}{bash}
+$ sar -u 1 3
+11:12:22 AM     CPU     %user     %nice   %system   %iowait    %steal     %idle
+11:12:23 AM     all      3.88      0.00      1.88      0.25      0.00     93.99
+11:12:24 AM     all      4.45      0.00      1.11      0.12      0.00     94.31
+11:12:25 AM     all      3.98      0.00      1.99      0.25      0.00     93.78
+Average:        all      4.10      0.00      1.66      0.21      0.00     94.03
+\end{minted}
+
+\begin{minted}{bash}
+$ sar -r 1 3
+11:13:26 AM kbmemfree   kbavail kbmemused  %memused kbbuffers  kbcached  kbcommit   %commit  kbactive   kbinact   kbdirty
+11:13:27 AM   5841564   7857352   7545328     46.37     31224   2286720  21332312     62.43   6722340   1418056      1004
+11:13:28 AM   5841060   7856848   7545928     46.38     31224   2286720  21328940     62.42   6722596   1418048         0
+11:13:29 AM   5837028   7852948   7549820     46.40     31232   2286852  21332780     62.43   6725632   1418188        76
+Average:      5839884   7855716   7547025     46.38     31227   2286764  21331344     62.43   6723523   1418097       360
+\end{minted}
+
+\begin{minted}{bash}
+$ sar -n DEV 1 1
+11:14:55 AM     IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s   %ifutil
+11:14:56 AM        lo      9.00      9.00      0.74      0.74      0.00      0.00      0.00      0.00
+11:14:56 AM    enp3s0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+11:14:56 AM    wlp2s0      1.00      2.00      0.38      1.20      0.00      0.00      0.00      0.00
+11:14:56 AM   docker0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+11:14:56 AM  nordlynx      1.00      2.00      0.34      1.08      0.00      0.00      0.00      0.00
+
+Average:        IFACE   rxpck/s   txpck/s    rxkB/s    txkB/s   rxcmp/s   txcmp/s  rxmcst/s   %ifutil
+Average:           lo      9.00      9.00      0.74      0.74      0.00      0.00      0.00      0.00
+Average:       enp3s0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+Average:       wlp2s0      1.00      2.00      0.38      1.20      0.00      0.00      0.00      0.00
+Average:      docker0      0.00      0.00      0.00      0.00      0.00      0.00      0.00      0.00
+Average:     nordlynx      1.00      2.00      0.34      1.08      0.00      0.00      0.00      0.00
+\end{minted}
+
+Kada je prikupljanje istorije uključeno, \texttt{sar} se koristi za analizu problema koji se desio ranije. Na primer, može se proveriti da li je u vreme incidenta porastao \texttt{\%iowait}, potrošnja memorije, swap aktivnost ili mrežni protok. Time se dijagnoza ne oslanja samo na trenutno stanje sistema.
+
+\subimport{01_labs/}{index.tex}

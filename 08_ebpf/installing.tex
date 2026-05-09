@@ -1,0 +1,24 @@
+\subsection{eBPF alati}\label{instalacija-ebpf}
+
+Za osnovne eBPF vežbe korisni su \texttt{bpftrace}, BCC alati, simboli za debagovanje i kernel zaglavlja koja odgovaraju pokrenutom kernelu. Nazivi paketa zavise od distribucije.
+
+Primer za Ubuntu/Debian sisteme:
+
+\begin{minted}{bash}
+$ sudo apt-get install bpftrace bpfcc-tools linux-headers-$(uname -r)
+\end{minted}
+
+Primer za Arch Linux:
+
+\begin{minted}{bash}
+$ sudo pacman -S bpftrace bcc
+\end{minted}
+
+Provera osnovne instalacije:
+
+\begin{minted}{bash}
+$ bpftrace --version
+$ sudo bpftrace -l 'tracepoint:syscalls:sys_enter_*' | head
+\end{minted}
+
+Ako alati prijavljuju greške sa dozvolama, proveriti capability-je, \texttt{perf\_event\_paranoid}, \texttt{kptr\_restrict}, dostupnost BTF-a i to da li se vežba pokreće unutar kontejnera.

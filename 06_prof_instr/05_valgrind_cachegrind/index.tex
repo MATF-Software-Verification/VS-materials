@@ -1,0 +1,86 @@
+% Converted from README.md
+\subsubsection{Cachegrind}\label{cachegrind}
+
+Merenje performansi keša je postalo važno jer se eksponencijalno povećava razlika u brzini RAM memorije i performansi procesora. Uloga keša je da premosti tu razliku u brzini. Da bismo utvrdili koliko je keš sposoban da to učini prate se pogodci (\emph{hits}) i promašaji (\emph{misses}) keša. Jedan od koraka za poboljšanje je da se smanji broj promašaja na najvišim nivoima keša.
+
+Cachegrind je alat koji omogućava softversko profajliranje keš memorije tako što simulira i prati pristup keš memoriji mašine na kojoj se program izvršava. Može se koristiti i za profajliranje izvršavanja grana, korišćenjem opcije \texttt{-\/-branch-sim=yes}. Cachegrind simulira memoriju mašine koja ima prvi nivo keš memorije podeljen u dve odvojene sekcije: \textbf{I1} - sekcija keš memorije u koju se smeštaju instrukcije i \textbf{D1} - sekcija keš memorije u koju se smeštaju podaci.
+
+Drugi nivo keš memorije koju Cachegrind simulira je objedinjen - \textbf{LL}, skraćeno od eng. \emph{last level}. Ovaj način konfiguracije odgovara mnogim modernim mašinama. Postoje mašine koje imaju i tri ili četiri nivoa keš memorije. U tom slučaju, Cachegrind simulira pristup prvom i poslednjem nivou. Generalno gledano, Cachegrind simulira I1, D1 i LL (poslednji nivo keš memorije). Cachegrind prikuplja sledeće statističke podatke o programu koji analizira:
+
+\begin{itemize}
+\tightlist
+\item
+  O čitanjima instrukcija iz keš memorije:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Ir} - ukupan broj izvršenih instrukcija
+  \item
+    \textbf{I1mr} - broj promašaja čitanja instrukcija iz keš memorije nivoa I1
+  \item
+    \textbf{ILmr} - broj promašaja čitanja instrukcija iz keš memorije nivoa LL
+  \end{itemize}
+\item
+  O čitanjima brze memorije:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Dr} - ukupan broj čitanja memorije
+  \item
+    \textbf{D1mr} - broj promašaja čitanja nivoa keš memorije D1
+  \item
+    \textbf{DLmr} - broj promašaja čitanja nivoa keš memorije LL
+  \end{itemize}
+\item
+  O pisanjima u brzu memoriju:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Dw} - ukupan broj pisanja u memoriji
+  \item
+    \textbf{D1mw} - broj promašaja pisanja u nivo keš memorije D1
+  \item
+    \textbf{DLmw} - broj promašaja pisanja u nivo keš memorije LL
+  \end{itemize}
+\item
+  O izvršavanju grana:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Bc} - broj uslovno izvršenih grana
+  \item
+    \textbf{Bcm} - broj promašaja uslovno izvršenih grana
+  \item
+    \textbf{Bi} - broj indirektno izvršenih grana
+  \item
+    \textbf{Bim} - broj promašaja indirektno izvršenih grana
+  \end{itemize}
+\end{itemize}
+
+Broj pristupa D1 delu keš memorije jednak je zbiru statistika D1mr i D1mw. Ukupan broj pristupa LL nivou jednak je zbiru ILmr, DLmr i DLmw. Primeri u C/C++ koji proizvode indirektno grananje su pozivi funkcija preko pokazivača na funkcije ili pozivi virtuelnih funkcija i \texttt{switch} naredbe. Uslovno grananje se generiše \texttt{if} naredbama i uslovnim ternarnim operatorom \texttt{?:}.
+
+Statistika se prikuplja na nivou celog programa, kao i pojedinačno na nivou funkcija. Na modernim mašinama L1 promašaj košta oko 10 procesorskih ciklusa, LL promašaj košta oko 200 procesorskih ciklusa, a promašaji uslovno i indirektno izvršene grane od 10 do 30 procesorskih ciklusa. Detaljno profajliranje upotrebe keš memorije može pomoći u poboljšanju performansi programa. Izvršavanjem komande \texttt{lscpu} na Linux sistemima, dobićemo informacije o veličini keša na mašini na kojoj radimo.
+
+Program koji želimo da analiziramo propuštamo kroz Cachegrind navodeći opciju \texttt{-\/-tool=cachegrind}. Za razliku od ostalih Valgrind alata želimo uključenu optimizaciju, tako da ne koristimo opciju \texttt{-O0} prilikom prevođenja programa. Kompilacija treba da bude sa optimizacijom, jer nema smisla ovako profajlirati kod koji je drugačiji od onoga koji će se normalno izvršavati. Na standardni izlaz se ispisuju sumarne informacije na nivou celog programa, dok se detaljne informacije upisuju u \texttt{cachegrind.out.\textless{}pid\textgreater{}} datoteku, gde \texttt{\textless{}pid\textgreater{}} predstavlja ID procesa. Alat grupiše sve troškove po datotekama i funkcijama kojima ti troškovi pripadaju.
+
+Detaljniji izveštaj možemo videti iz iste datoteke korišćenjem alata \texttt{cg\_annotate}. Ukoliko imamo izveštaje iz više pokretanja Cachegrind-a za isti program, možemo ih sumirati u jednu datoteku korišćenjem alata \texttt{cg\_merge} i njegov izlaz kasnije pregledati alatom \texttt{cg\_annotate}. Moguće je i praviti razliku između više izveštaja Cachegrind-a pomoću alata \texttt{cg\_diff} i njegov izlaz, slično, otvoriti pomoću \texttt{cg\_annotate}. Ukoliko modifikujemo kod, to nam može koristiti da pratimo kako modifikacija utiče na performanse programa. Programom \texttt{cg\_annotate} podrazumevano se prikazuje izveštaj sumiran po funkcijama.
+
+Ako kolona sadrži samo tačkicu, to označava da funkcija ne sadrži instrukcije koje bi prouzrokovale taj događaj. Ukoliko u koloni za ime funkcije stoji \texttt{???}, to znači da nije bilo moguće odrediti ime na osnovu simbola za debagovanje. Ukoliko većina redova sadrži \texttt{???} za ime funkcije program verovatno nije preveden sa simbolima za debagovanje (opcija \texttt{-g}).
+
+Ukoliko želimo da vidimo izveštaj o broju promašaja po linijama koda, potrebno je da prosledimo izvorne datoteke programu \texttt{cg\_annotate} ili da uključimo opciju \texttt{-\/-auto=yes} kada će se anotirati svaki izvorni kod koji se može naći.
+
+Preglednije je gledati izveštaj pomoću alata KCachegrind.
+
+Cachegrind nam može otkriti gde imamo usko grlo u programu, ali nam ne može reći kako da ga popravimo. Potrebno je napomenuti da su rezultati vrlo osetljivi. Promena veličine izvršnog programa ili neke od deljenih biblioteka koje koristi, pa čak i promena dužine imena datoteka, može izmeniti rezultate. Varijacije će biti male, ali svakako ne treba očekivati potpuno ponovljive rezultate ako se program promeni.
+
+Na novijim GNU/Linux distribucijama se prilikom ponovnih pokretanja istog programa deljene biblioteke učitavaju na različite lokacije, iz bezbednosnih razloga. To takođe može uticati na varijacije u rezultatima različitog profajliranja istog programa.
+
+Dakle, ne treba se uzdati da su podaci veoma precizni, ali su svakako korisni.
+
+\subimport{01_loops/}{index.tex}
+
+\subimport{02_matrices/}{index.tex}

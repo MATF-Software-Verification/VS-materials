@@ -1,0 +1,16 @@
+% Converted from README.md
+\paragraph{Primer: Prosti brojevi}\label{primer-prosti-brojevi}
+
+Program koristi ne tako jeftinu bibliotečku funkciju \texttt{sqrt}.
+
+\begin{itemize}
+\tightlist
+\item
+  Izmeniti funkciju tako da se ne koristi promenljiva limit već da se u uslov for petlje stavi poziv funkcije \texttt{sqrt}. Kako to utiče na broj instrukcija programa?
+\item
+  Izmenom programa da umesto upotrebe \texttt{sqrt} imamo u petlji izlazak ukoliko \texttt{i*i\ \textgreater{}\ x} stvari se ne popravljaju. Funkcija se poziva 1000000 puta i pre svake naredne iteracije petlje proverava se uslov ostanka u petlji. Koliko god da je brže množenje od korenovanja, pomnoženo sa nekoliko miliona, čak ima i veći broj instrukcija nego funkcija koja koristi korenovanje.
+\item
+  Izmeniti uslov petlje na \texttt{i\ \textless{}\ x/2}. Izmeniti petlju tako da se pre petlje proverava za parne brojeve, a posle u petlji da se iterira samo po neparnim brojevima.
+\item
+  Sklopiti najefikasniju implementaciju.
+\end{itemize}

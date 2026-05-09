@@ -1,0 +1,16 @@
+% Converted from README.md
+\subsection{Primer: Faktorijel}\label{primer-faktorijel}
+
+Primer \texttt{factorial.dfy} prikazuje rekurzivnu funkciju sa preduslovom i postuslovom. Preduslov \texttt{requires\ 0\ <=\ n} ograničava domen funkcije na nenegativne brojeve. Postuslov \texttt{ensures\ 1\ <=\ Factorial(n)} navodi svojstvo koje Dafny mora da dokaže za svaku dozvoljenu vrednost argumenta.
+
+\codefile{factorial.dfy}{text}
+
+U telu funkcije postoje dva slučaja. Za \texttt{n\ ==\ 0} rezultat je \texttt{1}. Za veće vrednosti rezultat se računa rekurzivno pozivom \texttt{Factorial(n-1) * n}. Preduslov je potreban jer bi se bez njega rekurzija mogla nastaviti ka negativnim vrednostima.
+
+Primer se može proveriti komandom:
+
+\begin{minted}{bash}
+$ dafny verify factorial.dfy
+\end{minted}
+
+Ako se ukloni preduslov ili se promeni rekurzivni poziv tako da se argument ne smanjuje, verifikator prijavljuje da ne može da dokaže korektnost ili terminaciju funkcije.

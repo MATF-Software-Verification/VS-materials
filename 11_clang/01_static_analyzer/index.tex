@@ -1,0 +1,164 @@
+\subsection{Clang statički analizator}\label{clang-staticki-analizator}
+
+\href{https://clang.llvm.org/}{Clang} je kompilator otvorenog koda za C familiju jezika. Koristi \href{https://llvm.org/}{LLVM} optimizator i generator koda. Više informacija zajedno sa uputstvima je moguće pronaći u \href{https://clang.llvm.org/docs/UsersManual.html}{priručniku} za Clang kompilator. \href{https://clang-analyzer.llvm.org/}{Clang statički analizator} je deo Clang projekta.
+
+Clang statički analizator radi nad izvornim kodom i ne pokreće program. Analizator gradi model mogućih putanja kroz funkcije, prati vrednosti promenljivih i proverava da li postoji putanja koja vodi do greške. Zbog toga može da pronađe greške koje obična upozorenja prevodioca ne vide, na primer dereferenciranje NULL pokazivača posle uslovnog grananja, curenje resursa ili pogrešno korišćenje POSIX API-ja.
+
+Analizator nije zamena za testove. On proverava model programa koji uspe da izgradi. Ako nema dovoljno informacija o ulazima, bibliotekama ili invarijantama programa, može propustiti grešku ili prijaviti lažno pozitivan nalaz. Zbog toga se nalazi uvek čitaju kroz prikaz putanje koju analizator prijavljuje.
+
+Clang statički analizator koristi razne implementacije \href{https://clang-analyzer.llvm.org/available_checks.html}{proveravača} (engl. \emph{checkers}) prilikom analize. Proveravači su kategorisani u familije - \emph{podrazumevani} i \emph{eksperimentalni (alpha)}. Podrazumevani proveravači izvršavaju bezbednosne provere, prate korišćenje API funkcija, traže mrtav kod i ostale logičke greške. \href{https://clang-analyzer.llvm.org/alpha_checks.html}{Eksperimentalni (alpha) proveravači} nisu podrazumevano uključeni pošto često daju lažno pozitivne rezultate. Uputstvo za implementaciju proveravača se može naći na sledećem \href{https://clang-analyzer.llvm.org/checker_dev_manual.html}{linku}.
+
+Neke kategorije podrazumevanih proveravača:
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#core_checkers}{Core Checkers} vrše provere opšte namene kao što su deljenje nulom, dereferenciranje NULL pokazivača, korišćenje neinicijalizovanih vrednosti itd.
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#cplusplus_checkers}{C++ Checkers} vrše provere specifične za C++ programski jezik
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#deadcode_checkers}{Dead Code Checkers} traže mrtav kod
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#nullability_checkers}{Nullability Checkers} proveravaju dodele ili prosleđivanje NULL pokazivača u kontekstu gde se ne očekuje NULL pokazivač
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#optin_checkers}{Optin Checkers} prate neinicijalizovane objekte i virtualne pozive (C++)
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#osx_checkers}{OS X Checkers} vrše provere specifične za Objective-C i proveravaju upotrebu Apple SDK-a (OS X i iOS)
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#security_checkers}{Security Checkers} proveravaju nebezbedno korišćenje API-ja i vrše provere na osnovu CERT standarda bezbednog kodiranja
+\item
+  \href{https://clang-analyzer.llvm.org/available_checks.html\#unix_checkers}{Unix Checkers} proveravaju upotrebu Unix i POSIX programerskih interfejsa
+\end{itemize}
+
+Spisak proveravača možemo dobiti opcijom \texttt{-Xanalyzer\ -analyzer-list-enabled-checkers}. Proveravače možemo uključiti zadavanjem opcija Clang analizatoru (analizator pozivamo zadavanjem opcije \texttt{-\/-analyze}):
+
+\begin{minted}{bash}
+$ clang \
+    -Xanalyzer -analyzer-checker=alpha \
+    --analyze divzero.c
+\end{minted}
+
+Alternativno, analizator možemo pokrenuti na jednostavniji način korišćenjem alata koji dolaze uz Clang. Ti alati su posebno korisni u situacijama kada koristimo sisteme za izgradnju projekata.
+
+\href{https://clang-analyzer.llvm.org/scan-build.html}{scan-build} je alat koji dozvoljava korisnicima da pokrenu statički analizator nad izvornim kodom projekta kao deo regularnog procesa izgradnje projekta preko komandne linije. Prilikom izgradnje projekta, kako se izvorne datoteke prevode, tako se i analiziraju statičkim analizatorom. Nakon završetka procesa izgradnje projekta, rezultati analize se mogu videti kao HTML stranice.
+
+\texttt{scan-build} radi tako što menja odgovarajuće promenljive okruženja (engl. \emph{environment variables}), npr. \texttt{CC} i \texttt{CXX}, sa ciljem da se pokrene "lažni" prevodilac koji prvo pokreće \texttt{gcc} ili \texttt{clang}, a zatim pokreće i statičku analizu. Ovaj proces stoga radi nezavisno od korišćenog sistema za izgradnju projekta (make, CMake, itd.), sve dok se koriste odgovarajuće promenljive okruženja.
+
+\begin{minted}{bash}
+$ scan-build
+USAGE: scan-build [options] <build command> [build options]
+\end{minted}
+
+Primeri pokretanja \texttt{scan-build} alata:
+
+\begin{minted}{bash}
+$ scan-build make
+$ scan-build make -j4
+$ scan-build xcodebuild
+\end{minted}
+
+Moguće je analizirati pojedinačne datoteke:
+
+\begin{minted}{bash}
+$ scan-build gcc -c 1.c 2.c
+$ scan-build -internal-stats -stats \
+    -o tmp \
+    -enable-checker security,deadcode,core,alpha \
+    clang -cc1 \
+    -analyze -analyzer-display-progress \
+    -Werror \
+    divzero.c
+\end{minted}
+
+Česte opcije koje se prosleđuju \texttt{scan-build} alatu:
+
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Option & Description \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{-o} & Target directory for HTML report files. Subdirectories \\
+& will be created as needed to represent separate "runs" \\
+& of the analyzer. If this option is not specified, a \\
+& directory is created in \texttt{/tmp} to store the reports. \\
+\texttt{-h} (or no arguments) & Display all scan-build options. \\
+\texttt{-k} \texttt{-\/-keep-going} & Add a "keep on going" option to the specified build \\
+& command. This option currently supports \texttt{make} and \\
+& \texttt{xcodebuild}. This is a convenience option; one can \\
+& specify this behavior directly using build options. \\
+\texttt{-v} & Verbose output from scan-build and the analyzer. A second \\
+& and third \texttt{-v} increase verbosity. \\
+\texttt{-V} & Open results in a web browser after the build is completed. \\
+\texttt{-\/-use-analyzer\ Xcode} & scan-build uses the \textquotesingle clang\textquotesingle{} executable relative to itself for \\
+& static analysis. One can override this behavior with this \\
+(\texttt{-\/-use-analyzer\ {[}clang\ path{]}}) & option by using the \texttt{clang} packaged with Xcode \\
+& (on OS X) or from the PATH. \\
+\end{longtable}
+
+Izlaz \texttt{scan-build} alata je skup HTML datoteka od kojih svaka predstavlja zaseban izveštaj. Zbirna datoteka \texttt{index.html} se kreira za lak pristup svim izveštajima. Opcija \texttt{-o} se može iskoristiti za promenu putanje gde će se sačuvati izveštaji. Ako opcija \texttt{-o} nije navedena, \texttt{scan-build} će izveštaje sačuvati u \texttt{/tmp} direktorijumu. Putanja do izveštaja biće ispisana na kraju rada alata. Moguće je automatski otvoriti izveštaje nakon završetka analize zadavanjem opcije \texttt{-V}. Alternativno, može se koristiti alat \texttt{scan-view} za prikazivanje izveštaja \texttt{scan-build} alata.
+
+Kod svakog nalaza treba proveriti tri stvari:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{putanju}: uslovi i grane kojima analizator dolazi do greške;
+\item
+  \textbf{pretpostavku}: vrednost ili stanje koje analizator smatra mogućim;
+\item
+  \textbf{posledicu}: tačan pristup memoriji, API poziv ili logički uslov koji pravi problem.
+\end{itemize}
+
+Ako je pretpostavka nemoguća u realnom programu, nalaz je kandidat za lažno pozitivan rezultat. Tada treba razmotriti da li kodu nedostaje \texttt{assert}, provera ulaza ili jasniji ugovor funkcije. Ako je pretpostavka moguća, nalaz treba tretirati kao grešku čak i kada se teško reprodukuje testom.
+
+Preporuke za korišćenje \texttt{scan-build} alata:
+
+\begin{itemize}
+\tightlist
+\item
+  Projekat \textbf{uvek} treba analizirati u \emph{Debug} konfiguraciji. Pretpostavke i asertacije će biti od koristi analizatoru da smanji prostor pretrage i da značajno smanji broj lažno-pozitivnih upozorenja.
+\item
+  Koristiti \emph{verbose} konfiguraciju prilikom debagovanje \texttt{scan-build} alata. Opcija \texttt{-v} tera \texttt{scan-build} da ispisuje dodatne informacije.
+\item
+  Ako projekat koristi \texttt{configure} skriptu generisanu od strane \texttt{autoconf} alata, pokrenuti uvek prvo \texttt{scan-build} za \texttt{configure} skript \footnote{\texttt{configure} skripte obično generišu \texttt{make} datoteke u kojima su hardkodirane putanje do kompilatora, odnosno nisu navedene preko promenljivih okruženja, što znači da scan-build u tim situacijama ne može da ubaci "lažni" prevodilac u proces izgradnje projekta.}, pa tek onda za regularnu komandu izgradnje projekta.
+\end{itemize}
+
+Ako želimo deo koda da isključimo iz analize, to možemo uraditi ograđivanjem koda na sledeći način:
+
+\begin{minted}{c}
+#ifndef __clang_analyzer__
+// Kod koji ne treba da se analizira
+#endif
+\end{minted}
+
+\subsubsection{\texorpdfstring{\texttt{clang-tidy}}{clang-tidy}}\label{clang-tidy}
+
+\href{https://clang.llvm.org/extra/clang-tidy/}{\texttt{clang-tidy}} je alat za statičke provere koje se pokreću nad pojedinačnim prevodilačkim jedinicama. Za razliku od \texttt{scan-build} toka, \texttt{clang-tidy} se često koristi za održavanje kvaliteta koda: modernizaciju C++ konstrukcija, proveru čitljivosti, otkrivanje čestih bug obrazaca i sprovođenje pravila iz skupova kao što su \texttt{bugprone}, \texttt{performance}, \texttt{readability}, \texttt{modernize} i \texttt{clang-analyzer}.
+
+Za projekte koji koriste CMake najčešći ulaz je \texttt{compile\_commands.json}. Ta datoteka govori alatu kojim opcijama se svaka izvorna datoteka zaista prevodi:
+
+\begin{minted}{bash}
+$ cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+$ clang-tidy -p build src/file.cpp
+\end{minted}
+
+Za manji primer bez baze prevodilačkih komandi mogu se navesti opcije posle \texttt{-\/-}:
+
+\begin{minted}{bash}
+$ clang-tidy example.cpp -- -std=c++17 -Iinclude
+\end{minted}
+
+Izbor provera treba držati usko vezan za cilj. Za traženje bug-ova korisne su grupe \texttt{bugprone-*} i \texttt{clang-analyzer-*}. Za refaktorisanje i modernizaciju C++ koda korisne su \texttt{modernize-*} i \texttt{readability-*}, ali te provere često daju mnogo nalaza koji nisu greške.
+
+\subsubsection{Primeri}\label{clang-primeri}
+
+U direktorijumu \texttt{examples\_individual} ovog poglavlja nalaze se pojedinačne izvorne datoteke koje se mogu analizirati. Primeri se pokreću pomoću skripte \texttt{analyze}, dostupne u istom direktorijumu:
+
+\begin{minted}{bash}
+$ cd 11_clang/01_static_analyzer/examples_individual
+$ ./analyze 01_struct_access.c core,security,alpha -v
+\end{minted}
+
+Direktorijum \texttt{examples\_make} sadrži veći primer projekta. Primer koristi \texttt{make} sistem za izgradnju.

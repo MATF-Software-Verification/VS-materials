@@ -1,0 +1,16 @@
+% Converted from INSTALLING.md
+\subsection{Clang alati}\label{instalacija-clang-alati}
+
+\subsubsection{Clang}\label{clang}
+
+\href{https://clang.llvm.org/docs/UsersManual.html}{Clang} se na većini Linux distribucija može instalirati kroz paket \texttt{clang}. Npr., za Ubuntu:
+
+\begin{minted}{bash}
+$ sudo apt-get install clang
+\end{minted}
+
+\href{https://clang-analyzer.llvm.org/scan-build.html}{scan-build} alat za statičku analizu i drugi Clang alati koje koristimo kroz interfejs komandne linije na većini Linux distribucija dolaze zajedno sa Clang-om. Za starije verzije moguće je da je neophodno instalirati paket \texttt{clang-tools}.
+
+Sanitizer primeri u Clang poglavlju koriste Clang runtime biblioteke. Na većini Linux distribucija dolaze uz paket \texttt{clang}. Ako povezivanje ne uspe za neku \texttt{-fsanitize} opciju, instalirati i paket koji distribucija koristi za LLVM runtime biblioteke. Taj paket se često zove \texttt{compiler-rt}; na Debian/Ubuntu sistemima naziv često počinje sa \texttt{libclang-rt}.
+
+\textbf{Napomena za alat scan-build iz clang-tools skupa alata}: Korisnici Windows operativnog sistema treba da instaliraju Perl kako bi scan-build alat funkcionisao. Na Windows sistemima scan-build se isporučuje kao Batch skript \texttt{scan-build.bat}. Više informacija o specifičnostima za Windows OS u kontekstu korišćenja scan-build alata je moguće naći u \href{https://clang-analyzer.llvm.org/scan-build.html}{scan-build priručniku}.

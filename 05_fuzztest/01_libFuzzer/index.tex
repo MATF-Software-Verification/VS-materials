@@ -1,0 +1,95 @@
+% Converted from README.md
+\subsection{Primer rada libFuzzer-a}\label{primer-rada-libfuzzer-a}
+
+Primer \texttt{fuzz\_me.cpp} prevodimo korišćenjem \emph{clang}-a:
+
+\begin{minted}{bash}
+$ clang++  -fsanitize=fuzzer,address fuzz_me.cpp -o fuzz_me
+\end{minted}
+
+Kreiramo direktorijum u koji će nam se čuvati generisani testovi i pokrećemo program:
+
+\begin{minted}{bash}
+$ mkdir testovi
+$ ./fuzz_me testovi/
+\end{minted}
+
+Testovi se generišu variranjem postojećih testova iz direktorijuma \texttt{testovi}, ukoliko ih ima. Novi testovi se dodaju u korpus samo ako povećavaju pokrivenost kôda u odnosu na već generisane testove. Ako želimo da se generišu testovi samo od ASCII karaktera, prilikom pozivanja programa treba proslediti i opciju \texttt{-only\_ascii=1}; \texttt{0} je podrazumevana vrednost.
+
+\begin{minted}{bash}
+$ ./fuzz_me -only_ascii=1 testovi/
+\end{minted}
+
+Testovi se generišu u direktorijum, a nama se na ekranu prikazuje sledeći izlaz:
+
+\begin{minted}{text}
+INFO: Seed: 2050712183
+INFO: Loaded 1 modules (7 guards): [0x77be60, 0x77be7c),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#0      READ units: 1
+#2      INITED cov: 3 ft: 3 corp: 1/1b exec/s: 0 rss: 30Mb
+#5      NEW    cov: 4 ft: 4 corp: 2/4b exec/s: 0 rss: 31Mb L: 3 MS: 3 CopyPart-ChangeBit-InsertByte-
+#1114   NEW    cov: 5 ft: 5 corp: 3/122b exec/s: 0 rss: 33Mb L: 118 MS: 2 ShuffleBytes-InsertRepeatedBytes-
+#176228 NEW    cov: 6 ft: 6 corp: 4/242b exec/s: 0 rss: 235Mb L: 120 MS: 1 CMP- DE: "U\x00"-
+#555573 NEW    cov: 7 ft: 7 corp: 5/366b exec/s: 555573 rss: 401Mb L: 124 MS: 1 CMP- DE: "Z\x00\x00\x00"-
+#1048576        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 524288 rss: 409Mb
+#2097152        pulse  cov: 7 ft: 7 corp: 5/366b exec/s: 419430 rss: 409Mb
+=================================================================
+==26069==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000023bb3 at pc 0x000000539e73 bp 0x7fff6c301bc0 sp 0x7fff6c301bb8
+READ of size 1 at 0x602000023bb3 thread T0
+.....
+==26069==ABORTING
+MS: 2 ChangeBinInt-CrossOver-; base unit: 1162a64ba4eb59dab49cfb3a8bb87abe708c3bb1
+0x46,0x55,0x5a,
+FUZ
+artifact_prefix='./'; Test unit written to ./crash-0eb8e4ed029b774d80f2b66408203801cb982a60
+Base64: RlVa
+\end{minted}
+
+Opcijom \texttt{-max-len=N} možemo postaviti maksimalnu dužinu ulaza na neku drugu veličinu. Poruka \texttt{INFO:\ A\ corpus\ is\ not\ provided,\ starting\ from\ an\ empty\ corpus} označava da smo počeli sa praznim korpusom. \texttt{READ} prati broj pročitanih testova iz korpusa, a svaki novi test obeležen je sa \texttt{NEW}. Broj na početku linije predstavlja redni broj generisanog testa. Ako je \texttt{NEW} u nastavku, test je dodat u korpus. Ako stoji \texttt{pulse}, taj red je ispisan samo da obavesti programera da fuzzer i dalje radi. Vidimo da je fuzzer generisao 2097152 testova pre nego što je naišao na grešku koja mu je prekinula rad. Dogodilo se prekoračenje memorije na hipu i generisan je izveštaj o prekidu rada \texttt{./crash-0eb8e4ed029b774d80f2b66408203801cb982a60} sa ulazom koji je grešku izazvao: \texttt{FUZ}.
+
+Pojašnjenje kôdova događaja i prateće statistike:
+
+\begin{itemize}
+\item
+  \texttt{READ} - Fuzzer je pročitao sve od datih testova iz direktorijuma sa korpusima.
+\item
+  \texttt{INITED} - Fuzzer je završio inicijalizaciju, što uključuje izvršavanje svakog inicijalnog testa kroz kôd koji se testira.
+\item
+  \texttt{NEW} - Fuzzer je kreirao nov test koji pokriva do sada nepokrivene delove kôda koji se testira. Ovaj test će biti sačuvan u direktorijumu glavnog korpusa.
+\item
+  \texttt{REDUCE} - Fuzzer je pronašao bolji (kraći) test koji izaziva prethodno otkriveno ponašanje. Može se isključiti opcijom \texttt{-reduce\_inputs=0}.
+\item
+  \texttt{pulse} - Fuzzer je generisao \texttt{2n} testova. Poruka se generiše periodično da bi se korisnik uverio da fuzzer i dalje radi.
+\item
+  \texttt{DONE} - Fuzzer je završio sa radom jer je došao do limita broja iteracija (zadaje se opcijom \texttt{-runs}) ili vremenskog limita (zadaje se opcijom \texttt{-max\_total\_time}).
+\item
+  \texttt{RELOAD} - Fuzzer periodično ponovo učitava testove iz direktorijuma sa korpusom. Ovo omogućava fuzzeru da uzme u obzir testove koji su otkriveni drugim procesima fuzzera, prilikom paralelnog fuzz testiranja.
+\end{itemize}
+
+Svaka izlazna linija sadrži i izveštaj sa sledećim statistikama, kada nisu 0:
+
+\begin{itemize}
+\item
+  \texttt{cov:} Ukupan broj blokova kôda ili ivica pokrivenih izvršavanjem trenutnog korpusa.
+\item
+  \texttt{ft:} \emph{libFuzzer} koristi različite signale da proceni pokrivenost kôda: pokrivenost ivica, brojače ivica, vrednosne profile, indirektne parove pozivalac/pozvani, itd. Ovi signali su kombinovani i obeleženi sa \texttt{(ft:)}.
+\item
+  \texttt{corp:} Broj testova u trenutnom korpusu u memoriji i njegova veličina u B.
+\item
+  \texttt{lim:} Trenutni limit u dužini novih ulaznih podataka u korpusu. Povećava se tokom vremena, dok ne dostigne maksimalnu dužinu. Ona se može zadati opcijom \texttt{-max\_len}.
+\item
+  \texttt{exec/s:} Broj iteracija fuzzera u sekundi.
+\item
+  \texttt{rss:} Trenutno iskorišćenje memorije.
+\end{itemize}
+
+Za nove (NEW) događaje, izlazna linija sadrži i informacije:
+
+\begin{itemize}
+\item
+  \texttt{L:} Veličina novog testa u bajtovima.
+\item
+  \texttt{MS:\ \textless{}n\textgreater{}\ \textless{}ops\textgreater{}} Broj i lista operacija mutacija koje su korišćene da bi se generisao nov ulaz.
+\end{itemize}

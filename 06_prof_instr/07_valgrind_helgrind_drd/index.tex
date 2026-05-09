@@ -1,0 +1,33 @@
+% Converted from README.md
+\subsubsection{Helgrind / DRD}\label{helgrind--drd}
+
+Helgrind je alat u sklopu programskog paketa Valgrind koji otkriva greške sinhronizacije prilikom upotrebe modela niti \texttt{POSIX}.
+
+Glavne apstrakcije modela \texttt{POSIX} niti su: grupa niti koji deli zajednički adresni prostor, formiranje niti, čekanje na završetak izvršavanja funkcije niti, izlaz iz funkcije niti, muteks objekti, uslovne promenljive, čitaj-piši zaključavanje i semafori.
+
+Problemi poput ovih imaju kao rezultat nereproduktivne, vremenski zavisne padove, mrtve petlje i druga loša ponašanja programa koja se mogu teško otkriti drugim sredstvima. \emph{Helgrind} je svestan svih apstrakcija niti i prati njihove efekte. Najbolje radi ukoliko program koristi isključivo \texttt{POSIX} niti. Moguće ga je koristiti i za programe koji koriste druge standarde za niti, ali je neophodno opisati \emph{Helgrind}-u njihovo ponašanje korišćenjem \texttt{ANNOTATE\_*} makroa definisanih u \texttt{helgrind.h} zaglavlju).
+
+\emph{DRD} je \emph{Valgrind}-ov alat za detekciju grešaka u \emph{C} i \emph{C++} programima koji koriste više niti. Alat radi za svaki program koji koristi niti POSIX standarda ili koji koriste koncepte koji su nadograđeni na ovaj standard.
+
+\begin{longtable}[]{@{}lll@{}}
+\toprule\noalign{}
+& Helgrind & DRD \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Mrtve petlje & DA & NE \\
+Trka za podacima & DA & DA \\
+Nepravilno korišćenje API-ja & DA & DA \\
+Zadržavanje podataka & NE & DA \\
+\end{longtable}
+
+Alati \emph{DRD} i \emph{Helgrind} ne koriste iste algoritme za otkrivanje grešaka, samim tim ne otkrivaju iste tipove grešaka, iako imaju veliki broj poklapanja. Helgrind proizvodi izlaze koji su lakši za interpretaciju, dok \emph{DRD} ima bolje performanse.
+
+\subimport{01_misused_api/}{index.tex}
+
+\subimport{02_deadlock/}{index.tex}
+
+\subimport{03_data_race/}{index.tex}
+
+\subimport{04_lock_hold/}{index.tex}

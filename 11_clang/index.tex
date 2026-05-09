@@ -1,0 +1,36 @@
+% Converted from README.md
+\section{Clang alati za analizu C/C++ programa}\label{clang-alati-za-analizu-c-cpp-programa}
+
+\href{https://clang.llvm.org/}{Clang} nije samo prevodilac. U ovom poglavlju koristimo nekoliko alata iz Clang/LLVM ekosistema koji pokrivaju različite oblike analize C i C++ programa:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{upozorenja prevodioca} proveravaju lokalne obrasce tokom prevođenja;
+\item
+  \textbf{Clang statički analizator} simbolički prolazi kroz putanje programa i prijavljuje greške bez pokretanja programa;
+\item
+  \textbf{\texttt{clang-tidy}} kombinuje provere stila, održivosti, modernizacije C++ koda i neke statičke provere;
+\item
+  \textbf{sanitizeri} instrumentišu program pri prevođenju i prijavljuju greške tokom izvršavanja.
+\end{itemize}
+
+Ove tehnike se dopunjuju. Statički analizator i \texttt{clang-tidy} mogu pronaći greške pre pokretanja programa, dok sanitizeri proveravaju konkretno izvršavanje i često daju precizan stek poziva do mesta greške.
+
+\subsection{Kada koristiti koji Clang alat}\label{kada-koristiti-koji-clang-alat}
+
+\begin{longtable}{@{}p{0.24\linewidth}p{0.36\linewidth}p{0.32\linewidth}@{}}
+\toprule
+Alat & Najbolji slučaj upotrebe & Šta proveriti u izveštaju \\
+\midrule
+\endhead
+Upozorenja prevodioca & Brza provera lokalnih grešaka tokom svakog prevođenja. & Da li upozorenje ukazuje na stvarnu grešku ili na nejasan kod koji treba pojednostaviti. \\
+Clang statički analizator & Putanje kroz funkcije, neinicijalizovane vrednosti, pogrešni API pozivi i memorijske greške bez pokretanja programa. & Putanju koju analizator navodi i pretpostavku zbog koje je greška moguća. \\
+\texttt{clang-tidy} & Održavanje C++ koda, modernizacija, stil i izabrane statičke provere u projektu. & Da li provera odgovara pravilima projekta i da li automatska izmena menja semantiku. \\
+Sanitizeri & Greške koje se vide tokom konkretnog izvršavanja: memorija, nedefinisano ponašanje, curenje memorije i trke za podacima. & Prvi relevantan okvir steka, vrstu greške i ulaz koji je grešku izazvao. \\
+\bottomrule
+\end{longtable}
+
+\subimport{01_static_analyzer/}{index.tex}
+
+\subimport{02_sanitizers/}{index.tex}

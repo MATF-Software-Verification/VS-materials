@@ -1,0 +1,34 @@
+% Converted from README.md
+\subsubsection{Memcheck}\label{memcheck}
+
+Memcheck detektuje memorijske greške korisničkog programa. Kako ne vrši analizu izvornog koda već mašinskog, Memcheck ima mogućnost analize programa pisanom u bilo kom programskom jeziku. Za programe pisane u jezicima C i C++ detektuje sledeće probleme:
+
+\begin{itemize}
+\tightlist
+\item
+  Korišćenje nedefinisanih vrednosti, vrednosti koje nisu inicijalizovane ili koje su izvedene od drugih nedefinisanih. vrednosti. Problem se detektuje tek kada su upotrebljene.
+\item
+  Čitanje ili pisanje u nedopuštenu memoriju na hipu, steku, bilo da je potkoračenje ili prekoračenje dozvoljene memorije ili pristupanje već oslobodenoj memoriji.
+\item
+  Neispravno oslobadanje memorije na hipu, npr. duplo oslobadanje memorije na hipu ili neupareno korišćenje funkcija \texttt{malloc/new/new{[}{]}} i \texttt{free/delete/delete{[}{]}}.
+\item
+  Poklapanje argumenata \texttt{src} i \texttt{dest} funkcije \texttt{memcpy} i njoj sličnim.
+\item
+  Prosledivanje loših vrednosti za veličinu memorijskog prostora funkcijama za alokaciju memorije, npr. negativnih.
+\item
+  Curenje memorije, npr. gubitak pokazivača na alociran prostor.
+\end{itemize}
+
+\subimport{01_uninitialized/}{index.tex}
+
+\subimport{02_undefined/}{index.tex}
+
+\subimport{03_malloc/}{index.tex}
+
+\subimport{04_new_delete/}{index.tex}
+
+\subimport{05_overlap/}{index.tex}
+
+\subimport{06_fishy_arguments/}{index.tex}
+
+\subimport{07_misc/}{index.tex}

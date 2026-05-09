@@ -1,0 +1,20 @@
+% Converted from README.md
+\subsubsection{Massif}\label{massif}
+
+Massif je profajler hip memorije - beleži iskorišćen prostor i dodatne bajtove koji se zauzimaju radi poravnanja i vođenja evidencije bajtova u upotrebi. Može da meri i zauzeće memorije na steku, ali to ne radi bez uključivanja dodatne opcije (\texttt{-\/-stacks=yes}) jer dosta usporava rad alata.
+
+Profajliranje hip memorije nam može pomoći da smanjimo korišćenu memoriju i otkrijemo neka curenja memorije koja se ne mogu prepoznati Memcheck-om. To je korisno kada memorija nije izgubljena, jer pokazivač i dalje postoji, ali se alocirani blok više ne koristi. Kod takvih programa nepotrebno se povećava memorija koja se koristi tokom vremena. Massif nam može reći koliko memorije na hipu program koristi i koja linija koda je odgovorna za alokaciju.
+
+Kao i pri upotrebi drugih Valgrind alata, program prevodimo sa simbolima za debagovanje (opcija \texttt{-g}). Optimizacija neće uticati na količinu upotrebljene memorije. Massif svoj izveštaj upisuje u datoteku \texttt{massif.out.\textless{}pid\textgreater{}}, gde je \texttt{\textless{}pid\textgreater{}} ID procesa. Ukoliko želimo da se upiše u drugu datoteku, koristimo opciju \texttt{-\/-massif-out-file} i navedemo naziv izlazne datoteke. Informacije iz izveštaja prikazujemo programom \texttt{ms\_print} prosledujući mu datoteku sa izveštajem.
+
+\texttt{ms\_print} proizvodi graf koji prikazuje zauzeće memorije tokom izvršavanja programa, kao i detaljnije informacije o različitim tačkama programa koje su odgovorne za alokaciju/dealokaciju memorije. Vrednosti na y osi predstavljaju presek stanja iskorišćenosti memorije u određenom vremenskom trenutku. Na x osi, Massif podrazumevano koristi broj izvršenih instrukcija kao jedinicu vremena. To se može promeniti opcijom \texttt{-\/-time-unit=B} da jedinica vremena bude broj bajtova alociran/dealociran na hipu.
+
+Massif pravi preseke stanja iskorišćenosti memorije za svaku alokaciju i dealokaciju hipa, ali ako se program duže izvršava Massif ređe pravi preseke. Kada dostigne maksimalni broj preseka, odbaci oko pola ranijih preseka. Podrazumevan broj preseka koje čuva je 100, ali se to može promeniti opcijom \texttt{-\/-max-snapshots}. Detaljnije obrađeni preseci su na grafu predstavljeni simbolom \texttt{@}. Podrazumevano detaljnije obrađuje svaki deseti presek, ali se i to može promeniti opcijom \texttt{-\/-detailed-freq}.
+
+\begin{minted}{bash}
+$ valgrind --tool=massif ./massif_example.out
+\end{minted}
+
+Na grafu je simbolom \texttt{\#} predstavljen još jedan detaljan presek koji je obrađen i ujedno je presek sa najvećim iskorišćenjem memorije. Određivanje preseka sa najvećim iskorišćenjem memorije nije uvek tačno jer Massif uzima u obzir samo preseke kod kojih se desila dealokacija. Time se izbegava mnogo nepotrebnih preseka za najveću iskorišćenost memorije, npr. u slučaju da program iz više navrata alocira dosta memorije, i svaki put to je nova najveća iskorišćenost memorije. Takođe, ako program nikada ne dealocira memoriju, nećemo ni imati ovakav presek. Takođe ako program i dealocira memoriju ali kasnije alocira još veći blok koji kasnije ne oslobodi, imaćemo presek sa najvećom iskorišćenosti memorije, ali će on biti dosta niži od stvarnog.
+
+Alat Massif meri samo hip memoriju, tj. onu koju smo alocirali funkcijama \texttt{malloc}, \texttt{calloc}, \texttt{realloc}, \texttt{memalign}, \texttt{new}, \texttt{new{[}{]}}. Ne meri memoriju alociranu sistemskim pozivima kao što su \texttt{mmap}, \texttt{mremap}, \texttt{brk}. Ukoliko nam je od značaja merenje celokupne alocirane memorije, potrebno je uključiti opciju \texttt{-\/-pages-as-heap=yes}. Sa ovom opcijom Massif neće profajlirati hip memoriju, već stranice u memoriji.

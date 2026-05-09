@@ -1,0 +1,93 @@
+\subsection{Sanitizeri u Clang-u}\label{clang-sanitizeri}
+
+Sanitizeri su instrumentacije koje kompilator ubacuje u program. Program se zatim pokreće kao obična izvršna datoteka, ali dodatni kod proverava memorijske pristupe, aritmetiku, curenje memorije ili pristup deljenim podacima. Zbog toga su sanitizeri pogodni za lokalni razvoj i CI provere. U odnosu na Valgrind, zahtevaju posebno prevođenje programa, ali se često izvršavaju brže i daju precizan stek poziva za konkretno izvršavanje.
+
+Primeri u ovom direktorijumu koriste Clang:
+
+\begin{minted}{bash}
+$ make
+\end{minted}
+
+\paragraph{ASan}\label{addresssanitizer}
+
+\href{https://clang.llvm.org/docs/AddressSanitizer.html}{AddressSanitizer} (ASan) detektuje neispravne pristupe memoriji kao što su prekoračenje hip bloka, prekoračenje steka, upotreba memorije posle oslobađanja i neispravno oslobađanje memorije. Primer ispod alocira prostor za string bez završnog nul karaktera, a zatim kopira i taj bajt.
+
+\codefile{01_asan_heap_overflow.c}{c}
+
+\codefile{01_asan_heap_overflow_fixed.c}{c}
+
+\begin{minted}{bash}
+$ ./asan_bad.out
+$ ./asan_fixed.out
+\end{minted}
+
+U izveštaju loše verzije tražiti red \texttt{heap-buffer-overflow}. Stek poziva pokazuje gde je upis van granica nastao, a deo izveštaja sa opisom alociranog regiona pokazuje koliko bajtova je zaista rezervisano.
+
+\paragraph{UBSan}\label{undefinedbehaviorsanitizer}
+
+\href{https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html}{UndefinedBehaviorSanitizer} (UBSan) prijavljuje ponašanje koje C i C++ standard ne definišu. To obuhvata potpisano celobrojno prekoračenje, neispravne pomeraje bitova, dereferenciranje neporavnatih pokazivača i slične greške. U ovom primeru množenje prelazi opseg tipa \texttt{int}.
+
+\codefile{02_ubsan_signed_overflow.c}{c}
+
+\codefile{02_ubsan_signed_overflow_fixed.c}{c}
+
+\begin{minted}{bash}
+$ ./ubsan_bad.out
+$ ./ubsan_fixed.out
+\end{minted}
+
+Makefile koristi opciju \texttt{-fno-sanitize-recover=undefined} da se program zaustavi posle prijave. U CI proverama je to korisno jer greška dobija nenulti izlazni status.
+
+\paragraph{LSan}\label{leaksanitizer}
+
+\href{https://clang.llvm.org/docs/LeakSanitizer.html}{LeakSanitizer} (LSan) proverava curenje memorije na kraju procesa. Može da se koristi samostalno opcijom \texttt{-fsanitize=leak}, a često se koristi i zajedno sa ASan instrumentacijom. Loša verzija učitava tri linije i gubi pokazivače na alocirane kopije.
+
+\codefile{03_lsan_leak.c}{c}
+
+\codefile{03_lsan_leak_fixed.c}{c}
+
+\begin{minted}{bash}
+$ ./lsan_bad.out
+$ ./lsan_fixed.out
+\end{minted}
+
+Kod loše verzije očekuje se izveštaj sa tekstom \texttt{detected memory leaks}. Popravljena verzija oslobađa svaku kopiju pre izlaska iz funkcije.
+
+\paragraph{TSan}\label{threadsanitizer}
+
+\href{https://clang.llvm.org/docs/ThreadSanitizer.html}{ThreadSanitizer} (TSan) detektuje trke za podacima u programima sa nitima. Primer ima dve niti koje uvećavaju istu globalnu promenljivu bez sinhronizacije.
+
+\codefile{04_tsan_data_race.c}{c}
+
+\codefile{04_tsan_data_race_fixed.c}{c}
+
+\begin{minted}{bash}
+$ ./tsan_bad.out
+$ ./tsan_fixed.out
+\end{minted}
+
+U lošoj verziji očekuje se \texttt{data race} izveštaj. Popravljena verzija štiti deljeni brojač muteksom, pa svaki pristup promenljivoj \texttt{counter} ima istu sinhronizacionu disciplinu.
+
+\paragraph{MemorySanitizer kao napredna vežba}\label{memorysanitizer-napredno}
+
+\href{https://clang.llvm.org/docs/MemorySanitizer.html}{MemorySanitizer} (MSan) detektuje čitanje neinicijalizovane memorije. U praksi često zahteva da su i biblioteke koje program koristi prevedene sa MSan instrumentacijom. Zbog toga ga ne koristimo kao osnovnu lokalnu vežbu u ovom poglavlju. Kao naprednu vežbu, izolovati mali program bez spoljašnjih zavisnosti i prevesti ga komandom:
+
+\begin{minted}{bash}
+$ clang -g -O1 -fsanitize=memory -fno-omit-frame-pointer example.c -o example
+\end{minted}
+
+\paragraph{Mesta za proširenje}\label{clang-prosirenja-backlog}
+
+Sledeće teme su dobar nastavak nakon Clang sanitizer vežbi:
+
+\begin{enumerate}
+\tightlist
+\item
+  \textbf{Kombinovanje sanitizera i fuzz testiranja}: ASan i UBSan se često uključuju tokom fuzz testiranja kako bi se padovi programa pretvorili u precizne izveštaje.
+\item
+  \textbf{LLVM pokrivenost izvornog koda}: \texttt{llvm-profdata} i \texttt{llvm-cov} mogu povezati izvršene testove sa pokrivenošću izvornog koda.
+\item
+  \textbf{Podešavanje}: opcije kao što su \texttt{ASAN\_OPTIONS} i \texttt{TSAN\_OPTIONS} kontrolišu izveštaje, supresije i ponašanje pri grešci.
+\item
+  \textbf{CI konfiguracija}: sanitizer build treba držati odvojen od produkcionog build-a i pokretati ga nad testovima koji imaju dovoljno pokrivenosti.
+\end{enumerate}

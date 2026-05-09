@@ -1,0 +1,38 @@
+\subsubsection{Watchpoint za pronalaženje korupcije memorije}\label{gdb-watchpoints}
+
+Tačka prekida zaustavlja program kada izvršavanje dođe do određene linije ili funkcije. \emph{Watchpoint} zaustavlja program kada se promeni određena memorijska lokacija. To je korisno kada znamo koja promenljiva dobija pogrešnu vrednost, ali ne znamo ko ju je prepisao.
+
+Primer ima ručno napisano kopiranje stringa bez provere granice:
+
+\codefile{watchpoint_demo.c}{c}
+
+Prevedimo program:
+
+\begin{minted}{bash}
+$ make
+$ ./watchpoint_demo petar
+$ ./watchpoint_demo AAAAAAAAAAAA
+\end{minted}
+
+Drugo pokretanje može promeniti polje \texttt{is\_admin}, jer se ulaz upisuje preko kraja niza \texttt{name}. U \texttt{gdb}-u prvo zaustavljamo program posle inicijalizacije strukture, a zatim postavljamo watchpoint:
+
+\begin{minted}{text}
+(gdb) break watchpoint_demo.c:23
+(gdb) run AAAAAAAAAAAA
+(gdb) watch account.is_admin
+(gdb) continue
+\end{minted}
+
+Kada se polje promeni, \texttt{gdb} ispisuje staru i novu vrednost i zaustavlja program na instrukciji koja je izvršila upis. Zatim proveravamo kontekst:
+
+\begin{minted}{text}
+(gdb) bt
+(gdb) frame 0
+(gdb) info locals
+(gdb) p i
+(gdb) p account
+\end{minted}
+
+Očekivani zaključak je da problem nije u kodu koji čita \texttt{is\_admin}, nego u funkciji \texttt{copy\_name}. Kada brojač \texttt{i} pređe veličinu niza, sledeći upisi prelaze u naredna polja strukture.
+
+Hardverski watchpoint-i su ograničen resurs. Procesor obično može da prati mali broj adresa istovremeno. Ipak, kada je simptom korupcija jedne promenljive, ovo je često brže od ručnog pregleda celog toka programa.

@@ -1,0 +1,15 @@
+\subsubsection{Intel VTune Profiler}\label{instalacija-intel-vtune-profiler}
+
+Intel VTune Profiler se instalira kroz Intel oneAPI pakete ili kao zaseban VTune Profiler paket, u zavisnosti od operativnog sistema. Posle instalacije proveriti da li je komanda \texttt{vtune} dostupna:
+
+\begin{minted}{bash}
+$ vtune --version
+\end{minted}
+
+Ako komanda nije u putanji, potrebno je učitati okruženje koje instalacija isporučuje. Kod oneAPI instalacije to je najčešće skripta \texttt{setvars.sh}:
+
+\begin{minted}{bash}
+$ source /opt/intel/oneapi/setvars.sh
+\end{minted}
+
+Za hardversko uzorkovanje mogu biti potrebna dodatna podešavanja drajvera, kernela ili korisničkih dozvola. Ta podešavanja zavise od sistema, pa ih treba proveriti u zvaničnom instalacionom uputstvu za korišćenu verziju VTune-a.

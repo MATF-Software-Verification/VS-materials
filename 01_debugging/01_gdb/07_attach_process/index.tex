@@ -1,0 +1,39 @@
+\subsubsection{Prikačivanje na pokrenut proces}\label{gdb-attach-process}
+
+U realnom radu problem se često pojavi u procesu koji je već pokrenut. \texttt{gdb} može da se prikači na takav proces, zaustavi ga, pročita stanje i zatim se odvoji bez namernog gašenja procesa.
+
+Primer simulira mali servis koji periodično obrađuje zahteve:
+
+\codefile{service.c}{c}
+
+U prvom terminalu pokrenemo servis:
+
+\begin{minted}{bash}
+$ make
+$ ./service
+pid=12345
+\end{minted}
+
+U drugom terminalu se prikačimo na PID koji je program ispisao:
+
+\begin{minted}{bash}
+$ gdb -p 12345
+\end{minted}
+
+Proces se zaustavlja dok je \texttt{gdb} prikačen. Tada možemo pročitati stek i globalno stanje:
+
+\begin{minted}{text}
+(gdb) bt
+(gdb) p requests
+(gdb) p slow_path
+(gdb) info threads
+(gdb) continue
+^C
+(gdb) p requests
+(gdb) detach
+(gdb) quit
+\end{minted}
+
+Ovaj tok je koristan za procese koji troše CPU, vise u čekanju ili imaju stanje koje je teško reprodukovati od početka. Ipak, prikačivanje nije neutralno: proces je zaustavljen dok ga pregledamo, što može izazvati timeout-e ili promeniti ponašanje sistema.
+
+Na Linux sistemima prikačivanje može biti ograničeno podešavanjem \path{/proc/sys/kernel/yama/ptrace_scope}. Ako se dobije greška \texttt{Operation not permitted}, proveriti vlasništvo procesa, capability-je i to podešavanje. Na produkcionim sistemima odluka da se prikači debager mora biti deo operativne procedure, jer debager ima pun pristup memoriji procesa.

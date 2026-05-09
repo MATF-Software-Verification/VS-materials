@@ -1,0 +1,73 @@
+\usepackage[margin=0.85in]{geometry}
+\usepackage{fontspec}
+\IfFontExistsTF{Inconsolatazi4-Regular.otf}{%
+  \setmonofont{Inconsolatazi4}[
+    Scale=MatchLowercase,
+    Extension=.otf,
+    UprightFont=*-Regular,
+    BoldFont=*-Bold,
+    ItalicFont=*-Regular,
+    BoldItalicFont=*-Bold
+  ]%
+}{}
+
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{xcolor}
+\usepackage{import}
+\usepackage{sectsty}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{minted}
+
+\definecolor{CodeBackground}{gray}{0.96}
+\setminted{
+  bgcolor=CodeBackground,
+  breakanywhere=true,
+  breaklines=true,
+  fontsize=\footnotesize,
+  frame=single,
+  framesep=2mm,
+  tabsize=4
+}
+
+\makeatletter
+\newcommand{\codefile}[2]{%
+  \inputminted{#2}{#1}%
+}
+\makeatother
+
+\newcommand{\pandocbounded}[1]{%
+  \begin{center}
+  \begin{adjustbox}{max width=\linewidth,max totalheight=0.82\textheight}
+  #1
+  \end{adjustbox}
+  \end{center}
+}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\sectionfont{\clearpage}
+\newcommand{\sectionbreak}{\clearpage}
+
+\setlist[itemize,1]{label=$\bullet$}
+\setlist[itemize,2]{label=$\circ$}
+\setlist[itemize,3]{label=$\star$}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue,
+  filecolor=blue,
+  pdftitle={Verifikacija softvera - vežbe},
+  pdfauthor={Ivan Ristović},
+  pdfsubject={course materials},
+  pdfkeywords={materials,practices,software verification}
+}
+
+\renewcommand{\abstractname}{}

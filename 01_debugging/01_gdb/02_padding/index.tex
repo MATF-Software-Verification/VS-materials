@@ -1,0 +1,45 @@
+\subsubsection{Raspored struktura i padding}\label{gdb-padding}
+
+C kompajler ne mora da smesti polja strukture jedno za drugim bez praznog prostora. Zbog poravnanja podataka ubacuje \emph{padding} bajtove između polja i na kraj strukture. To je čest izvor grešaka kada se strukture upisuju u datoteku, šalju preko mreže ili mapiraju preko memorije koju nije napravio isti program.
+
+Primer prikazuje tri strukture sa istim poljima u različitom redosledu:
+
+\codefile{main.c}{c}
+
+Prevedimo i pokrenimo program:
+
+\begin{minted}{bash}
+$ make
+$ ./sample
+\end{minted}
+
+Tipičan rezultat je da \texttt{struct A} zauzima više bajtova od struktura u kojima su veća polja stavljena pre manjih polja.
+
+U \texttt{gdb}-u možemo posmatrati i tip i konkretne adrese polja:
+
+\begin{minted}{text}
+(gdb) break main
+(gdb) run
+(gdb) next
+(gdb) next
+(gdb) ptype struct A
+(gdb) p sizeof(struct A)
+(gdb) p &a
+(gdb) p &a.x
+(gdb) p &a.z
+(gdb) p &a.y
+\end{minted}
+
+Komanda \texttt{ptype} prikazuje definiciju tipa koju je \texttt{gdb} pročitao iz simbola za debagovanje. Komande \texttt{p \&a.x}, \texttt{p \&a.z} i \texttt{p \&a.y} pokazuju stvarne adrese polja u jednoj instanci. Razlika između adresa objašnjava gde su prazni bajtovi.
+
+Za binarni prikaz memorije koristimo komandu \texttt{x}:
+
+\begin{minted}{text}
+(gdb) x/24xb &a
+(gdb) x/24xb &b
+(gdb) x/24xb &c
+\end{minted}
+
+Format \texttt{x/24xb} znači: ispiši 24 jedinice, u heksadecimalnom formatu, po jedan bajt. Kod malih celih vrednosti lako se vidi gde se nalaze polja, a gde su bajtovi koje program nije eksplicitno postavio.
+
+Zaključak vežbe nije da uvek treba ručno prepakovati strukture. Redosled polja utiče na veličinu objekata i lokalnost podataka, ali ABI, kompatibilnost formata i čitljivost koda mogu biti važniji od nekoliko bajtova. \texttt{gdb} nam ovde služi kao alat za proveru pretpostavke o stvarnom rasporedu podataka.

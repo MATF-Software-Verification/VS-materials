@@ -1,0 +1,24 @@
+% Converted from INSTALLING.md
+\subsubsection{gdb}\label{instalacija-gdb}
+
+Za većinu Linux distribucija je dostupan paket \texttt{gdb}. \texttt{gdb} je za neke distribucije deo paketa za razvoj (npr. \texttt{build-essential} za Ubuntu).
+
+Za vežbe sa core dump-ovima proveriti i sistemsku konfiguraciju za čuvanje core datoteka. Na distribucijama sa \texttt{systemd-coredump} koristi se komanda \texttt{coredumpctl}; na drugim sistemima može biti dovoljno \texttt{ulimit -c unlimited}.
+
+Za prikačivanje na postojeći proces mogu biti potrebna podešavanja vezana za \texttt{ptrace}, naročito \path{/proc/sys/kernel/yama/ptrace_scope}.
+
+Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
+
+\begin{itemize}
+\tightlist
+\item
+  \href{https://github.com/cyrus-and/gdb-dashboard}{gdb-dashboard}
+\item
+  \href{https://debugme.dev/}{gdb-frontend} (\href{https://github.com/rohanrhu/gdb-frontend}{repozitorijum})
+\end{itemize}
+
+\subsubsection{QtCreator}\label{qtcreator}
+
+Instalirati QtCreator sa \href{https://www.qt.io/download}{zvanične stranice}. Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
+
+Za neke Linux distribucije je dostupan paket \texttt{qt\textless{}VERZIJA\textgreater{}-creator}.

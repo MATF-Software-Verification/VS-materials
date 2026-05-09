@@ -1,0 +1,22 @@
+% Converted from README.md
+\subsection{gdb}\label{gdb}
+
+\emph{GNU Debugger} (gdb) je debager koji se koristi za debagovanje (najčešće) C/C++ programa. Preko gdb je moguće pokrenuti program sa proizvoljnim argumentima komandne linije, posmatrati stanje promenljivih ili registara procesora, pratiti izvršavanje kroz naredbe originalnog ili asembliranog koda, postavljanje bezuslovnih ili uslovnih tačaka prekida i sl.
+
+Više informacija o gdb debageru se može pročitati \href{https://www.sourceware.org/gdb/}{na ovom linku}.
+
+Iako se gdb-om najčešće debaguju C/C++ programi, nije nemoguće gdb koristiti i u druge svrhe. Moguće je gdb prikačiti na bilo koji pokrenuti proces ili debagovati proizvoljne programe. To uključuje debagovanje \texttt{native} funkcija Java virtualne mašine, ili unapred (ahead of time) prevedenih Java/C\# programa. Korisno debagovanje zahteva dostupne simbole za debagovanje (npr. opcija \texttt{-g} je prosleđena \texttt{gcc} kompilatoru prilikom kompilacije).
+
+\subimport{01_buffer_overflow/}{index.tex}
+
+\subimport{02_padding/}{index.tex}
+
+\subimport{03_dev/}{index.tex}
+
+\subimport{04_core_dump/}{index.tex}
+
+\subimport{05_watchpoints/}{index.tex}
+
+\subimport{06_threads_deadlock/}{index.tex}
+
+\subimport{07_attach_process/}{index.tex}

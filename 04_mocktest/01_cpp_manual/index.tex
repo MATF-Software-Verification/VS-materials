@@ -1,0 +1,33 @@
+% Converted from README.md
+\subsection{C++ - ručno kreiranje objekata imitatora}\label{c---ruux10dno-kreiranje-objekata-imitatora}
+
+Dobili smo zadatak da u igru koju razvijamo dodamo novu funkcionalnost koja meri koliko je igrač aktivno igrao igru. Vreme provedeno u glavnom meniju i pauze ne treba da se uključe u vreme igranja. U tu svrhu kreiramo jednostavnu klasu \texttt{play\_time} koja ima metode za pokretanje i zaustavljanje sesije i vraća ukupno vreme igranja.
+
+Testiranje ove jednostavne klase zahteva par koraka:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  kreiranje instance klase \texttt{play\_time}
+\item
+  započinjanje sesije
+\item
+  uspavljivanje programa na neko vreme
+\item
+  zaustavljanje sesije
+\item
+  pozivanje metoda za dobijanje ukupno vreme igranja
+\item
+  poređenje dobijene vrednosti sa vremenom uspavljivanja programa
+\end{enumerate}
+
+Problem je u tome što program treba da spava neko vreme. Nije test sam po sebi problem, klasa \texttt{play\_time} koja zavisi od sistemskog sata. Rešenje je da generalizujemo konstruktor klase i da eksplicitno naglasimo zavisnost klase od sistemskog sata. Sve dok \texttt{play\_time} dobija trenutno vreme nekako, pravi izvor nam nije presudno bitan.
+
+Kreirajmo interfejs \texttt{second\_clock}. Menjamo konstruktor klase \texttt{play\_time} tako da kao argument dobija instancu \texttt{second\_clock} interfejsa. Time je svakom jasno da naša klasa zavisi od sata. Menjamo i metode za pokretanje i zaustavljanje sesije, jer sada treba da zavise od parametra klase, sata.
+
+Kreirajmo klasu \texttt{system\_clock} koja će implementirati već kreiran interfejs \texttt{second\_clock}. Kada želimo da objekat klase \texttt{play\_time} koristi sistemski sat, konstruktoru ćemo slati objekat klase \texttt{system\_clock}.
+
+Kreirajmo sada klasu imitatora \texttt{mock\_clock} koja će da odgovara ponašanju sata bez baterija. Uvek će pokazivati podešeno vreme. Implementiramo konstruktor, metode \texttt{get} i \texttt{set} za postavljanje vremena.
+
+Prilikom testiranja, koristimo instancu \texttt{mock\_clock} prilikom konstrukcije instance klase \texttt{play\_time}. Umesto da uspavamo program, pomerićemo vreme na satu za neki interval i očekujemo da isti interval vrati i metoda \texttt{played\_time}.

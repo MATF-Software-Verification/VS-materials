@@ -1,0 +1,40 @@
+\subsubsection{Zaglavljene niti i deadlock}\label{gdb-deadlock}
+
+Kod višedretvenih programa simptom često nije pad, već proces koji ne završava. \texttt{gdb} je tada koristan jer možemo zaustaviti proces i pogledati gde čeka svaka nit.
+
+Primer namerno zaključava dva muteksa u različitom redosledu:
+
+\codefile{deadlock.c}{c}
+
+Pokrenimo program iz \texttt{gdb}-a:
+
+\begin{minted}{bash}
+$ make
+$ gdb ./deadlock
+\end{minted}
+
+Program će se najčešće zaglaviti posle kratkog čekanja. U \texttt{gdb}-u ga prekidamo kombinacijom \texttt{Ctrl-C}, zatim pregledamo niti:
+
+\begin{minted}{text}
+(gdb) run
+^C
+(gdb) info threads
+(gdb) thread apply all bt
+\end{minted}
+
+Komanda \texttt{thread apply all bt} prikazuje stek svake niti. U ovom primeru jedna nit čeka zaključavanje \texttt{right}, a druga čeka zaključavanje \texttt{left}. Pošto svaka već drži drugi muteks, nijedna ne može da nastavi.
+
+Za detaljniju analizu biramo konkretne niti:
+
+\begin{minted}{text}
+(gdb) thread 2
+(gdb) bt
+(gdb) frame 1
+(gdb) info locals
+(gdb) thread 3
+(gdb) bt
+\end{minted}
+
+Kod realnih programa stekovi obično vode do viših funkcija aplikacije, ne samo do \texttt{pthread\_mutex\_lock}. Zato se zaključak izvodi iz kombinacije: koji resurs se čeka, koja nit ga drži i kojim redosledom se resursi zaključavaju.
+
+Popravka je dizajnersko pravilo, ne samo promena u debageru: svi delovi programa moraju zaključavati deljene resurse u istom globalnom redosledu ili koristiti viši mehanizam koji taj redosled nameće.

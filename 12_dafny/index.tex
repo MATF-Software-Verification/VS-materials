@@ -1,0 +1,237 @@
+% Converted from README.md
+\section{Jezici za programiranje i formalnu verifikaciju (Dafny)}\label{jezici-za-programiranje-i-formalnu-verifikaciju-dafny}
+
+\href{https://dafny.org/}{Dafny} je programski jezik sa podrškom za pisanje specifikacija i formalno verifikovanje programa, opremljen statičkim verifikatorom programa. Uklapanjem sofisticiranog automatizovanog rezonovanja sa poznatim programerskim idiomima i alatima, Dafny omogućava programerima da pišu kod koji se može formalno verifikovati uzimajući u obzir navedene specifikacije. Dafny programe je moguće prevesti u C\#, Java, JavaScript i Go, i tako integrisati Dafny u postojeće projekte.
+
+\subsection{Pisanje Dafny programa}\label{pisanje-dafny-programa}
+
+Dafny program (ekstenzije \texttt{.dfy}) predstavlja skup deklaracija. Deklaracije uvode \emph{tipove}, \emph{metode} i \emph{funkcije} (redosled deklaracija je nebitan). Tipovi mogu biti \emph{klase} i \emph{induktivni tipovi}. Klase takođe mogu sadržati skup deklaracija \emph{polja}, \emph{metoda} i \emph{funkcija}. Ukoliko program sadrži definiciju metoda \texttt{Main} bez parametara, onda će to biti ulazna tačka programa, međutim nije neophodno da program ima \texttt{Main} metod da bi bio verifikovan.
+
+\subsubsection{Polja}\label{polja}
+
+Unutar klase, polje se definiše na sledeći način:
+
+\begin{minted}{csharp}
+var x: T
+\end{minted}
+
+Tip \texttt{T} je neophodno navesti (neće biti dedukovan). Polja je dodatno moguće kvalifikovati ključnom rečju \texttt{ghost} koja označava da se to polje koristi samo unutar specifikacija.
+
+Tipovi podataka u Dafny jeziku:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{bool} - istinitosni tip
+\item
+  \texttt{int} - neograničeni ceo broj
+\item
+  \texttt{nat} - podskup tipa \texttt{int}, predstavlja nenegativne cele brojeve
+\item
+  \texttt{string} - niske
+\item
+  \texttt{set\textless{}T\textgreater{}} - konačni imutabilni set vrednosti tipa \texttt{T}
+\item
+  \texttt{seq\textless{}T\textgreater{}} - imutabilna sekvenca vrednosti tipa \texttt{T}
+\item
+  \texttt{array\textless{}T\textgreater{}}, \texttt{array2\textless{}T\textgreater{}}, \texttt{array3\textless{}T\textgreater{}} ... \texttt{arrayN\textless{}T\textgreater{}} - nizovni tipovi dimenzije \texttt{N}
+\item
+  \texttt{object} - nadtip svih klasnih tipova
+\end{itemize}
+
+\subsubsection{Metode}\label{metode}
+
+Deklaracija metoda ima sledeći oblik:
+
+\begin{minted}{csharp}
+method M(a: A, b: B, c: C) returns (x: X, y: Y, z: Y)
+  requires Pre
+  modifies Frame
+  ensures Post
+  decreases TerminationMetric
+{
+  Body
+}
+\end{minted}
+
+gde su:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{a}, \texttt{b} i \texttt{c} ulazni parametri metoda (metodi unutar klase imaju implicitni ulazni parametar \texttt{this})
+\item
+  \texttt{x}, \texttt{y} i \texttt{z} izlazni parametri metoda
+\item
+  \texttt{Pre} istinitosni izraz koji predstavlja preduslov metoda
+\item
+  \texttt{Frame} skup objekata čija polja mogu biti ažurirana pozivom metoda; može biti lista izraza gde svaki izraz može biti objekat ili skup objekata (uključujući i \texttt{this} ukoliko je metod deklarisan unutar klase) - \texttt{Frame} metoda je unija takvih listi i objekata alociranih unutar tela metoda
+\item
+  \texttt{Post} istinitosni izraz koji predstavlja postuslov metoda
+\item
+  \texttt{TerminationMetric} funkcija varijanta metoda
+\item
+  \texttt{Body} implementacija metoda
+\end{itemize}
+
+Podrazumevano, uslovi imaju vrednost \texttt{true} dok je \texttt{Frame} prazan skup. Ukoliko nije navedena, Dafny će pokušati da dedukuje funkciju varijantu metoda.
+
+Metode se mogu koristiti kao leme navođenjem ključne reči \texttt{lemma} umesto \texttt{method}.
+
+\subsubsection{Funkcije}\label{funkcije}
+
+Primer definicije funkcije:
+
+\begin{minted}{csharp}
+function F(a: A, b: B, c: C): T
+  requires Pre
+  reads Frame
+  ensures Post
+  decreases TerminationMetric
+{
+  Body
+}
+\end{minted}
+
+Za razliku od metoda, funkcije mogu imati samo jedan \textbf{izraz} (ne naredbu) u telu (\texttt{Body}), dok metode mogu imati više izraza ili drugih naredbi u svom telu.
+
+Preduslov omogućava funkciji da bude definisana uslovno - Dafny će verifikovati da preduslov važi prilikom svakog poziva funkcije. Postuslov može biti dobro mesto za navođenje svojstava funkcije koja zahtevaju induktivni dokaz.
+
+Na primer, definicija ispod navodi postuslov da je rezultat rada funkcije uvek pozitivan (funkcija referiše na samu sebe u postuslovu):
+
+\codefile{01_factorial/factorial.dfy}{text}
+
+Podrazumevano, funkcije su duhovi (\texttt{ghost}), dakle ne mogu se pozvati iz koda koji se izvršava. Ovo ponašanje se može pregaziti definisanjem funkcije kao \texttt{function\ method}. Specijalno, funkcije koje imaju povratnu vrednost \texttt{bool} se mogu deklarisati navođenjem ključne reči \texttt{predicate} umesto \texttt{function}.
+
+\subsubsection{Induktivni tipovi}\label{induktivni-tipovi}
+
+Induktivni tipovi su tipovi čije se vrednosti kreiraju iz fiksiranog skupa konstruktora. Na primer:
+
+\begin{minted}{csharp}
+datatype Tree = Leaf | Node(Tree, int, Tree)
+
+// moguce je definisati imena parametara konstruktora
+datatype Tree = Leaf | Node(left: Tree, data: int, right: Tree)
+\end{minted}
+
+Za svaki konstruktor \texttt{Ct} se implicitno deklariše i član \texttt{Ct?} koji vraća \texttt{true} ako je objekat konstruisan korišćenjem konstruktora \texttt{Ct}. Na primer:
+
+\begin{minted}{csharp}
+var t0 := Leaf;
+var t1 := Node(t0, 5, t0);
+t1.Node?    // true
+t0.Node?    // false
+\end{minted}
+
+\subsubsection{Naredbe}\label{naredbe}
+
+\begin{minted}{csharp}
+var LocalVariables := ExprList;
+
+Lvalues := ExprList;
+
+assert BoolExpr;
+
+print ExprList;
+
+if BoolExpr0 {
+    Stmts0
+} else if BoolExpr1 {
+    Stmts1
+} else {
+    Stmts2
+}
+
+while BoolExpr
+    invariant Inv
+    modifies Frame
+    decreases Rank
+{
+    Stmts
+}
+
+match Expr {
+    case Empty => Stmts0
+    case Node(l, d, r) => Stmts1
+}
+
+break;
+
+return;
+\end{minted}
+
+\subsubsection{Izrazi}\label{izrazi}
+
+Izrazi u Dafny jeziku su slični izrazima u C sintaksi, sa malim izmenama/dodacima:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{==\textgreater{}} operator implikacije
+\item
+  \texttt{\textless{}==\textgreater{}} ako-i-samo-ako operator
+\item
+  poređenja se mogu ulančavati: \texttt{0\ \textless{}=\ i\ \textless{}\ j\ \textless{}=\ a.Length\ ==\ N}
+\item
+  \texttt{\%} uvek vraća nenegativan broj
+\item
+  prisutni su kvantifikatori:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{forall\ x\ ::\ Expr}
+  \item
+    \texttt{exists\ x\ ::\ Expr}
+  \end{itemize}
+\item
+  operacije nad skupovima:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{+} (unija)
+  \item
+    \texttt{*} (presek)
+  \item
+    \texttt{-} (razlika)
+  \item
+    \texttt{\textless{}} (pravi podskup)
+  \item
+    \texttt{\textless{}=} (podskup)
+  \item
+    \texttt{\textgreater{}} (pravi nadskup)
+  \item
+    \texttt{\textgreater{}=} (nadskup)
+  \item
+    \texttt{!!} (razdvojenost skupova)
+  \item
+    \texttt{in} i \texttt{!in} ((ne)pripadnost skupu, npr. \texttt{x\ !in\ S})
+  \item
+    \texttt{\{\}} (konstrukcija skupa, npr: \texttt{\{x,y\}})
+  \end{itemize}
+\item
+  operacije nad sekvencama:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \texttt{+} (konkatenacija)
+  \item
+    \texttt{\textless{}} (pravi prefiks)
+  \item
+    \texttt{\textless{}} (prefiks)
+  \item
+    \texttt{in} i \texttt{!in} ((ne)pripadnost sekvenci, npr. \texttt{x\ !in\ S})
+  \item
+    \texttt{\textbar{}\textbar{}} (dužina sekvence, npr. \texttt{\textbar{}S\textbar{}})
+  \item
+    \texttt{{[}{]}} (\texttt{0}-indeksiranje sekvence, npr. \texttt{S{[}i{]}})
+  \item
+    \texttt{{[}..{]}} (sečenje sekvence, npr. \texttt{S{[}1..10{]}}, desni kraj se ne uključuje)
+  \end{itemize}
+\end{itemize}
+
+\subimport{01_factorial/}{index.tex}
+
+\subimport{03_maximum/}{index.tex}

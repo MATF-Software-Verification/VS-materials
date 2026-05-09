@@ -1,0 +1,26 @@
+\section{Profajliranje uzorkovanjem}\label{profajliranje-uzorkovanjem}
+
+Profajleri u ovom poglavlju periodično uzorkuju stanje procesa ili koriste hardverske brojače. Dobijeni profil je statistički prikaz izvršavanja: pokazuje gde program provodi vreme i koji hardverski događaji prate to izvršavanje. Takav rezultat treba tumačiti uz reprezentativan ulaz i dovoljno dugo pokretanje.
+
+\texttt{perf} je osnovni Linux alat za ovaj tip analize. Intel VTune Profiler dodaje gotove analize za niti, memoriju i mikroarhitekturu, uz veći instalacioni i operativni trošak. Za Java programe, async-profiler daje praktičan put do profila Java metoda, alokacija i zaključavanja bez prevođenja posebne verzije aplikacije.
+
+\subsection{Kada koristiti uzorkovanje}\label{kada-koristiti-uzorkovanje}
+
+\begin{longtable}{@{}p{0.22\linewidth}p{0.36\linewidth}p{0.34\linewidth}@{}}
+\toprule
+Pitanje & Alat & Napomena \\
+\midrule
+\endhead
+Gde program provodi CPU vreme? & \texttt{perf record/report}, flame graph, async-profiler za JVM & Uzorak mora trajati dovoljno dugo i koristiti reprezentativan ulaz. \\
+Da li problem dolazi od hardverskih događaja? & \texttt{perf stat}, \texttt{perf record -e}, VTune & Simboli i odgovarajuće dozvole često određuju koliko će rezultat biti čitljiv. \\
+Zašto niti čekaju? & VTune threading analiza, async-profiler lock/wall, eBPF alati & Za čekanje van CPU-a treba meriti događaje čekanja, ne samo CPU uzorke. \\
+Šta se dešava u JVM procesu? & async-profiler, JFR izvoz & Običan \texttt{perf} može videti proces, ali bez dodatne podrške rezultat često ne mapira dobro Java metode. \\
+Treba sistemski pogled kroz procese i kernel & \texttt{perf}, eBPF, BCC alati & Početi od sistema, zatim suziti na proces, nit, događaj ili stek. \\
+\bottomrule
+\end{longtable}
+
+\subimport{01_perf/}{index.tex}
+
+\subimport{02_intel_vtune/}{index.tex}
+
+\subimport{03_async_profiler/}{index.tex}

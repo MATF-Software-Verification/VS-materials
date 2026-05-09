@@ -1,0 +1,33 @@
+% Converted from README.md
+\subsection{Korišćenje AFL++ fuzzer-a nad libxml2}\label{afl-fuzzer-libxml2}
+
+AFL++ je fuzzer vođen pokrivenošću koda. Za C i C++ projekte najčešći tok rada je da se program prevede AFL++ kompajlerskim omotačima, pripremi početni korpus ulaza i zatim pokrene \texttt{afl-fuzz} nad instrumentovanom izvršnom datotekom.
+
+Primer u ovom direktorijumu koristi alat \texttt{xmllint} iz projekta \texttt{libxml2}. Ulazi su XML datoteke iz test direktorijuma projekta, a fuzzer menja te ulaze i prati koje mutacije vode ka novim putanjama u kodu.
+
+\codefile{run}{bash}
+
+Skripta koristi sledeće korake:
+
+\begin{itemize}
+\tightlist
+\item
+  preuzima i gradi AFL++ ako nije već prisutan u radnom direktorijumu;
+\item
+  preuzima \texttt{libxml2}, pokreće konfiguraciju i prevodi ga pomoću \texttt{afl-clang-fast};
+\item
+  uključuje AddressSanitizer i UndefinedBehaviorSanitizer preko promenljivih \texttt{AFL\_USE\_ASAN} i \texttt{AFL\_USE\_UBSAN};
+\item
+  kopira \texttt{xmllint} i početne XML ulaze u direktorijum \texttt{fuzz};
+\item
+  pokreće \texttt{afl-fuzz -i in -o out -- ./xmllint\_cov @@}.
+\end{itemize}
+
+Oznaka \texttt{@@} u komandi označava mesto na kome AFL++ prosleđuje ime trenutne test datoteke programu koji se testira. Direktorijum \texttt{in} sadrži početni korpus, a \texttt{out} sadrži redove čekanja, padove programa i druge nalaze.
+
+Podrazumevani radni direktorijum skripte je \texttt{/tmp/afl-libxml2}. Može se promeniti promenljivom \texttt{AFL\_WORKDIR}. Sistemsko podešavanje preko \texttt{afl-system-config} nije uključeno podrazumevano, jer zahteva \texttt{sudo}; uključuje se sa \texttt{AFL\_RUN\_SYSTEM\_CONFIG=1}.
+
+\begin{minted}{bash}
+$ AFL_WORKDIR=$HOME/afl-libxml2 ./run
+$ AFL_RUN_SYSTEM_CONFIG=1 ./run
+\end{minted}
