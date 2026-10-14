@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Process substitution for diff input
+
+diff <(sort first.txt) <(sort second.txt)

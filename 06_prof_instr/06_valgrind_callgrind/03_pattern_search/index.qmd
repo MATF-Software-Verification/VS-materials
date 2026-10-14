@@ -1,0 +1,17 @@
+# Primer: Pretraga niski {#sec-primer-pretraga-niski}
+
+Program pretražuje nisku `txt` tražeći podnisku `pat`. U programu se 10 puta vrši pretraga iste niske i iste podniske koristeći 3 različita algoritma. Pomoću Callgrind-a možemo utvrditi koji od algoritama najviše instrukcija izvršava.
+
+Izvorni kod je u datoteci `pattern_search.c`. Primer sadrži naivnu pretragu, Boyer-Moore pretragu sa heuristikom lošeg karaktera i Knuth-Morris-Pratt pretragu. Pošto se isti ulaz obrađuje više puta, Callgrind jasno prikazuje cenu svake implementacije.
+
+Primer se prevodi i profajlira iz direktorijuma primera:
+
+``` bash
+$ make
+$ valgrind --tool=callgrind ./pattern_search.out
+$ callgrind_annotate callgrind.out.*
+```
+
+U izveštaju treba porediti broj instrukcija u funkcijama `search_naive`, `search_boyer` i `search_kmp`. Dobar signal za optimizaciju nije samo ukupna cena funkcije, već i broj poziva pomoćnih funkcija, na primer računanje tabele prefiksa kod KMP algoritma ili popunjavanje tabele loših karaktera kod Boyer-Moore algoritma.
+
+Za grafički pregled može se otvoriti isti izveštaj u alatu KCachegrind. Tada je korisno krenuti od `main` funkcije i pratiti inkluzivnu cenu ka funkcijama za pretragu.

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Various shebang examples
+#!/bin/bash
+#!/usr/bin/python
+#!/usr/bin/env bash

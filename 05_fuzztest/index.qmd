@@ -1,0 +1,103 @@
+# \"Fuzz\" testiranje {#sec-fuzz-testiranje}
+
+Jedna od tehnika pronalaženja grešaka u programu koja se pokazala korisnom u praksi je *fuzz testiranje* (eng. *fuzzing*). Prilikom takvog testiranja, programu se šalju neočekivani i loši ulazni podaci, u cilju otkrivanja ulaza koji izazivaju greške. Standardni fuzzer alati mutiraju postojeće testove ili generišu testove na osnovu definisane gramatike ili skupa pravila. Fuzz testiranje vođeno pokrivenošću kôda (eng. *coverage guided fuzzing*) prati putanje izvršavanja i daje prednost ulazima koji povećavaju pokrivenost. Tako rade postojeći alati za fuzz testiranje, kao što su American Fuzzy Lop (AFL), LLVM libFuzzer i HonggFuzz.
+
+U najjednostavnijim slučajevima potrebno je da izolujemo funkcionalnost koju bismo da testiramo, napišemo nekoliko pratećih linija kôda, kompajliramo primer i pokrenemo fuzzer. Fuzzer će izvršiti hiljade ili desetine hiljada testova po sekundi i sačuvaće one interesantne ulaze koji povećavaju pokrivenost ili izazivaju određeno ponašanje.
+
+Prvi korak u upotrebi *libFuzzer*-a nad bibliotekom je kreiranje funkcije koja se u literaturi zove *fuzz target*. Ta funkcija prihvata niz bajtova i na njih primenjuje funkcije iz biblioteke koju testiramo.
+
+``` cpp
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    DoSomethingInterestingWithMyAPI(Data, Size);
+    return 0;  // vrednosti osim 0 i -1 su rezervisane
+}
+```
+
+Ova funkcija ne zavisi ni u kojoj meri od *libFuzzer*-a, pa ju je moguće i poželjno koristiti i sa drugim alatima za fuzz testiranje npr. AFL i/ili Radamsa.
+
+Važne činjenice o fuzz funkciji (fuzz target):
+
+- Alat za fuzz testiranje će izvršiti ovu funkciju mnogo puta sa različitim ulazima u okviru istog procesa.
+
+- Mora tolerisati sve vrste ulaznih podataka (prazne, velike, loše formatirane, itd.)
+
+- Ni za jedan ulaz se ne sme pozivati `exit()`.
+
+- Može koristiti niti, ali idealno bi bilo da sve niti budu spojene na kraju funkcije.
+
+- Mora biti deterministička, koliko god je moguće. Nedeterminizam, kao što su nasumične odluke nezavisne od ulaznih bajtova, učiniće fuzz testiranje neefikasnim.
+
+- Mora biti brza. Pokušajte zaobići kubne i veće složenosti, logovanje ili preveliko trošenje memorije.
+
+- Idealno bi bilo da ne modifikuje nijedno globalno stanje (iako to nije strogo neophodno).
+
+- Uža fuzz funkcija je obično bolja. Ako funkcija može da parsira više formata ulaza, treba je podeliti na nekoliko fuzz funkcija, po jednu za svaki format.
+
+*LibFuzzer* koristi sanitizer za pokrivenost kôda kojim se instrumentuje kôd da bi fuzzer dobijao informacije o pokrivenosti koje usmeravaju dalje fuzz testiranje. Podešava se opcijama iz grupe:
+
+``` text
+-fsanitize-coverage=...
+```
+
+Tokom fuzz testiranja treba uključiti i sanitizer koji prijavljuje greške tokom izvršavanja:
+
+- **AddressSanitizer (ASAN)** detektuje greške sa memorijom. Uključuje se opcijom:
+
+  ``` text
+  -fsanitize=address
+  ```
+
+- **UndefinedBehaviorSanitizer (UBSAN)** detektuje upotrebu C/C++ konstrukcija koje uzrokuju nedefinisano ponašanje. Tipično se pokreće tako da se program zaustavi posle prijave:
+
+  ``` text
+  -fsanitize=undefined -fno-sanitize-recover=undefined
+  ```
+
+  Može se uključiti i samo pojedinačna UBSAN provera, na primer:
+
+  ``` text
+  -fsanitize=signed-integer-overflow -fno-sanitize-recover=undefined
+  ```
+
+  UBSAN se može kombinovati sa ASAN-om u istom prevođenju.
+
+- **MemorySanitizer (MSAN)** detektuje upotrebu neinicijalizovanih vrednosti, odnosno kôd čije ponašanje zavisi od sadržaja neinicijalizovane memorijske lokacije. Uključuje se opcijom:
+
+  ``` text
+  -fsanitize=memory
+  ```
+
+  MSAN se ne sme kombinovati sa drugim sanitizerima i treba ga koristiti u zasebnom prevođenju.
+
+Za svaku prijavu treba sačuvati ulaz koji je izazvao grešku, komandu kojom je fuzzer pokrenut i prvi relevantan okvir steka iz sanitizer izveštaja. Time fuzz nalaz postaje običan regresioni test.
+
+## Korpus {#sec-korpus}
+
+Fuzzeri, kao *libFuzzer*, koji koriste pokrivenost kôda za generisanje testova, oslanjaju se na korpus prethodno datih ulaza. Korpus treba da bude odmerena kolekcija validnih i nevalidnih ulaznih podataka. Fuzzer nasumičnim mutacijama generiše nove testove iz trenutnog korpusa. Ako mutacija aktivira izvršavanje prethodno nepokrivene putanje u kôdu koji se testira, tada se mutacija čuva kao nov test u korpusu i služi za buduće varijacije.
+
+*LibFuzzer* može da radi bez inicijalnog test primera, ali će biti manje efikasan ako biblioteka koja se testira prihvata kompleksne i strukturirane ulaze. Korpus može da posluži i za proveru da li svi ranije pronađeni testovi i dalje rade bez problema kada se propuste kroz kôd.
+
+Ako imamo veliki korpus, bilo da je dobijen fuzz testiranjem ili drugačije, možemo ga smanjiti upotrebom opcije `-merge=1` tako da zadržimo pokrivenost.
+
+``` bash
+$ mkdir NEW_CORPUS_DIR  # Store minimized corpus here.
+$ ./my_fuzzer -merge=1 NEW_CORPUS_DIR FULL_CORPUS_DIR
+```
+
+Ista opcija se može koristiti da se doda još testova u postojeći korpus. Samo oni testovi koji povećavaju pokrivenost će biti dodati u prvi navedeni korpus.
+
+``` bash
+$ ./my_fuzzer -merge=1 CURRENT_CORPUS_DIR NEW_POTENTIALLY_INTERESTING_INPUTS_DIR
+```
+
+Da bi se pokrenuo fuzzer sa korpusom testova, prvo treba kreirati direktorijum sa inicijalnim test primerima i potom ga pokrenuti:
+
+``` bash
+$ mkdir CORPUS_DIR
+$ cp /some/input/samples/* CORPUS_DIR
+$ ./my_fuzzer CORPUS_DIR  # -max_len=1000 -jobs=20 ...
+```
+
+Novi testovi biće dodavani u direktorijum korpusa.
+
+Podrazumevano ponašanje je da fuzzer nastavlja da radi beskonačno ili dok ne pronađe grešku. Svaki pad ili greška koju detektuje sanitizer biće prijavljeni, fuzzer zaustavljen, a test primer koji je prouzrokovao grešku biće sačuvan u datoteku (obično, `crash-<sha1>`, `leak-<sha1>` ili `timeout-<sha1>`).

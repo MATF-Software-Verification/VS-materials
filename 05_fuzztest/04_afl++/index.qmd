@@ -1,0 +1,76 @@
+# Korišćenje AFL++ fuzzer-a nad libxml2 {#sec-afl-fuzzer-libxml2}
+
+AFL++ je fuzzer vođen pokrivenošću koda. Za C i C++ projekte najčešći tok rada je da se program prevede AFL++ kompajlerskim omotačima, pripremi početni korpus ulaza i zatim pokrene `afl-fuzz` nad instrumentovanom izvršnom datotekom.
+
+Primer u ovom direktorijumu koristi alat `xmllint` iz projekta `libxml2`. Ulazi su XML datoteke iz test direktorijuma projekta, a fuzzer menja te ulaze i prati koje mutacije vode ka novim putanjama u kodu.
+
+``` bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+set -x
+
+workdir="${AFL_WORKDIR:-${TMPDIR:-/tmp}/afl-libxml2}"
+run_system_config="${AFL_RUN_SYSTEM_CONFIG:-0}"
+
+mkdir -p "$workdir"
+cd "$workdir"
+
+if [ ! -d AFLplusplus ]; then
+    git clone https://github.com/AFLplusplus/AFLplusplus
+    make -C AFLplusplus all
+fi
+
+if [ ! -d libxml2 ]; then
+    git clone https://gitlab.gnome.org/GNOME/libxml2.git
+fi
+
+cd libxml2
+
+if [ ! -x configure ]; then
+    ./autogen.sh
+fi
+
+./configure --enable-shared=no
+
+export AFL_USE_UBSAN="${AFL_USE_UBSAN:-1}"
+export AFL_USE_ASAN="${AFL_USE_ASAN:-1}"
+
+make clean || true
+make CC="$workdir"/AFLplusplus/afl-clang-fast CXX="$workdir"/AFLplusplus/afl-clang-fast++ LD="$workdir"/AFLplusplus/afl-clang-fast
+
+mkdir -p fuzz
+cp xmllint fuzz/xmllint_cov
+
+mkdir -p fuzz/in
+cp test/*.xml fuzz/in/
+
+cd fuzz
+
+if [ "$run_system_config" = "1" ]; then
+    sudo "$workdir"/AFLplusplus/afl-system-config
+fi
+
+exec "$workdir"/AFLplusplus/afl-fuzz -i in -o out -- ./xmllint_cov @@
+```
+
+Skripta koristi sledeće korake:
+
+- preuzima i gradi AFL++ ako nije već prisutan u radnom direktorijumu;
+
+- preuzima `libxml2`, pokreće konfiguraciju i prevodi ga pomoću `afl-clang-fast`;
+
+- uključuje AddressSanitizer i UndefinedBehaviorSanitizer preko promenljivih `AFL_USE_ASAN` i `AFL_USE_UBSAN`;
+
+- kopira `xmllint` i početne XML ulaze u direktorijum `fuzz`;
+
+- pokreće `afl-fuzz -i in -o out -- ./xmllint_cov @@`.
+
+Oznaka `@@` u komandi označava mesto na kome AFL++ prosleđuje ime trenutne test datoteke programu koji se testira. Direktorijum `in` sadrži početni korpus, a `out` sadrži redove čekanja, padove programa i druge nalaze.
+
+Podrazumevani radni direktorijum skripte je `/tmp/afl-libxml2`. Može se promeniti promenljivom `AFL_WORKDIR`. Sistemsko podešavanje preko `afl-system-config` nije uključeno podrazumevano, jer zahteva `sudo`; uključuje se sa `AFL_RUN_SYSTEM_CONFIG=1`.
+
+``` bash
+$ AFL_WORKDIR=$HOME/afl-libxml2 ./run
+$ AFL_RUN_SYSTEM_CONFIG=1 ./run
+```

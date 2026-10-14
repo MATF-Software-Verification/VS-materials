@@ -1,0 +1,21 @@
+# Profajliranje uzorkovanjem {#sec-profajliranje-uzorkovanjem}
+
+Profajleri u ovom poglavlju periodično uzorkuju stanje procesa ili koriste hardverske brojače. Dobijeni profil je statistički prikaz izvršavanja: pokazuje gde program provodi vreme i koji hardverski događaji prate to izvršavanje. Takav rezultat treba tumačiti uz reprezentativan ulaz i dovoljno dugo pokretanje.
+
+`perf` je osnovni Linux alat za ovaj tip analize. Intel VTune Profiler dodaje gotove analize za niti, memoriju i mikroarhitekturu, uz veći instalacioni i operativni trošak. Za Java programe, async-profiler daje praktičan put do profila Java metoda, alokacija i zaključavanja bez prevođenja posebne verzije aplikacije.
+
+## Kada koristiti uzorkovanje {#sec-kada-koristiti-uzorkovanje}
+
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Pitanje                                         Alat                                                            Napomena
+  ----------------------------------------------- --------------------------------------------------------------- -------------------------------------------------------------------------------------------------------
+  Gde program provodi CPU vreme?                  `perf record/report`, flame graph, async-profiler za JVM        Uzorak mora trajati dovoljno dugo i koristiti reprezentativan ulaz.
+
+  Da li problem dolazi od hardverskih događaja?   `perf stat`, `perf record -e`, VTune                            Simboli i odgovarajuće dozvole često određuju koliko će rezultat biti čitljiv.
+
+  Zašto niti čekaju?                              VTune threading analiza, async-profiler lock/wall, eBPF alati   Za čekanje van CPU-a treba meriti događaje čekanja, ne samo CPU uzorke.
+
+  Šta se dešava u JVM procesu?                    async-profiler, JFR izvoz                                       Običan `perf` može videti proces, ali bez dodatne podrške rezultat često ne mapira dobro Java metode.
+
+  Treba sistemski pogled kroz procese i kernel    `perf`, eBPF, BCC alati                                         Početi od sistema, zatim suziti na proces, nit, događaj ili stek.
+  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

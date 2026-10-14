@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Temporary files with cleanup trap
+
+tmp_file=$(mktemp)
+
+cleanup() {
+    rm -f -- "$tmp_file"
+}
+
+trap cleanup EXIT
+
+printf 'Temporary data\n' > "$tmp_file"
+sort "$tmp_file"

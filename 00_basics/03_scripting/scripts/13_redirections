@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Output redirections
+
+# Replace file content with stdout
+printf 'A report\n' > report.txt
+
+# Append text to file
+printf 'Another line\n' >> report.txt
+
+# Redirect stderr
+ls /path/that/does/not/exist 2> errors.txt
+
+# Redirect stdout and stderr to same file
+command_that_might_fail > run.log 2>&1
+
+# Bash shorthand for redirecting both streams
+command_that_might_fail &> run.log
+
+# Discard stdout but keep stderr
+command_that_might_fail > /dev/null
+
+# Discard both streams
+command_that_might_fail &> /dev/null
+
+# Read stdin from file
+sort < unsorted.txt

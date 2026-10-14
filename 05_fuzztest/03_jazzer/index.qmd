@@ -1,0 +1,146 @@
+# Jazzer (JVM fuzzer) {#sec-jazzer-jvm-fuzzer}
+
+Jazzer omogućava fuzz testiranje Java i drugih JVM programa. U JUnit načinu rada fuzz test se piše kao običan test metod označen anotacijom `@FuzzTest`. Bez dodatnog podešavanja takav test može da se izvršava kao regresioni test nad sačuvanim ulazima. Kada se postavi promenljiva okruženja `JAZZER_FUZZ=1`, Jazzer pokreće generisanje novih ulaza.
+
+Minimalna Maven konfiguracija za primer u ovom direktorijumu koristi `jazzer-junit` verziju `0.30.0`.
+
+``` xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>jazzer-example</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jazzer.version>0.30.0</jazzer.version>
+        <surefire.version>3.2.5</surefire.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.code-intelligence</groupId>
+            <artifactId>jazzer-junit</artifactId>
+            <version>${jazzer.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+Primer ispod proverava jednostavnu šemu kodiranja. Jedinični test proverava jedan poznat ulaz, dok fuzz test proverava isto svojstvo nad velikim brojem ulaza koje bira Jazzer. Anotacije `@NotNull`, `@WithUtf8Length` i `@InRange` ograničavaju prostor ulaza kada je to potrebno za smislen test.
+
+``` java
+package org.example;
+
+public final class SomeScheme {
+    private SomeScheme() {
+    }
+
+    public static String encode(String input) {
+        StringBuilder result = new StringBuilder(input.length());
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '\\') {
+                result.append("\\\\");
+            } else if (c == ':') {
+                result.append("\\c");
+            } else if (c == '\n') {
+                result.append("\\n");
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    public static String decode(String input) {
+        StringBuilder result = new StringBuilder(input.length());
+        boolean escaped = false;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (!escaped && c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (escaped) {
+                if (c == 'c') {
+                    result.append(':');
+                } else if (c == 'n') {
+                    result.append('\n');
+                } else {
+                    result.append(c);
+                }
+                escaped = false;
+            } else {
+                result.append(c);
+            }
+        }
+        if (escaped) {
+            result.append('\\');
+        }
+        return result.toString();
+    }
+}
+```
+
+``` java
+package org.example;
+
+import com.code_intelligence.jazzer.junit.FuzzTest;
+import com.code_intelligence.jazzer.mutation.annotation.InRange;
+import com.code_intelligence.jazzer.mutation.annotation.NotNull;
+import com.code_intelligence.jazzer.mutation.annotation.WithUtf8Length;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ParserTests {
+    @Test
+    void unitTest() {
+        assertEquals("foo:bar", SomeScheme.decode(SomeScheme.encode("foo:bar")));
+    }
+
+    @FuzzTest
+    void fuzzTestRoundTrip(@NotNull String input) {
+        assertEquals(input, SomeScheme.decode(SomeScheme.encode(input)));
+    }
+
+    @FuzzTest
+    void fuzzTestConstrainedInput(
+            @NotNull @WithUtf8Length(min = 1, max = 200) String input,
+            @InRange(min = -10, max = 10) int shift) {
+        assertEquals(input, SomeScheme.decode(SomeScheme.encode(input)));
+        assertTrue(shift >= -10 && shift <= 10);
+    }
+}
+```
+
+Testovi se mogu pokrenuti kao obični JUnit testovi:
+
+``` bash
+$ mvn test -Dtest=ParserTests
+```
+
+Za fuzz režim postavlja se promenljiva okruženja:
+
+``` bash
+$ JAZZER_FUZZ=1 mvn test -Dtest=ParserTests
+```
+
+Kada Jazzer pronađe ulaz koji ruši proces ili narušava tvrđenje, taj ulaz treba sačuvati kao regresioni test. Na taj način se pronađena greška proverava i posle ispravke.

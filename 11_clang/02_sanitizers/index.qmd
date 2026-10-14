@@ -1,0 +1,268 @@
+# Sanitizeri u Clang-u {#sec-clang-sanitizeri}
+
+Sanitizeri su instrumentacije koje kompilator ubacuje u program. Program se zatim pokreće kao obična izvršna datoteka, ali dodatni kod proverava memorijske pristupe, aritmetiku, curenje memorije ili pristup deljenim podacima. Zbog toga su sanitizeri pogodni za lokalni razvoj i CI provere. U odnosu na Valgrind, zahtevaju posebno prevođenje programa, ali se često izvršavaju brže i daju precizan stek poziva za konkretno izvršavanje.
+
+Primeri u ovom direktorijumu koriste Clang:
+
+``` bash
+$ make
+```
+
+### ASan {#sec-addresssanitizer}
+
+[AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html) (ASan) detektuje neispravne pristupe memoriji kao što su prekoračenje hip bloka, prekoračenje steka, upotreba memorije posle oslobađanja i neispravno oslobađanje memorije. Primer ispod alocira prostor za string bez završnog nul karaktera, a zatim kopira i taj bajt.
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void) {
+    const char *source = "sanitizer";
+    size_t length = strlen(source);
+    char *copy = malloc(length);
+    if (copy == NULL) {
+        return 1;
+    }
+
+    memcpy(copy, source, length + 1);
+    puts(copy);
+    free(copy);
+    return 0;
+}
+```
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void) {
+    const char *source = "sanitizer";
+    size_t length = strlen(source);
+    char *copy = malloc(length + 1);
+    if (copy == NULL) {
+        return 1;
+    }
+
+    memcpy(copy, source, length + 1);
+    puts(copy);
+    free(copy);
+    return 0;
+}
+```
+
+``` bash
+$ ./asan_bad.out
+$ ./asan_fixed.out
+```
+
+U izveštaju loše verzije tražiti red `heap-buffer-overflow`. Stek poziva pokazuje gde je upis van granica nastao, a deo izveštaja sa opisom alociranog regiona pokazuje koliko bajtova je zaista rezervisano.
+
+### UBSan {#sec-undefinedbehaviorsanitizer}
+
+[UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html) (UBSan) prijavljuje ponašanje koje C i C++ standard ne definišu. To obuhvata potpisano celobrojno prekoračenje, neispravne pomeraje bitova, dereferenciranje neporavnatih pokazivača i slične greške. U ovom primeru množenje prelazi opseg tipa `int`.
+
+``` c
+#include <limits.h>
+#include <stdio.h>
+
+static int bonus_points(int solved_tasks) { return solved_tasks * 1000000; }
+
+int main(void) {
+    int solved_tasks = INT_MAX / 1000000 + 1;
+    printf("bonus=%d\n", bonus_points(solved_tasks));
+    return 0;
+}
+```
+
+``` c
+#include <limits.h>
+#include <stdbool.h>
+#include <stdio.h>
+
+static bool bonus_points(int solved_tasks, int *result) {
+    if (solved_tasks < 0 || solved_tasks > INT_MAX / 1000000) {
+        return false;
+    }
+
+    *result = solved_tasks * 1000000;
+    return true;
+}
+
+int main(void) {
+    int solved_tasks = INT_MAX / 1000000 + 1;
+    int result = 0;
+
+    if (!bonus_points(solved_tasks, &result)) {
+        puts("broj zadataka je van opsega");
+        return 0;
+    }
+
+    printf("bonus=%d\n", result);
+    return 0;
+}
+```
+
+``` bash
+$ ./ubsan_bad.out
+$ ./ubsan_fixed.out
+```
+
+Makefile koristi opciju `-fno-sanitize-recover=undefined` da se program zaustavi posle prijave. U CI proverama je to korisno jer greška dobija nenulti izlazni status.
+
+### LSan {#sec-leaksanitizer}
+
+[LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html) (LSan) proverava curenje memorije na kraju procesa. Može da se koristi samostalno opcijom `-fsanitize=leak`, a često se koristi i zajedno sa ASan instrumentacijom. Loša verzija učitava tri linije i gubi pokazivače na alocirane kopije.
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void load_line(const char *text) {
+    char *line = malloc(strlen(text) + 1);
+    if (line == NULL) {
+        exit(1);
+    }
+
+    strcpy(line, text);
+    printf("%c\n", line[0]);
+}
+
+int main(void) {
+    load_line("verification");
+    load_line("sanitizer");
+    load_line("leak");
+    return 0;
+}
+```
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void load_line(const char *text) {
+    char *line = malloc(strlen(text) + 1);
+    if (line == NULL) {
+        exit(1);
+    }
+
+    strcpy(line, text);
+    printf("%c\n", line[0]);
+    free(line);
+}
+
+int main(void) {
+    load_line("verification");
+    load_line("sanitizer");
+    load_line("leak");
+    return 0;
+}
+```
+
+``` bash
+$ ./lsan_bad.out
+$ ./lsan_fixed.out
+```
+
+Kod loše verzije očekuje se izveštaj sa tekstom `detected memory leaks`. Popravljena verzija oslobađa svaku kopiju pre izlaska iz funkcije.
+
+### TSan {#sec-threadsanitizer}
+
+[ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html) (TSan) detektuje trke za podacima u programima sa nitima. Primer ima dve niti koje uvećavaju istu globalnu promenljivu bez sinhronizacije.
+
+``` c
+#include <pthread.h>
+#include <stdio.h>
+
+enum { ITERATIONS = 100000 };
+
+static int counter = 0;
+
+static void *worker(void *arg) {
+    (void)arg;
+
+    for (int i = 0; i < ITERATIONS; i++) {
+        counter++;
+    }
+
+    return NULL;
+}
+
+int main(void) {
+    pthread_t first;
+    pthread_t second;
+
+    pthread_create(&first, NULL, worker, NULL);
+    pthread_create(&second, NULL, worker, NULL);
+    pthread_join(first, NULL);
+    pthread_join(second, NULL);
+
+    printf("counter=%d\n", counter);
+    return 0;
+}
+```
+
+``` c
+#include <pthread.h>
+#include <stdio.h>
+
+enum { ITERATIONS = 100000 };
+
+static int counter = 0;
+static pthread_mutex_t counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void *worker(void *arg) {
+    (void)arg;
+
+    for (int i = 0; i < ITERATIONS; i++) {
+        pthread_mutex_lock(&counter_mutex);
+        counter++;
+        pthread_mutex_unlock(&counter_mutex);
+    }
+
+    return NULL;
+}
+
+int main(void) {
+    pthread_t first;
+    pthread_t second;
+
+    pthread_create(&first, NULL, worker, NULL);
+    pthread_create(&second, NULL, worker, NULL);
+    pthread_join(first, NULL);
+    pthread_join(second, NULL);
+
+    printf("counter=%d\n", counter);
+    return 0;
+}
+```
+
+``` bash
+$ ./tsan_bad.out
+$ ./tsan_fixed.out
+```
+
+U lošoj verziji očekuje se `data race` izveštaj. Popravljena verzija štiti deljeni brojač muteksom, pa svaki pristup promenljivoj `counter` ima istu sinhronizacionu disciplinu.
+
+### MemorySanitizer kao napredna vežba {#sec-memorysanitizer-napredno}
+
+[MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html) (MSan) detektuje čitanje neinicijalizovane memorije. U praksi često zahteva da su i biblioteke koje program koristi prevedene sa MSan instrumentacijom. Zbog toga ga ne koristimo kao osnovnu lokalnu vežbu u ovom poglavlju. Kao naprednu vežbu, izolovati mali program bez spoljašnjih zavisnosti i prevesti ga komandom:
+
+``` bash
+$ clang -g -O1 -fsanitize=memory -fno-omit-frame-pointer example.c -o example
+```
+
+### Mesta za proširenje {#sec-clang-prosirenja-backlog}
+
+Sledeće teme su dobar nastavak nakon Clang sanitizer vežbi:
+
+1.  **Kombinovanje sanitizera i fuzz testiranja**: ASan i UBSan se često uključuju tokom fuzz testiranja kako bi se padovi programa pretvorili u precizne izveštaje.
+
+2.  **LLVM pokrivenost izvornog koda**: `llvm-profdata` i `llvm-cov` mogu povezati izvršene testove sa pokrivenošću izvornog koda.
+
+3.  **Podešavanje**: opcije kao što su `ASAN_OPTIONS` i `TSAN_OPTIONS` kontrolišu izveštaje, supresije i ponašanje pri grešci.
+
+4.  **CI konfiguracija**: sanitizer build treba držati odvojen od produkcionog build-a i pokretati ga nad testovima koji imaju dovoljno pokrivenosti.

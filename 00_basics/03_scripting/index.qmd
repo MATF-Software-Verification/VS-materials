@@ -1,0 +1,435 @@
+## Efektivno pisanje Bash skripti {#sec-napredno-skriptovanje}
+
+Efikasna dijagnostika sistema i automatizacija rutinskih zadataka zahtevaju razumevanje načina na koji se komandna linija i alati koriste za rešavanje problema. Ovo poglavlje prikazuje jednostavne i napredne tehnike Bash skriptovanja.
+
+## Zaglavlje
+
+Zaglavlje (eng. *shebang*) je prvi red skripte, koji počinje znakovima `#!`. On određuje koji program treba da izvrši skriptu kada se pokrene kao izvršna datoteka.
+
+```bash
+#!/bin/bash
+#!/usr/bin/python
+#!/usr/bin/env bash
+```
+
+Skript se nalazi u fajlu [01_shebang](scripts/01_shebang).
+
+## Argumenti i zamene parametara
+
+Pozicioni parametri predstavljaju argumente prosleđene skripti: `$0` je ime skripte, `$1`, `$2` i ostali su pojedinačni argumenti, a `$#` je njihov broj. `"$@"` prosleđuje svaki argument kao zasebnu celinu, uključujući argumente sa razmacima.
+
+```bash
+$ ./02_args first "second arg"
+```
+
+```text
+Script: ./02_args
+Argument count: 2
+Argument: <first>
+Argument: <second arg>
+```
+
+Skript se nalazi u fajlu [02_args](scripts/02_args).
+
+_*Napomena*: Proslediti argument koji sadrži razmak_
+
+### Zamene
+
+Primer pokazuje podrazumevane vrednosti, broj znakova i izdvajanje dela teksta:
+
+```bash
+$ ./03_substitutions
+```
+
+```text
+Hello, Guest
+File: report.txt
+Uppercase name: GUEST
+First three characters: Gue
+Character count: 5
+```
+
+Skript se nalazi u fajlu [03_substitutions](scripts/03_substitutions).
+
+Oblici zamene parametara koji se često koriste:
+
+```bash
+${var:-default}    # Koristi default ako je var nedefinisan ili prazan.
+${var-default}     # Koristi default samo ako var nije definisan.
+${var:?message}    # Ispiši poruku i završi ako je var nedefinisan ili prazan.
+${var:=default}    # Dodeli default ako je var nedefinisan ili prazan.
+```
+
+### Zamena komande i aritmetička ekspanzija
+
+Zamena komande čuva standardni izlaz komande u promenljivoj. Koristite oblik `$(...)`, koji je pregledniji od starih povratnih navodnika (\`\`).
+
+```bash
+$ ./04_command_subst
+```
+
+```text
+Today: 2024-01-15
+Files in current directory: 5
+```
+
+Skript se nalazi u fajlu [04_command_subst](scripts/04_command_subst).
+
+Aritmetička ekspanzija služi za celobrojne izraze:
+
+```bash
+$ ./05_arithmetic
+```
+
+```text
+count=11, next=8
+```
+
+Skript se nalazi u fajlu [05_arithmetic](scripts/05_arithmetic).
+
+## Provera argumenata i parsiranje opcija
+
+### Duge opcije ručnim upravljanjem
+
+`getopts` obrađuje kratke opcije. Za jednostavan skup dugih opcija može se koristiti petlja:
+
+```bash
+$ ./06_parse_long --verbose --output result.txt input.txt
+```
+
+```text
+Input: input.txt
+Output: result.txt
+```
+
+Oznaka `--` završava obradu opcija. Korisna je kada ime datoteke počinje crticom:
+
+```bash
+$ ./06_parse_long -- -odd-filename.txt
+```
+
+Skript se nalazi u fajlu [06_parse_long](scripts/06_parse_long).
+
+### Kratke i duge opcije zajedno
+
+`getopts` obrađuje kratke opcije. Za kombinovano parsiranje kratkih i dugih opcija koristi se `getopt`:
+
+```bash
+$ ./07_parse_options -v -o result.txt input.txt
+$ ./07_parse_options --verbose --output result.txt input.txt
+$ ./07_parse_options -o result.txt --verbose input.txt
+```
+
+Skript se nalazi u fajlu [07_parse_options](scripts/07_parse_options).
+
+## Uslovi i status komande
+
+Status komande je `0` kada je uspešna, a različit od nule kada nije. Na primer, `grep` vraća status `1` kada ne pronađe podudaranje.
+
+```bash
+$ ./08_command_status
+```
+
+```text
+Errors found
+```
+
+Skript se nalazi u fajlu [08_command_status](scripts/08_command_status).
+
+Uslovi za datoteke mogu da se izraze pomoću `[ ]` operatora:
+
+```bash
+$ ./09_file_conditions /tmp
+```
+
+```text
+Directory: /tmp
+```
+
+Skript se nalazi u fajlu [09_file_conditions](scripts/09_file_conditions).
+
+Operatori `&&` i `||` pokreću sledeću komandu u zavisnosti od statusa prethodne:
+
+```bash
+mkdir -p output && printf 'Output directory is ready\n'
+```
+
+## Funkcije, nizovi i petlje
+
+### Funkcije i statusi
+
+Funkcija vraća status poslednje izvršene komande, osim ako status nije izričito postavljen pomoću `return`. `local` ograničava promenljivu na funkciju.
+
+```bash
+$ ./10_functions /etc/passwd
+```
+
+```text
+File is readable
+```
+
+Skript se nalazi u fajlu [10_functions](scripts/10_functions).
+
+### Nizovi
+
+Nizovi čuvaju listu vrednosti bez gubitka razmaka ili posebnog značenja znakova kao što je `*`.
+
+```bash
+$ ./11_arrays
+```
+
+```text
+There are 3 entries
+Entry: <first file.txt>
+Entry: <second.txt>
+Entry: <*.log>
+All entries: <first file.txt> <second.txt> <*.log> <new file.csv>
+```
+
+Skript se nalazi u fajlu [11_arrays](scripts/11_arrays).
+
+Koristite `"${array[@]}"` kada treba da se svaki element prosledi kao poseban argument.
+
+### Bezbedna obrada imena datoteka
+
+Imena datoteka mogu da sadrže razmake, tabulate, pa čak i nove redove. Kombinacija `find -print0` i `read -d ''` bezbedno obrađuje takva imena.
+
+```bash
+$ ./12_safe_filenames
+```
+
+Skript se nalazi u fajlu [12_safe_filenames](scripts/12_safe_filenames).
+
+## Redirekcija ulaza i izlaza
+
+Proces obično ima tri standardna toka: standardni ulaz (`0`), standardni izlaz (`1`) i standardni izlaz za greške (`2`).
+
+```bash
+$ ./13_redirections
+```
+
+Skript se nalazi u fajlu [13_redirections](scripts/13_redirections).
+
+Redosled redirekcija je važan. `> run.log 2>&1` prvo preusmerava standardni izlaz u datoteku, a zatim preusmerava izlaz za greške tamo gde je standardni izlaz trenutno usmeren.
+
+### "Here"-dokument i "here"-niska
+
+"Here"-dokument prosleđuje više redova kao standardni ulaz:
+
+```bash
+$ ./14_here_doc
+```
+
+```text
+Hello, class.
+This text is supplied on standard input.
+```
+
+Skript se nalazi u fajlu [14_here_doc](scripts/14_here_doc).
+
+Ako je oznaka razgraničenja pod navodnicima, promenljive i komande se ne proširuju:
+
+```bash
+$ ./15_here_doc_literal
+```
+
+```text
+This is literal text: $HOME is not expanded.
+```
+
+Skript se nalazi u fajlu [15_here_doc_literal](scripts/15_here_doc_literal).
+
+"Here"-niska prosleđuje jedan tekstualni niz, uz završni novi red:
+
+```bash
+$ ./16_here_string
+```
+
+```text
+haystack with a needle
+```
+
+Skript se nalazi u fajlu [16_here_string](scripts/16_here_string).
+
+## Cevovodi i `tee`
+
+Cevovod (`|`) prosleđuje standardni izlaz jedne komande na standardni ulaz sledeće.
+
+```bash
+$ ./17_pipes
+```
+
+Skript se nalazi u fajlu [17_pipes](scripts/17_pipes).
+
+`tee` istovremeno prikazuje ulaz na standardnom izlazu i upisuje ga u datoteku. Sa opcijom `-a` dodaje sadržaj na kraj datoteke.
+
+```bash
+$ ./18_tee_log
+```
+
+Skript se nalazi u fajlu [18_tee_log](scripts/18_tee_log).
+
+Primer beleženja izlaza komande:
+
+```bash
+$ ./19_pipefail
+```
+
+Skript se nalazi u fajlu [19_pipefail](scripts/19_pipefail).
+
+Bez `pipefail`, status cevovoda je obično status poslednje komande. Sa `pipefail`, cevovod prijavljuje neuspeh ako ne uspe neka od komandi u njemu.
+
+## Privremene datoteke i čišćenje
+
+`mktemp` kreira jedinstveno ime privremene datoteke. `trap` pokreće funkciju za čišćenje pri izlasku iz skripte.
+
+```bash
+$ ./20_temp_files
+```
+
+Skript se nalazi u fajlu [20_temp_files](scripts/20_temp_files).
+
+Primer sa privremenim direktorijumom:
+
+```bash
+$ ./21_temp_dir
+```
+
+Skript se nalazi u fajlu [21_temp_dir](scripts/21_temp_dir).
+
+Oznaka `--` ukazuje da se argumenti opcija završavaju. To sprečava da se putanja koja počinje crticom protumači kao opcija komande.
+
+## Signali
+
+`trap` povezuje komandu ili funkciju sa signalom ili završetkom skripte. Ctrl-C obično šalje signal `INT`; signal `TERM` traži da se proces zaustavi.
+
+```bash
+$ ./22_signals &
+```
+
+> Pritisnite `Ctrl+C` da zaustavite skriptu.
+
+Skript se nalazi u fajlu [22_signals](scripts/22_signals).
+
+Funkcija za čišćenje treba da bude jednostavna i bezbedna za pozivanje tokom završavanja skripte.
+
+## Pozadinski procesi
+
+Znak `&` pokreće komandu u pozadini. PID poslednjeg pokrenutog pozadinskog procesa dostupan je u promenljivoj `$!`.
+
+```bash
+$ ./23_background
+```
+
+```text
+Started jobs 5678 and 5679
+First job exit status: 0
+Second job exit status: 0
+```
+
+Skript se nalazi u fajlu [23_background](scripts/23_background).
+
+`wait PID` čeka završetak procesa i vraća njegov status. Sačuvajte `$!` odmah nakon pokretanja procesa, jer se vrednost menja nakon sledeće pozadinske komande.
+
+### Pokretanje više zadataka i provera statusa
+
+```bash
+$ ./24_multi_task
+```
+
+```text
+alpha: starting
+beta: starting
+beta: finished
+alpha: finished
+All tasks succeeded
+```
+
+Skript se nalazi u fajlu [24_multi_task](scripts/24_multi_task).
+
+Izlaz pozadinskih procesa može da se prepliće. Da biste sačuvali izlaz svakog zadatka zasebno, redirektujte ga u posebnu datoteku:
+
+```bash
+$ ./25_separate_output
+```
+
+Skript se nalazi u fajlu [25_separate_output](scripts/25_separate_output).
+
+### Ograničenje broja paralelnih zadataka
+
+`wait -n` čeka da se završi bilo koji od navedenih pozadinskih zadatka. Primer ograničava broj istovremenih zadataka na dva.
+
+```bash
+$ ./26_parallel_limit
+```
+
+```text
+Processing alpha
+Processing beta
+alpha: finished
+Processing gamma
+Processing delta
+beta: finished
+All tasks finished
+```
+
+Skript se nalazi u fajlu [26_parallel_limit](scripts/26_parallel_limit).
+
+`wait -n` je dostupan u novijim verzijama Bash-a.
+
+### Zaustavljanje pozadinskih procesa tokom čišćenja
+
+Skripta koja pokreće pozadinske procese treba po potrebi da ih zaustavi i sačeka pri izlasku.
+
+```bash
+$ ./27_cleanup_bg &
+```
+
+> Pritisnite `Ctrl+C` da zaustavite skriptu.
+
+Skript se nalazi u fajlu [27_cleanup_bg](scripts/27_cleanup_bg).
+
+Ovaj primer šalje signal za prekid i čeka procese. Složenije skripte možda moraju da vode računa i o procesima koje su pokrenuli njihovi pozadinski zadaci.
+
+## Potprocesi i zamena procesa
+
+Komande u zagradama pokreću se u potprocesu (eng. *subshell*). Promena direktorijuma ili vrednosti promenljive unutar potprocesa ne menja roditeljski proces.
+
+```bash
+$ ./28_subshell
+```
+
+```text
+Before: /home/user
+Inside subshell: /tmp
+After: /home/user
+```
+
+Skript se nalazi u fajlu [28_subshell](scripts/28_subshell).
+
+Zamena procesa omogućava da se izlaz komande koristi kao datoteka slična ulazu. U ovom primeru, `diff` dobija dva zasebna ulaza:
+
+```bash
+$ ./29_proc_subst
+```
+
+Skript se nalazi u fajlu [29_proc_subst](scripts/29_proc_subst).
+
+## Primer: brojanje podudaranja
+
+Ova skripta kombinuje parsiranje opcija, proveru ulazne datoteke, privremenu datoteku, čišćenje, obradu izlaznog statusa komande i opcioni izlaz u datoteku.
+
+```bash
+$ ./30_count_matches -v ERROR application.log
+$ ./30_count_matches -o matches.txt ERROR application.log
+```
+
+Skript se nalazi u fajlu [30_count_matches](scripts/30_count_matches).
+
+## Zadaci za vežbu
+
+- Dodajte opciju `-n` koja ograničava broj prikazanih rezultata.
+- Izmenite primer sa `tee` tako da dodaje sadržaj u dnevnik umesto da ga zamenjuje.
+- Dodajte proveru da se ulazna datoteka razlikuje od izlazne.
+- Izmenite primer sa pozadinskim procesima tako da svaki zadatak upisuje rezultat u zasebnu datoteku.
+- Testirajte skripte sa praznim argumentima, nepostojećim datotekama i imenima koja sadrže razmake.

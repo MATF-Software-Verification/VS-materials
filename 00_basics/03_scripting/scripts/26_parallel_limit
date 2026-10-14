@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Limiting number of parallel background tasks
+
+max_jobs=2
+running=0
+
+run_task() {
+    local item=$1
+    printf 'Processing %s\n' "$item"
+    sleep 1
+}
+
+for item in alpha beta gamma delta; do
+    run_task "$item" &
+    ((running += 1))
+
+    if [ $running -ge $max_jobs ]; then
+        wait -n || {
+            printf 'A task failed\n' >&2
+            exit 1
+        }
+        ((running -= 1))
+    fi
+done
+
+# Wait for remaining tasks
+wait
+printf 'All tasks finished\n'

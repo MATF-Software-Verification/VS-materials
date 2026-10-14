@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Parameter substitution with defaults and transformations
+
+name=${1:-Guest}
+filename=${2:-report.txt}
+
+printf 'Hello, %s\n' "$name"
+printf 'File: %s\n' "$filename"
+printf 'Uppercase name: %s\n' "${name^^}"
+printf 'First three characters: %s\n' "${name:0:3}"
+printf 'Character count: %d\n' "${#name}"

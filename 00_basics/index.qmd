@@ -1,0 +1,112 @@
+## Kontekst {#sec-osnove-kontekst}
+
+Pre izbora debagerskog pristupa treba znati kako program nastaje i gde se izvršava.
+Na osnovu toga, možemo odlučiti koje tehnike i alate možemo primeniti i koje informacije možemo dobiti.
+Na primer, C program kompiliran unapred možda ne sadrži simbole za debagovanje dok JVM koji izvršava Java program već ima sve neophodne informacije 
+
+## Okruženje izvršavanja i strategija prevođenja {#sec-okruzenje-izvrsavanja-strategija-prevodenja}
+
+Interpreter, JIT (Just-In-Time) i AOT (Ahead-Of-Time) okruženja različito mapiraju izvorni kod, međukod i mašinski kod. To utiče na breakpoint-e, simbole, stack trace, profajliranje, instrumentaciju i reprodukciju grešaka.
+
+**\[+\]** označava povoljan aspekt, **\[\/\]** kompromis ili oprez, a **\[−\]** nepovoljan aspekt za debagovanje, profajliranje ili isporuku.
+
+  --------------------------------------------------------------------------------------------------------------------------------------------------------
+  Interpreter                                  JIT                                               AOT
+  -------------------------------------------- ------------------------------------------------- ---------------------------------------------------------
+  **\[\/\]** Tumači kod tokom izvršavanja      **\[\/\]** Tumači, zatim prevodi vruće putanje    **\[\/\]** Prevodi pre pokretanja 
+
+  **\[+\]** Brz razvojni ciklus                **\[+\]** Brz razvojni ciklus                     **\[−\]** Sporiji ciklus zbog punog prevođenja 
+
+  **\[\/\]** Izvršava samo posećene putanje    **\[\/\]** Kreće od bajtkoda ili međukoda         **\[\/\]** Optimizuje ceo poznati program 
+
+  **\[+\]** Greške se vide tokom izvršavanja   **\[\/\]** Runtime menja kod tokom rada           **\[−\]** Optimizacije mogu zakloniti uzrok 
+
+  **\[+\]** Prenosiv uz isti interpreter       **\[+\]** Prenosiv uz isti runtime                **\[−\]** Vezan za ciljnu platformu 
+
+  **\[−\]** Sporije pokretanje                 **\[−\]** Sporije pokretanje i zagrevanje         **\[+\]** Brzo pokretanje 
+
+  **\[−\]** Niže vršne performanse             **\[+\]** Visoke posle zagrevanja                 **\[+\]** Visoke uz dobre optimizacije 
+
+  **\[\/\]** Profajl meri i interpreter        **\[+\]** Runtime često ima dobru podršku         **\[−\]** Teže zbog inlining-a i simbola 
+
+  **\[+\]** Laka instrumentacija               **\[+\]** Runtime hook-ovi pomažu                 **\[−\]** Instrumentacija pre prevođenja ili binarno 
+
+  **\[+\]** Dinamičke osobine su prirodne      **\[+\]** Dinamičke osobine su prirodne           **\[−\]** Dinamika je obično ograničena 
+
+  **\[−\]** Veći memorijski otisak             **\[−\]** Runtime, JIT kod i metapodaci           **\[+\]** Manji memorijski otisak 
+
+  **\[−\]** Potreban interpreter/runtime       **\[−\]** Potreban runtime                        **\[+\]** Runtime nije nužan kod statičkog povezivanja 
+  --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+## Povezivanje (linkovanje)
+
+Prevodilac prevodi izvorni kod u objektne fajlove, a linker ih povezuje sa potrebnim bibliotekama. To povezivanje može biti **statičko** ili **dinamičko**.
+
+### Dinamičko povezivanje
+
+Program se pri pokretanju povezuje sa bibliotekama koje su zasebni fajlovi na sistemu. Izvršni fajl je obično manji, a više programa može da koristi istu biblioteku.
+
+```bash
+gcc main.c -o program
+./program
+```
+
+Zavisnosti programa mogu da se pregledaju pomoću `ldd`:
+
+```bash
+ldd ./program
+```
+
+Ako potrebna biblioteka nedostaje ili nije dostupna verzija koju program očekuje, program možda neće moći da se pokrene.
+
+### Statičko povezivanje
+
+Biblioteke se ugrađuju u izvršni fajl. Program može biti veći, ali manje zavisi od dostupnosti tih biblioteka u sistemu.
+
+```bash
+gcc -static main.c -o program-static
+./program-static
+```
+
+Statičko povezivanje zahteva da statičke verzije biblioteka budu instalirane. Ako nisu dostupne, linker može da prijavi grešku.
+
+### Poređenje tipova povezivanja
+
+| Osobina | Dinamičko povezivanje | Statičko povezivanje |
+|---|---|---|
+| Veličina izvršnog fajla | Obično manja | Obično veća |
+| Biblioteke pri pokretanju | Potrebne su u sistemu | Uglavnom su ugrađene u program |
+| Zajednička upotreba biblioteka | Više programa može da deli istu biblioteku | Svaki program sadrži svoju kopiju |
+| Ažuriranje biblioteka | Ažurirana sistemska biblioteka može koristiti više programa | Ažuriranje biblioteke obično zahteva ponovno povezivanje programa |
+
+### Primer
+
+`main.c`:
+
+```c
+#include <stdio.h>
+
+int main(void) {
+    printf("Hello, world!");
+    return 0;
+}
+```
+
+Dinamičko povezivanje:
+
+```bash
+gcc main.c -o hello
+file ./hello
+ldd ./hello
+```
+
+Statičko povezivanje:
+
+```bash
+gcc -static main.c -o hello-static
+file ./hello
+```
+
+Opcija `-static` traži statičko povezivanje, uspeh zavisi od toga da li su dostupne odgovarajuće statičke biblioteke na sistemu. U ovom jednostavnom primeru, to će biti slučaj.
+```

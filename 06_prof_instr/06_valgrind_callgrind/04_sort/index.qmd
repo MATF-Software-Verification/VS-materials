@@ -1,0 +1,28 @@
+# Primer: Sortiranje {#sec-primer-sortiranje}
+
+Program izvršava funkcije koje implementiraju različite algoritme sortiranja, na rastuće ili opadajuće sortiranom nizu ili nasumice generisanom nizu celih brojeva. U zavisnosti od izbora ulaznog niza neki algoritmi se pokazuju daleko bolje od očekivanog.
+
+Izvorni kod je podeljen na `main.c`, `sort.c` i `sort.h`. Program generiše niz, pravi kopiju za svaki algoritam i zatim redom pokreće selection sort, insertion sort, bubble sort, shell sort, merge sort i quick sort.
+
+Primer se može prevesti ručno:
+
+``` bash
+$ gcc -O2 -g -fno-inline main.c sort.c -o sort.out
+```
+
+Pokretanje sa nasumičnim nizom:
+
+``` bash
+$ valgrind --tool=callgrind ./sort.out 10000
+```
+
+Pokretanje sa rastuće i opadajuće sortiranim nizom:
+
+``` bash
+$ valgrind --tool=callgrind ./sort.out -r 10000
+$ valgrind --tool=callgrind ./sort.out -o 10000
+```
+
+U izveštaju treba porediti funkcije `selection_sort`, `insertion_sort`, `bubble_sort`, `shell_sort`, `merge_sort` i `quick_sort`. Posebno je korisno uporediti kako se broj instrukcija menja kada je ulaz već sortiran ili sortiran opadajuće. Na tim ulazima neki algoritmi imaju najbolji slučaj, a neki najgori slučaj.
+
+Ako je izveštaj prevelik, smanjiti dimenziju niza. Cilj primera nije apsolutno merenje vremena, već poređenje oblika troška između algoritama.

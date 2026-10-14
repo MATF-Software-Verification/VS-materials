@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Subshell execution with directory change
+
+printf 'Before: %s\n' "$PWD"
+
+(
+    cd /tmp
+    printf 'Inside subshell: %s\n' "$PWD"
+)
+
+printf 'After: %s\n' "$PWD"

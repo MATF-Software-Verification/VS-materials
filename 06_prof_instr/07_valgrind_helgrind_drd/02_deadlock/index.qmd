@@ -1,0 +1,45 @@
+# Potencijalno blokiranje niti {#sec-potencijalno-blokiranje-niti}
+
+*Helgrind* prati redosled kojim niti zaključavaju promenljive. Tako detektuje potencijalne delove kôda koji mogu dovesti do blokiranja niti. Na ovaj način je moguće otkriti greške koje se nisu javile tokom testiranja programa, ali mogu da se pojave kasnije tokom korišćenja.
+
+Ilustracija ovakvog problema:
+
+- Pretpostavimo da je potrebno zaključati dve promenljive `M1` i `M2` da bi se pristupilo deljenom objektu `O`.
+
+- Dve niti `T1` i `T2` žele da pristupe deljenoj promenljivoj `O`. Do blokiranja niti dolazi kada nit `T1` zaključa `M1`, a u istom trenutku `T2` zaključa `M2`. Nakon toga nit `T1` ostaje blokirana jer čeka da se otključa `M2`, a nit `T2` ostaje blokirana jer čeka da se otključa `M1`.
+
+*Helgrind* kreira graf koji predstavlja sve promenljive koje se mogu zaključati, a koje je ranije otkrio. Kada nit naiđe na novu promenljivu koju zaključava, graf se osvežava i proverava se da li sadrži krug sa zaključanim promenljivama. Postojanje takvog kruga je znak da se niti mogu blokirati tokom izvršavanja. Ako u krugu postoje više od dve zaključane promenljive, problem je još ozbiljniji. Alat *DRD* ne otkriva ovaj tip grešaka.
+
+Primer `02_dining_philosophers_deadlock` ilustruje deadlock scenario:
+
+``` text
+==15457== Thread #6: lock order "0x6010E0 before 0x6012C0" violated
+==15457==
+==15457== Observed (incorrect) order is: acquisition of lock at 0x6012C0
+==15457==    at 0x4C321BC: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x40090D: dine(void*) (02_dinning_philosophers_deadlock.cpp:26)
+==15457==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==15457==
+==15457==  followed by a later acquisition of lock at 0x6010E0
+==15457==    at 0x4C321BC: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400937: dine(void*) (02_dinning_philosophers_deadlock.cpp:27)
+==15457==    by 0x4C34DB6: ??? (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x4E476B9: start_thread (pthread_create.c:333)
+==15457==
+==15457==  Lock at 0x6010E0 was first observed
+==15457==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400A0E: main (02_dinning_philosophers_deadlock.cpp:48)
+==15457==  Address 0x6010e0 is 0 bytes inside data symbol "_ZL4chop"
+==15457==
+==15457==  Lock at 0x6012C0 was first observed
+==15457==    at 0x4C360BA: pthread_mutex_init (in /usr/lib/valgrind/vgpreload_helgrind-amd64-linux.so)
+==15457==    by 0x400A0E: main (02_dinning_philosophers_deadlock.cpp:48)
+==15457==  Address 0x6012c0 is 480 bytes inside data symbol "_ZL4chop"
+```
+
+Ne treba ignorisati činjenicu da *Helgrind* prijavljuje narušavanje relacije, čak i ako se program uspešno završi. Ako svaki filozof samo jednom ruča, može se dogoditi da nema blokiranja. Ako povećamo broj iteracija petlje i svaki filozof pokuša da ruča 1000 puta, problem postaje vidljiviji.
+
+Problem se rešava uvođenjem uređenja nad izborom viljuške, jer se tada nameće i relacija *„desilo se pre\"*. Filozof treba uvek da bira prvo manju viljušku, pa zatim veću po rednom broju. Kako se sada ponaša program?
+
+Program `03_deadlock.c` ostaje zaglavljen u mrtvoj petlji i ne završava se. Otvorimo kôd i primetimo da se u funkcijama `run1` i `run2` program uspavljuje na 10ms između dva zaključavanja muteksa, `mx1` i `mx2`, i pre otključavanja. Te redove možemo privremeno staviti pod komentare. Nakon toga, pokretanje programa se uspešno završava. Ako sada pokrenemo program kroz *Valgrind* sa alatom *Helgrind*, dobićemo poruku o narušenom redosledu zaključavanja muteksa i upozorenje da postoji mogućnost mrtve petlje.

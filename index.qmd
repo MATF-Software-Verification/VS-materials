@@ -1,0 +1,39 @@
+---
+title: ""
+---
+
+# Predgovor {.unnumbered}
+
+Kolekcija materijata sa vežbi za kurs [Verifikacija softvera](http://www.verifikacijasoftvera.matf.bg.ac.rs/) na Matematičkom fakultetu, Univerzetu u Beogradu.
+
+Materijali prate praktičan tok rada: od dijagnoziranja simptoma i debagovanja, preko testiranja i profajliranja, do simboličkog izvršavanja, proveravanja modela i formalne verifikacije. Svaka tema je organizovana kroz kratko objašnjenje, komande, očekivane nalaze i male primere koji se nalaze uz odgovarajuće poglavlje.
+
+Pokrivene su sledeće celine:
+
+- **Dijagnozovanje problema**: osnovni Linux alati, posmatranje procesa i analiza ponašanja programa metodom crne kutije.
+
+- **Debagovanje**: *gdb*, *Qt Creator*, *core dump* analiza, *watchpoint*-i, niti, prikačivanje na proces, *Java JDWP*, agenti i *native*/*AOT* izvršive verzije.
+
+- **Refaktorisanje**: prepoznavanje lošeg dizajna, izdvajanje odgovornosti i primeri kroz *C++*, *Java* i *C#* kod.
+
+- **Testiranje jedinica koda**: *QtTest*, *JUnit*, *xUnit*, *NUnit*, pokrivenost koda, *lcov*, *JaCoCo* i *.NET* alati za povrivenost.
+
+- **Testiranje pomoću objekata imitatora**: ručni imitatori, *Mockito*, *Moq* i testiranje koda koji zavisi od servisa, vremena ili baze podataka.
+
+- **Fuzz testiranje**: *libFuzzer*, *tmux* tokovi rada, *Jazzer* za Java kod i *AFL++* na realnijem *C*/*.C++* primeru.
+
+- **Profajliranje instrumentacijom**: *Valgrind* alati kao što su *Memcheck*, *Massif*, *DHAT*, *Cachegrind*, *Callgrind*, *Helgrind* i *DRD*, kao i *gprof* i *LLVM XRay*.
+
+- **Profajliranje uzorkovanjem**: *perf*, flame graph tok rada, *Intel VTune Profiler* i *Java async-profiler*.
+
+- **eBPF**: model izvršavanja, *verifier*, mape, *bpftrace*, *BCC* alati, sistemsko profajliranje i ograničenja dozvola.
+
+- **KLEE**: simboličko izvršavanje, generisanje testova, pronalaženje grešaka, rad sa bibliotekama i heuristike pretrage.
+
+- **CBMC**: proveravanje svojstava C programa, odmotavanje petlji, pretpostavke, postuslovi, *harness* funkcije i konkurentni primeri.
+
+- **Clang alati**: *Clang* statički analizator, *clang-tidy*, sanitizeri, pojedinačni primeri grešaka i analiza projekata.
+
+- **Dafny**: specifikacije, pre/postuslovi, invarijante petlji i dokazi korektnosti za male algoritme.
+
+- **Instalacije**: kratke beleške za alate i pakete koji su potrebni za lokalno pokretanje vežbi.

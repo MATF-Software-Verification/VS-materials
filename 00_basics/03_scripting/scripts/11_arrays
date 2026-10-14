@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Arrays with proper quoting
+
+files=('first file.txt' 'second.txt' '*.log')
+
+printf 'There are %d entries\n' "${#files[@]}"
+
+for file in "${files[@]}"; do
+    printf 'Entry: <%s>\n' "$file"
+done
+
+files+=('new file.csv')
+
+printf 'All entries: <%s>\n' "${files[@]}"

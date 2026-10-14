@@ -1,0 +1,15 @@
+# tmux fuzz testiranje {#sec-tmux-fuzz-testiranje}
+
+Projekat `tmux` je dobar primer primene fuzz testiranja nad programom koji obrađuje dosta tekstualnih protokola i terminalskih sekvenci. Fuzz testovi su smešteni u direktorijumu [`fuzz`](https://github.com/tmux/tmux/tree/master/fuzz) u uzvodnom repozitorijumu.
+
+Ovi testovi su korisni za traženje grešaka u parserima i kodu koji obrađuje ulaz iz terminala, konfiguracionih datoteka i mrežnih veza. Takav kod često ima veliki broj grana i mnogo kratkih, nevalidnih ulaza koji se retko pokriju ručno pisanim testovima.
+
+Prilikom čitanja ovog primera obratiti pažnju na tri stvari:
+
+- fuzz target izoluje deo programa koji obrađuje jedan format ulaza;
+
+- ulaz fuzzera se tretira kao niz bajtova, bez pretpostavke da je sintaksno ispravan;
+
+- pad programa, prekoračenje memorije ili beskonačno izvršavanje predstavljaju koristan nalaz.
+
+Ako se ovakav pristup prenosi na sopstveni projekat, prvo treba izabrati malu funkciju koja parsira ulaz i napraviti omotač koji samo priprema stanje, poziva parser i oslobađa resurse. Fuzzer tada može da izvrši veliki broj kratkih testova bez pokretanja cele aplikacije.

@@ -1,0 +1,96 @@
+# Intel VTune Profiler {#sec-intel-vtune-profiler}
+
+[Intel VTune Profiler](https://www.intel.com/content/www/us/en/developer/tools/oneapi/vtune-profiler.html) je profajler za analizu performansi programa na nivou procesora, niti i memorijskog podsistema. Koristi se kada jednostavan izveštaj o vremenu po funkcijama nije dovoljan i kada treba razumeti zašto program troši vreme: čekanje niti, promašaji keša, propusnost memorije, loša iskorišćenost jezgara ili mikroarhitekturna ograničenja.
+
+VTune se može koristiti iz grafičkog interfejsa i iz komandne linije. U ovim materijalima prikazujemo komandne šablone, jer su pogodniji za ponavljanje vežbi i za dokumentovanje merenja. Primeri nisu lokalno provereni u repozitorijumu, pošto VTune zahteva zasebnu instalaciju i često dodatne dozvole za hardversko uzorkovanje.
+
+## Česte analize {#sec-vtune-ceste-analize}
+
+- **Hotspots**: pronalazi funkcije i pozive u kojima program troši najviše CPU vremena. Ovo je početna analiza za većinu programa.
+
+- **Microarchitecture Exploration**: koristi hardverske brojače da opiše zašto CPU ne izvršava instrukcije očekivanom brzinom, npr. zbog čekanja na memoriju ili loše predikcije grananja.
+
+- **Memory Access**: analizira pristup memoriji, promašaje keša, propusnost memorije i NUMA efekte.
+
+- **Threading**: prikazuje neravnotežu između niti, čekanje na zaključavanja, previše niti i delove izvršavanja u kojima jezgra ostaju neiskorišćena.
+
+## Komandni tok rada {#sec-vtune-komandni-tok-rada}
+
+Program prvo treba prevesti u konfiguraciji koja odgovara pitanju koje merimo. Za traženje uskih grla koristi se optimizovana verzija, ali sa simbolima za debagovanje, jer simboli omogućavaju da se uzorci vežu za funkcije i linije koda.
+
+Osnovno sakupljanje Hotspots profila:
+
+``` bash
+$ vtune -collect hotspots -result-dir vtune-hotspots -- ./program arg1 arg2
+```
+
+Tekstualni izveštaj iz postojećeg direktorijuma rezultata:
+
+``` bash
+$ vtune -report hotspots -result-dir vtune-hotspots
+```
+
+Analiza rada niti:
+
+``` bash
+$ vtune -collect threading -result-dir vtune-threading -- ./program
+$ vtune -report summary -result-dir vtune-threading
+```
+
+Analiza pristupa memoriji:
+
+``` bash
+$ vtune -collect memory-access -result-dir vtune-memory -- ./program
+$ vtune -report summary -result-dir vtune-memory
+```
+
+Mikroarhitekturna analiza je korisna tek kada je već poznato da program značajno vreme provodi na CPU-u:
+
+``` bash
+$ vtune -collect uarch-exploration -result-dir vtune-uarch -- ./program
+$ vtune -report summary -result-dir vtune-uarch
+```
+
+Direktorijumi `vtune-hotspots`, `vtune-threading`, `vtune-memory` i `vtune-uarch` su izlazni artefakti. Ne treba ih dodavati u repozitorijum.
+
+## Kako čitati rezultat {#sec-vtune-citanje-rezultata}
+
+VTune izveštaj prvo treba čitati od nivoa procesa i niti ka funkcijama. Ako je program uglavnom u stanju čekanja, optimizacija petlje koja troši malo aktivnog CPU vremena neće promeniti ukupno vreme. Ako je program CPU-bound, Hotspots i Microarchitecture Exploration pomažu da se izdvoje funkcije koje stvarno zaslužuju dalju analizu.
+
+Kod višedretvenih programa prvo proveriti da li sve niti rade koristan posao. Čest nalaz je da program ima mnogo niti, ali malo paralelnog rada zbog zaključavanja, redova čekanja ili serijskih faza. Tada povećanje broja niti može pogoršati performanse.
+
+Kod memorijski intenzivnih programa obratiti pažnju na lokalnost podataka. Memory Access analiza može da pokaže da program troši vreme na čekanje memorije, ali ne predlaže automatski bezbednu promenu strukture podataka. Predloženu optimizaciju treba posebno testirati i izmeriti.
+
+## Ograničenja i zamke {#sec-vtune-ogranicenja}
+
+- VTune koristi uzorkovanje i hardverske brojače. Kratka izvršavanja i nereprezentativni ulazi daju šum.
+
+- Hardversko uzorkovanje može zahtevati drajvere, kernel podešavanja ili administratorske dozvole, u zavisnosti od operativnog sistema.
+
+- Izveštaj zavisi od simbola. Bez simbola za debagovanje rezultat se često svodi na adrese ili nejasne okvire poziva.
+
+- Kod upravljanih jezika, JIT kompajler i runtime utiču na pripisivanje vremena metodama. Potrebno je proveriti da li VTune vidi simbole za konkretan runtime.
+
+- VTune identifikuje verovatna uska grla. Ne dokazuje ispravnost programa i ne garantuje da je optimizacija bezbedna.
+
+## Odnos prema alatu `perf` {#sec-vtune-perf}
+
+`perf` je dobar prvi izbor na Linux sistemima kada treba brzo sakupiti profil ili proveriti hardverske događaje bez teške instalacije. VTune ima bogatije grupisanje nalaza, grafički interfejs i unapred definisane analize za niti, memoriju i mikroarhitekturu. U praksi je koristan tok rada da se `perf` koristi za brzu potvrdu problema, a VTune za detaljniju analizu kada je usko grlo dovoljno važno.
+
+## Instalacija
+
+### Intel VTune Profiler {#sec-instalacija-intel-vtune-profiler}
+
+Intel VTune Profiler se instalira kroz Intel oneAPI pakete ili kao zaseban VTune Profiler paket, u zavisnosti od operativnog sistema. Posle instalacije proveriti da li je komanda `vtune` dostupna:
+
+``` bash
+$ vtune --version
+```
+
+Ako komanda nije u putanji, potrebno je učitati okruženje koje instalacija isporučuje. Kod oneAPI instalacije to je najčešće skripta `setvars.sh`:
+
+``` bash
+$ source /opt/intel/oneapi/setvars.sh
+```
+
+Za hardversko uzorkovanje mogu biti potrebna dodatna podešavanja drajvera, kernela ili korisničkih dozvola. Ta podešavanja zavise od sistema, pa ih treba proveriti u zvaničnom instalacionom uputstvu za korišćenu verziju VTune-a.

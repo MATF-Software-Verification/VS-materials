@@ -35,3 +35,9 @@ xray-stacks.txt
 *.class
 async-*.html
 async-*.jfr
+
+/.quarto/
+**/*.quarto_ipynb
+/_book/
+/site_libs/
+**/test_include_files/

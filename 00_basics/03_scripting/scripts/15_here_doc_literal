@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Literal here document (no expansion)
+
+cat <<'EOF'
+This is literal text: $HOME is not expanded.
+EOF

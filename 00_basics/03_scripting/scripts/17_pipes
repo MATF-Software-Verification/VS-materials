@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Pipe chains: grep | sort | uniq -c
+
+grep -h 'ERROR' ./*.log | sort | uniq -c
