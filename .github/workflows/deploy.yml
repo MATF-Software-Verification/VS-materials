@@ -28,8 +28,8 @@ jobs:
 
       - name: Build HTML & PDF
         run: |
-          quarto render --to html
-          quarto render --to pdf
+          quarto render --to pdf --no-clean
+          quarto render --to html --no-clean
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
