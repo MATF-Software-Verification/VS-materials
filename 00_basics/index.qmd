@@ -1,12 +1,12 @@
-## Kontekst {#sec-osnove-kontekst}
+## Okruženje izvršavanja {#sec-okruzenje}
 
 Pre izbora debagerskog pristupa treba znati kako program nastaje i gde se izvršava.
 Na osnovu toga, možemo odlučiti koje tehnike i alate možemo primeniti i koje informacije možemo dobiti.
 Na primer, C program kompiliran unapred možda ne sadrži simbole za debagovanje dok JVM koji izvršava Java program već ima sve neophodne informacije 
 
-## Okruženje izvršavanja i strategija prevođenja {#sec-okruzenje-izvrsavanja-strategija-prevodenja}
+## Strategije prevođenja programa {#sec-strategija-prevodenja}
 
-Interpreter, JIT (Just-In-Time) i AOT (Ahead-Of-Time) okruženja različito mapiraju izvorni kod, međukod i mašinski kod. To utiče na breakpoint-e, simbole, stack trace, profajliranje, instrumentaciju i reprodukciju grešaka.
+Interpreter, JIT (Just-In-Time) i AOT (Ahead-Of-Time) strategije različito mapiraju izvorni kod, međukod i mašinski kod. To utiče na breakpoint-e, simbole, stack trace, profajliranje, instrumentaciju i reprodukciju grešaka.
 
 **\[+\]** označava povoljan aspekt, **\[\/\]** kompromis ili oprez, a **\[−\]** nepovoljan aspekt za debagovanje, profajliranje ili isporuku.
 
