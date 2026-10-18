@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Here document with variable expansion
+
+name=${1:-class}
+
+cat <<EOF
+Hello, $name.
+This text is supplied on standard input.
+EOF

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Background processes and waiting for completion
+
+sleep 2 &
+first_pid=$!
+
+sleep 1 &
+second_pid=$!
+
+printf 'Started jobs %s and %s\n' "$first_pid" "$second_pid"
+
+wait "$first_pid"
+first_status=$?
+
+wait "$second_pid"
+second_status=$?
+
+printf 'First job exit status: %d\n' "$first_status"
+printf 'Second job exit status: %d\n' "$second_status"

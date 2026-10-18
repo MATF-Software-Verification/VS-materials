@@ -1,0 +1,183 @@
+# Java async-profiler {#sec-java-async-profiler}
+
+[async-profiler](https://github.com/async-profiler/async-profiler) je uzorkujući profajler za HotSpot JVM. Može da meri CPU vreme, alokacije, zaključavanja, wall-clock vreme i da izveze rezultat kao flame graph ili JFR snimak. Koristan je kada `perf` vidi JVM proces, ali ne daje dovoljno dobar prikaz Java metoda, JIT-ovanog koda i runtime aktivnosti.
+
+Primer je namerno jednostavan Java program bez Maven ili Gradle projekta. Jedna nit troši CPU tražeći proste brojeve, druga pravi alokacije, a dve niti se nadmeću oko istog zaključavanja:
+
+``` java
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProfilerTarget {
+    private static final Object LOCK = new Object();
+    private static volatile boolean running = true;
+    private static volatile long sink = 0;
+
+    private static boolean isPrime(int value) {
+        if (value < 2) {
+            return false;
+        }
+
+        for (int i = 2; i * i <= value; i++) {
+            if (value % i == 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void cpuWorker() {
+        int candidate = 10_000;
+        while (running) {
+            if (isPrime(candidate)) {
+                sink += candidate;
+            }
+            candidate++;
+            if (candidate > 30_000) {
+                candidate = 10_000;
+            }
+        }
+    }
+
+    private static void allocationWorker() {
+        while (running) {
+            List<byte[]> batch = new ArrayList<>();
+            for (int i = 0; i < 200; i++) {
+                batch.add(new byte[4096]);
+            }
+            sink += batch.size();
+        }
+    }
+
+    private static void lockWorker() {
+        while (running) {
+            synchronized (LOCK) {
+                for (int i = 0; i < 50_000; i++) {
+                    sink += i & 7;
+                }
+            }
+            Thread.yield();
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        int seconds = args.length > 0 ? Integer.parseInt(args[0]) : 120;
+
+        System.out.printf("pid=%d duration=%ds%n", ProcessHandle.current().pid(),
+                          seconds);
+        System.out.println("Attach async-profiler from another terminal.");
+
+        Thread cpu = new Thread(ProfilerTarget::cpuWorker, "cpu-worker");
+        Thread alloc = new Thread(ProfilerTarget::allocationWorker,
+                                  "allocation-worker");
+        Thread lockA = new Thread(ProfilerTarget::lockWorker, "lock-worker-a");
+        Thread lockB = new Thread(ProfilerTarget::lockWorker, "lock-worker-b");
+
+        cpu.start();
+        alloc.start();
+        lockA.start();
+        lockB.start();
+
+        Thread.sleep(seconds * 1000L);
+        running = false;
+
+        cpu.join();
+        alloc.join();
+        lockA.join();
+        lockB.join();
+
+        System.out.println("sink=" + sink);
+    }
+}
+```
+
+Prevedimo program:
+
+``` bash
+$ make
+```
+
+Pokrenemo ga u jednom terminalu:
+
+``` bash
+$ java ProfilerTarget 120
+pid=12345 duration=120s
+Attach async-profiler from another terminal.
+```
+
+U drugom terminalu koristimo PID koji je program ispisao. Naziv komande može biti `asprof` ili putanja do skripte iz raspakovane async-profiler arhive.
+
+### CPU profil {#sec-async-profiler-cpu}
+
+CPU profil je početna analiza kada nas zanima gde JVM proces aktivno troši procesorsko vreme:
+
+``` bash
+$ asprof -e cpu -d 30 -f async-cpu.html 12345
+```
+
+U flame graph-u očekujemo da se izdvoje `cpuWorker` i `isPrime`. Širina okvira predstavlja broj uzoraka, ne trajanje jednog poziva. Širok okvir znači da je metoda često bila na steku u trenucima uzorkovanja.
+
+### Alokacije {#sec-async-profiler-alloc}
+
+Alokacioni profil pokazuje gde nastaju objekti i koliko bajtova prolazi kroz alokator:
+
+``` bash
+$ asprof -e alloc -d 30 -f async-alloc.html 12345
+```
+
+U ovom primeru treba da se vidi `allocationWorker`. Ako CPU profil ne pokazuje ovu metodu kao dominantnu, a alokacioni profil je pokazuje, problem nije nužno CPU petlja nego pritisak na GC i memorijski podsistem.
+
+### Zaključavanja {#sec-async-profiler-lock}
+
+Profil zaključavanja meri vreme izgubljeno na kontenciju:
+
+``` bash
+$ asprof -e lock -d 30 -f async-lock.html 12345
+```
+
+Ovde očekujemo trag kroz `lockWorker`, jer dve niti ulaze u isti `synchronized` blok. Ovakav nalaz treba povezati sa dizajnom deljenog stanja: optimizacija tela petlje neće pomoći ako niti većinu vremena čekaju na isti monitor.
+
+### Wall-clock i JFR izlaz {#sec-async-profiler-wall-jfr}
+
+Wall-clock profil uzorkuje proteklo vreme, pa može pokazati i čekanja:
+
+``` bash
+$ asprof -e wall -d 30 -f async-wall.html 12345
+```
+
+Za analizu u Java Mission Control-u ili arhiviranje merenja možemo napraviti JFR datoteku:
+
+``` bash
+$ asprof -e cpu -d 30 -f async-cpu.jfr 12345
+```
+
+### Zamke {#sec-async-profiler-zamke}
+
+- Profilisati reprezentativan ulaz i dovoljno dugo izvršavanje; kratki profili su često šum.
+
+- Proveriti da li se meri CPU, alokacija, lock ili wall-clock događaj. Različiti događaji odgovaraju na različita pitanja.
+
+- U kontejnerima i restriktivnim sistemima mogu biti potrebna dodatna podešavanja za `perf_event_paranoid`, capability-je ili pristup procesu.
+
+- Flame graph pokazuje gde je program bio tokom uzorkovanja. Ne dokazuje sam po sebi da je promena koda bezbedna.
+
+## Instalacija
+
+### async-profiler {#sec-instalacija-async-profiler}
+
+Za vežbu je potreban JDK i async-profiler. Na Linux-u se async-profiler najčešće preuzima kao arhiva sa stranice izdanja projekta, a zatim se koristi komanda `asprof` iz raspakovanog direktorijuma.
+
+``` bash
+$ java -version
+$ javac -version
+$ asprof --version
+```
+
+Ako `asprof` nije u putanji, koristiti punu putanju do skripte, na primer:
+
+``` bash
+$ /opt/async-profiler/bin/asprof --version
+```
+
+Za attach na JVM proces mogu biti potrebne iste korisničke dozvole kao za proces koji se profiliše. Za neke događaje i okruženja potrebna su i Linux podešavanja vezana za `perf`.

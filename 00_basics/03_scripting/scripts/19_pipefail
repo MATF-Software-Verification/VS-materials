@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Using pipefail to catch command failures in pipes
+
+set -o pipefail
+
+if make 2>&1 | tee build.log; then
+    printf 'Build succeeded\n'
+else
+    printf 'Build failed; see build.log\n' >&2
+    exit 1
+fi

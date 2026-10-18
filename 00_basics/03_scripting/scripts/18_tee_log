@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Using tee to log output while displaying it
+
+{
+    printf 'Starting at %s\n' "$(date)"
+    find . -maxdepth 1 -type f -print
+} | tee inventory.txt

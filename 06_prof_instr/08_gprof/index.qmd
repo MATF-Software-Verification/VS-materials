@@ -1,0 +1,166 @@
+# gprof {#sec-gprof}
+
+[gprof](https://sourceware.org/binutils/docs/gprof/) je klasičan GNU alat za profajliranje programa prevedenih sa opcijom `-pg`. Kompajler i linker ubacuju dodatnu instrumentaciju koja broji pozive funkcija i omogućava da se posle izvršavanja napravi datoteka `gmon.out`.
+
+Ovaj model je koristan kao uvod u instrumentaciono profajliranje: program se mora posebno prevesti, pokrenuti do normalnog završetka, a izveštaj se pravi naknadno. Cena merenja i sam način instrumentacije mogu promeniti ponašanje programa, pa rezultate treba čitati kao trag za dalju analizu, ne kao apsolutnu istinu.
+
+Primer poredi namerno spor `bubble_sort` i bibliotekarsko sortiranje:
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define COUNT 6000
+
+static void fill_input(int *values, int count) {
+    unsigned int x = 0x12345678u;
+    for (int i = 0; i < count; i++) {
+        x = x * 1103515245u + 12345u;
+        values[i] = (int)(x % 100000u);
+    }
+}
+
+static long checksum(const int *values, int count) {
+    long sum = 0;
+    for (int i = 0; i < count; i++) {
+        sum += values[i] * (i + 1L);
+    }
+    return sum;
+}
+
+static void bubble_sort(int *values, int count) {
+    for (int i = 0; i < count; i++) {
+        for (int j = 0; j + 1 < count - i; j++) {
+            if (values[j] > values[j + 1]) {
+                int tmp = values[j];
+                values[j] = values[j + 1];
+                values[j + 1] = tmp;
+            }
+        }
+    }
+}
+
+static int compare_ints(const void *left, const void *right) {
+    int a = *(const int *)left;
+    int b = *(const int *)right;
+    return (a > b) - (a < b);
+}
+
+static void library_sort(int *values, int count) {
+    qsort(values, (size_t)count, sizeof(values[0]), compare_ints);
+}
+
+static void run_bubble(const int *input) {
+    int *copy = malloc(sizeof(int) * COUNT);
+    if (copy == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(copy, input, sizeof(int) * COUNT);
+    bubble_sort(copy, COUNT);
+    printf("bubble checksum=%ld\n", checksum(copy, COUNT));
+    free(copy);
+}
+
+static void run_library(const int *input) {
+    int *copy = malloc(sizeof(int) * COUNT);
+    if (copy == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(copy, input, sizeof(int) * COUNT);
+    library_sort(copy, COUNT);
+    printf("qsort checksum=%ld\n", checksum(copy, COUNT));
+    free(copy);
+}
+
+int main(void) {
+    int *input = malloc(sizeof(int) * COUNT);
+    if (input == NULL) {
+        perror("malloc");
+        return EXIT_FAILURE;
+    }
+
+    fill_input(input, COUNT);
+    run_bubble(input);
+    run_library(input);
+
+    free(input);
+    return 0;
+}
+```
+
+Prevodimo program sa `-pg`:
+
+``` bash
+$ make
+```
+
+Prvo pokretanje pravi `gmon.out`:
+
+``` bash
+$ ./sort_workload
+$ ls gmon.out
+```
+
+Zatim pravimo tekstualni izveštaj:
+
+``` bash
+$ gprof ./sort_workload gmon.out > gprof.txt
+$ less gprof.txt
+```
+
+## Flat profile {#sec-gprof-flat-profile}
+
+Prvi deo izveštaja je *flat profile*. On grupiše uzorke po funkciji:
+
+``` text
+  %   cumulative   self              self     total
+ time   seconds   seconds    calls  ms/call  ms/call  name
+  ...
+         ...       ...          1             bubble_sort
+```
+
+Za ovaj primer očekujemo da se `bubble_sort` izdvoji kao dominantna funkcija. Ako se u izveštaju ne vidi očekivana razlika, povećati veličinu ulaza ili broj ponavljanja. Kratki programi daju premalo uzoraka.
+
+## Call graph {#sec-gprof-call-graph}
+
+Drugi deo izveštaja je graf poziva. On povezuje vreme funkcije sa njenim pozivaocima i pozvanim funkcijama:
+
+``` text
+index % time    self  children    called     name
+                ...       ...       1/1          run_bubble
+[1]     ...     ...       ...       1         bubble_sort
+```
+
+Graf poziva pomaže kada ista funkcija ima više pozivalaca. Tada nije dovoljno znati da je funkcija skupa; treba znati koji tok programa je najviše koristi.
+
+## Ograničenja {#sec-gprof-ogranicenja}
+
+- Program treba da završi normalno da bi se `gmon.out` upisao.
+
+- Optimizacije, inlining i kratko izvršavanje mogu sakriti funkcije ili dati nestabilne procente.
+
+- Višedretveni programi i programi koji mnogo čekaju na I/O zahtevaju pažljivo tumačenje.
+
+- `gprof` ne zamenjuje moderne uzorkujuće alate, ali je dobar za razumevanje razlike između instrumentacije poziva i statističkog uzorkovanja.
+
+## Instalacija
+
+### gprof {#sec-instalacija-gprof}
+
+`gprof` je deo GNU binutils paketa na većini Linux distribucija. Za prevođenje primera potreban je i GCC.
+
+``` bash
+$ gcc --version
+$ gprof --version
+```
+
+Na Debian/Ubuntu sistemima tipično je dovoljno instalirati razvojne alate:
+
+``` bash
+$ sudo apt-get install build-essential binutils
+```

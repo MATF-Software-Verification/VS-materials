@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+echo "=== build: validation ==="
+./check
+
+echo "=== build: render PDF ==="
+quarto render --to pdf --no-clean
+echo "  ok (_book/Verifikacija-softvera---Vežbe.pdf)"
+
+echo "=== build: render HTML ==="
+quarto render --to html --no-clean
+echo "  ok (_book/index.html)"
+
+echo "=== build complete ==="
+ls -lh _book/index.html _book/*.pdf

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Stopping background processes during cleanup
+
+pids=()
+
+cleanup() {
+    local pid
+
+    for pid in "${pids[@]}"; do
+        kill "$pid" 2>/dev/null || true
+    done
+
+    for pid in "${pids[@]}"; do
+        wait "$pid" 2>/dev/null || true
+    done
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+sleep 30 &
+pids+=("$!")
+
+sleep 30 &
+pids+=("$!")
+
+printf 'Background jobs started; press Ctrl-C to stop them.\n'
+wait

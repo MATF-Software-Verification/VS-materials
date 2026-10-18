@@ -1,0 +1,99 @@
+# Postmortem analiza iz core dump-a {#sec-gdb-core-dump}
+
+Kada program padne van debagera, nije uvek moguće ponoviti problem odmah. *Core dump* čuva sliku procesa u trenutku pada: stekove niti, registre i delove memorije. To je osnovni format za postmortem analizu crash-eva.
+
+Primer ima namernu grešku: funkcija `find_user` može da vrati `NULL`, ali pozivalac to ne proverava.
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct User {
+    int id;
+    char name[32];
+    struct User *next;
+} User;
+
+static User *make_user(int id, const char *name, User *next) {
+    User *user = malloc(sizeof(*user));
+    if (user == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    user->id = id;
+    snprintf(user->name, sizeof(user->name), "%s", name);
+    user->next = next;
+    return user;
+}
+
+static User *find_user(User *head, int id) {
+    for (User *it = head; it != NULL; it = it->next) {
+        if (it->id == id) {
+            return it;
+        }
+    }
+
+    return NULL;
+}
+
+static void print_badge(User *user) {
+    printf("user #%d: %s\n", user->id, user->name);
+}
+
+int main(int argc, char **argv) {
+    int wanted = 2;
+    if (argc > 1) {
+        wanted = atoi(argv[1]);
+    }
+
+    User *users = make_user(1, "ana", make_user(2, "marko", NULL));
+    User *selected = find_user(users, wanted);
+
+    print_badge(selected);
+
+    free(users->next);
+    free(users);
+    return 0;
+}
+```
+
+Prevodimo program sa simbolima za debagovanje:
+
+``` bash
+$ make
+```
+
+Na sistemima koji dozvoljavaju core datoteke, jedan tok rada je:
+
+``` bash
+$ ulimit -c unlimited
+$ ./crash 42
+Segmentation fault (core dumped)
+$ gdb ./crash core
+```
+
+Na distribucijama sa `systemd-coredump`, core datoteka često ne ostaje u radnom direktorijumu. Tada koristimo:
+
+``` bash
+$ coredumpctl list crash
+$ coredumpctl gdb crash
+```
+
+U `gdb`-u prvo tražimo gde se program zaustavio:
+
+``` text
+(gdb) bt
+(gdb) bt full
+(gdb) frame 0
+(gdb) info locals
+(gdb) p user
+(gdb) frame 1
+(gdb) p selected
+(gdb) p wanted
+```
+
+`bt` prikazuje stek poziva, a `bt full` dodaje lokalne promenljive za svaki okvir. U ovom primeru je neposredni pad u `print_badge`, ali stvarni uzrok je prethodni okvir: `selected` je `NULL` jer traženi korisnik ne postoji.
+
+Postmortem analiza dobro odgovara realnim incidentima: servis padne, sistem sačuva core, a analiza se radi kasnije na razvojnoj mašini sa istom binarnom verzijom i simbolima za debagovanje. Ključna disciplina je da se čuva tačna verzija izvršne datoteke, biblioteka i simbola koji odgovaraju core datoteci.

@@ -1,0 +1,72 @@
+# Watchpoint za pronalaženje korupcije memorije {#sec-gdb-watchpoints}
+
+Tačka prekida zaustavlja program kada izvršavanje dođe do određene linije ili funkcije. *Watchpoint* zaustavlja program kada se promeni određena memorijska lokacija. To je korisno kada znamo koja promenljiva dobija pogrešnu vrednost, ali ne znamo ko ju je prepisao.
+
+Primer ima ručno napisano kopiranje stringa bez provere granice:
+
+``` c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    char name[8];
+    int is_admin;
+    int balance;
+} Account;
+
+static void copy_name(Account *account, const char *input) {
+    for (int i = 0; input[i] != '\0'; i++) {
+        account->name[i] = input[i];
+    }
+}
+
+static void print_account(const Account *account) {
+    printf("name=%s admin=%d balance=%d\n", account->name, account->is_admin,
+           account->balance);
+}
+
+int main(int argc, char **argv) {
+    const char *name = argc > 1 ? argv[1] : "petar";
+    Account account = {.name = "", .is_admin = 0, .balance = 100};
+
+    copy_name(&account, name);
+    print_account(&account);
+
+    if (account.is_admin) {
+        puts("administrative path enabled");
+    }
+
+    return 0;
+}
+```
+
+Prevedimo program:
+
+``` bash
+$ make
+$ ./watchpoint_demo petar
+$ ./watchpoint_demo AAAAAAAAAAAA
+```
+
+Drugo pokretanje može promeniti polje `is_admin`, jer se ulaz upisuje preko kraja niza `name`. U `gdb`-u prvo zaustavljamo program posle inicijalizacije strukture, a zatim postavljamo watchpoint:
+
+``` text
+(gdb) break watchpoint_demo.c:23
+(gdb) run AAAAAAAAAAAA
+(gdb) watch account.is_admin
+(gdb) continue
+```
+
+Kada se polje promeni, `gdb` ispisuje staru i novu vrednost i zaustavlja program na instrukciji koja je izvršila upis. Zatim proveravamo kontekst:
+
+``` text
+(gdb) bt
+(gdb) frame 0
+(gdb) info locals
+(gdb) p i
+(gdb) p account
+```
+
+Očekivani zaključak je da problem nije u kodu koji čita `is_admin`, nego u funkciji `copy_name`. Kada brojač `i` pređe veličinu niza, sledeći upisi prelaze u naredna polja strukture.
+
+Hardverski watchpoint-i su ograničen resurs. Procesor obično može da prati mali broj adresa istovremeno. Ipak, kada je simptom korupcija jedne promenljive, ovo je često brže od ručnog pregleda celog toka programa.

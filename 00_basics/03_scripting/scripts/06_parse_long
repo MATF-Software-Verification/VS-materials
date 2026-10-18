@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Long options parsing using while and case
+
+usage() {
+    printf 'Usage: %s [--verbose] [--output FILE] [--] INPUT\n' "$0"
+}
+
+verbose=false
+output_file=''
+positional=()
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --verbose)
+            verbose=true
+            shift
+            ;;
+        --output)
+            if [ $# -lt 2 ] || [ -z "$2" ]; then
+                printf 'Error: --output requires a value\n' >&2
+                usage >&2
+                exit 2
+            fi
+            output_file=$2
+            shift 2
+            ;;
+        --output=*)
+            output_file=${1#*=}
+            if [ -z "$output_file" ]; then
+                printf 'Error: --output requires a value\n' >&2
+                usage >&2
+                exit 2
+            fi
+            shift
+            ;;
+        --)
+            shift
+            positional+=("$@")
+            break
+            ;;
+        -*)
+            printf 'Error: unknown option: %s\n' "$1" >&2
+            usage >&2
+            exit 2
+            ;;
+        *)
+            positional+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ ${#positional[@]} -ne 1 ]; then
+    usage >&2
+    exit 2
+fi
+
+input_file=${positional[0]}
+
+if [ "$verbose" = "true" ]; then
+    printf 'Input: %s\nOutput: %s\n' \
+        "$input_file" "${output_file:-stdout}"
+fi

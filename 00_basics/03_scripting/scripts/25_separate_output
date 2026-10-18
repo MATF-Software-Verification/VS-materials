@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Separate output files for each background task
+
+task() {
+    local label=$1
+    local seconds=$2
+
+    printf '%s: starting\n' "$label"
+    sleep "$seconds"
+    printf '%s: finished\n' "$label"
+}
+
+task alpha 2 > alpha.log 2>&1 &
+pid_alpha=$!
+
+task beta 1 > beta.log 2>&1 &
+pid_beta=$!

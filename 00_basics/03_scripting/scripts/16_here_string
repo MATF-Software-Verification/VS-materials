@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Here string
+
+grep 'needle' <<< 'haystack with a needle'

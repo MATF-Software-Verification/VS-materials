@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Command status checking with grep
+
+if grep -q 'ERROR' application.log; then
+    printf 'Errors found\n'
+elif grep -q 'WARNING' application.log; then
+    printf 'Warnings found, but no errors\n'
+else
+    printf 'No matching entries\n'
+fi

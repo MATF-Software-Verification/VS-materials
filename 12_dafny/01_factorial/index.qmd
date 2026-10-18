@@ -1,0 +1,22 @@
+# Primer: Faktorijel {#sec-primer-faktorijel}
+
+Primer `factorial.dfy` prikazuje rekurzivnu funkciju sa preduslovom i postuslovom. Preduslov `requires 0 <= n` ograničava domen funkcije na nenegativne brojeve. Postuslov `ensures 1 <= Factorial(n)` navodi svojstvo koje Dafny mora da dokaže za svaku dozvoljenu vrednost argumenta.
+
+``` text
+function Factorial(n: int): int
+    requires 0 <= n
+    ensures 1 <= Factorial(n)
+{
+    if n == 0 then 1 else Factorial(n-1) * n
+}
+```
+
+U telu funkcije postoje dva slučaja. Za `n == 0` rezultat je `1`. Za veće vrednosti rezultat se računa rekurzivno pozivom `Factorial(n-1) * n`. Preduslov je potreban jer bi se bez njega rekurzija mogla nastaviti ka negativnim vrednostima.
+
+Primer se može proveriti komandom:
+
+``` bash
+$ dafny verify factorial.dfy
+```
+
+Ako se ukloni preduslov ili se promeni rekurzivni poziv tako da se argument ne smanjuje, verifikator prijavljuje da ne može da dokaže korektnost ili terminaciju funkcije.

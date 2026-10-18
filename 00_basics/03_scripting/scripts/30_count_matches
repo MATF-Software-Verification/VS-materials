@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Full example: counting pattern matches in a file
+
+set -o nounset
+set -o pipefail
+
+usage() {
+    printf 'Usage: %s [-v] [-o OUTPUT] PATTERN FILE\n' "$0"
+}
+
+verbose=false
+output_file=''
+
+while getopts ':vo:' opt; do
+    case $opt in
+        v) verbose=true ;;
+        o) output_file=$OPTARG ;;
+        :)
+            printf 'Error: -%s requires an argument\n' "$OPTARG" >&2
+            usage >&2
+            exit 2
+            ;;
+        \?)
+            printf 'Error: unknown option -%s\n' "$OPTARG" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+if [ $# -ne 2 ]; then
+    usage >&2
+    exit 2
+fi
+
+pattern=$1
+input_file=$2
+
+if [ ! -f "$input_file" ] || [ ! -r "$input_file" ]; then
+    printf 'Error: input is not a readable file: %s\n' "$input_file" >&2
+    exit 1
+fi
+
+tmp_file=$(mktemp)
+
+cleanup() {
+    rm -f -- "$tmp_file"
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+if [ "$verbose" = "true" ]; then
+    printf 'Searching for <%s> in %s\n' "$pattern" "$input_file" >&2
+fi
+
+if grep -F -- "$pattern" "$input_file" > "$tmp_file"; then
+    match_status=0
+else
+    match_status=$?
+fi
+
+# grep status 1 means no matches; treat that as a valid result.
+if [ $match_status -gt 1 ]; then
+    printf 'Error: grep failed with status %d\n' "$match_status" >&2
+    exit "$match_status"
+fi
+
+if [ -n "$output_file" ]; then
+    cp -- "$tmp_file" "$output_file"
+    printf 'Wrote matches to %s\n' "$output_file"
+else
+    cat "$tmp_file"
+fi
+
+printf 'Matching lines: %s\n' "$(wc -l < "$tmp_file")" >&2
+
+# Exit with grep's status: 0 for matches, 1 if there were none.
+exit "$match_status"

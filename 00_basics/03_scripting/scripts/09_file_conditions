@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# File condition tests using [ ] instead of [[ ]]
+
+path=${1:-.}
+
+if [ -d "$path" ]; then
+    printf 'Directory: %s\n' "$path"
+elif [ -e "$path" ]; then
+    printf 'Exists, but is not a directory: %s\n' "$path"
+else
+    printf 'Does not exist: %s\n' "$path"
+fi

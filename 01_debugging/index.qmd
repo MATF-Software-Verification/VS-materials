@@ -1,0 +1,23 @@
+# Debagovanje {#sec-debagovanje}
+
+Debager se koristi kada treba posmatrati konkretno izvršavanje programa: vrednosti promenljivih, stek poziva, registre, niti, memoriju i tačku na kojoj se ponašanje odvaja od očekivanog. Pre debagovanja treba imati reprodukciju problema i, ako je moguće, izvršivu verziju prevedenu sa simbolima za debagovanje.
+
+
+
+## Kada koristiti debager {#sec-kada-koristiti-debager}
+
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Situacija                                          Šta debager daje                                                                              Kada izabrati drugi alat
+  -------------------------------------------------- --------------------------------------------------------------------------------------------- --------------------------------------------------------------------------------------------------
+  Pad programa koji se ponavlja                      Stek poziva, argumente funkcija i stanje memorije u trenutku pada.                            Ako se pad ne ponavlja lokalno, prvo prikupiti core dump ili logove.
+
+  Pogrešna vrednost u toku izvršavanja               Watchpoint, breakpoint i korak-po-korak praćenje mesta gde se vrednost menja.                 Ako postoji sumnja na prekoračenje memorije, prvo uključiti ASan ili Memcheck.
+
+  Zaglavljen proces                                  Stekove svih niti i lokaciju čekanja, na primer muteks, `futex`, I/O ili beskonačnu petlju.   Ako treba profil vremena čekanja kroz duži period, koristiti `perf`, eBPF ili runtime profajler.
+
+  Postmortem analiza                                 Analizu core dump-a bez ponovnog pokretanja programa.                                         Ako nema simbola i tačne binarne verzije, prvo obezbediti artefakte za reprodukciju.
+
+  Interakcija sa hardverom ili mapiranom memorijom   Registre, memorijske adrese, asemblerski prikaz i uticaj optimizacija.                        Ako se problem vidi samo kao sistemski događaj, prvo koristiti `strace`, `dmesg` ili eBPF.
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Tipičan tok rada je: pokrenuti program sa istim ulazom, zaustaviti se pre sumnjivog mesta, proveriti pretpostavke o stanju, izvršiti sledećih nekoliko koraka i uporediti očekivano stanje sa stvarnim. Debager ne dokazuje da greška ne postoji; on objašnjava jedno konkretno izvršavanje.

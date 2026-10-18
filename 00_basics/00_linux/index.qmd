@@ -1,0 +1,175 @@
+## Pregled Linux fajl sistema {#sec-linux-fs}
+
+Korenski direktorijum Linux sistema označava se znakom `/`. Svi fajlovi, direktorijumi i priključeni sistemi fajlova nalaze se ispod njega. Njegov sadržaj može da se razlikuje između distribucija i sistema.
+
+Pregled sadržaja:
+
+```bash
+ls -lah /
+```
+
+## Glavni direktorijumi
+
+| Putanja | Kratak opis |
+|---|---|
+| `/bin` | Osnovne korisničke komande, poput `ls` i `cp`. Na mnogim savremenim sistemima simbolička je veza ka `/usr/bin`. |
+| `/boot` | Fajlovi potrebni za pokretanje sistema, kao što su kernel i konfiguracija pokretačkog programa. |
+| `/dev` | Specijalni fajlovi koji predstavljaju uređaje i sistemske interfejse. |
+| `/etc` | Sistemska konfiguracija, uglavnom u obliku tekstualnih fajlova. |
+| `/home` | Lični direktorijumi korisnika, na primer `/home/ana`. |
+| `/lib`, `/lib64` | Osnovne biblioteke i moduli potrebni sistemskim programima. Na mnogim sistemima povezani su sa direktorijumima u `/usr`. |
+| `/media` | Uobičajeno mesto za automatski priključene prenosive uređaje, poput USB diskova. |
+| `/mnt` | Često se koristi za privremeno ručno priključivanje sistema fajlova. |
+| `/opt` | Dodatni, često nezavisno instalirani softverski paketi. |
+| `/proc` | Virtuelni sistem fajlova sa informacijama o procesima i kernelu. |
+| `/root` | Lični direktorijum korisnika `root`; nije isto što i `/`. |
+| `/run` | Privremeni podaci o aktivnom sistemu, procesima i servisima; obično se pravi pri pokretanju sistema. |
+| `/sbin` | Sistemske administrativne komande. Na mnogim savremenim sistemima simbolička je veza ka `/usr/sbin`. |
+| `/srv` | Podaci koje pružaju servisi, na primer sadržaj web servera; upotreba zavisi od sistema. |
+| `/sys` | Virtuelni sistem fajlova za uređaje, drajvere i informacije o kernelu. |
+| `/tmp` | Privremeni fajlovi; često se brišu pri ponovnom pokretanju ili automatskim čišćenjem. |
+| `/usr` | Većina korisničkih programa, biblioteka, dokumentacije i drugih instaliranih fajlova. |
+| `/var` | Podaci koji se menjaju tokom rada sistema, poput logova, keša i redova za štampanje. |
+
+## `/proc`: procesi i informacije o sistemu
+
+`/proc` nije običan direktorijum sa trajno sačuvanim fajlovima. To je virtuelni sistem fajlova koji kernel prikazuje kao fajlove i direktorijume. Sadržaj se uglavnom generiše pri čitanju, pa prikazana veličina fajla ne mora da odgovara količini podataka sačuvanih na disku.
+
+| Putanja | Sadržaj |
+|---|---|
+| `/proc/cpuinfo` | Informacije o procesorima i njihovim mogućnostima. |
+| `/proc/meminfo` | Podaci o memoriji, uključujući slobodnu i dostupnu memoriju. |
+| `/proc/uptime` | Vreme rada sistema i vreme provedeno u mirovanju. |
+| `/proc/loadavg` | Prosečno opterećenje sistema u nekoliko vremenskih perioda. |
+| `/proc/mounts` | Trenutno priključeni sistemi fajlova. |
+| `/proc/PID/` | Informacije o procesu čiji je identifikacioni broj `PID`. |
+| `/proc/self/` | Informacije o procesu koji trenutno čita tu putanju. |
+
+Primeri:
+
+```bash
+cat /proc/uptime
+head /proc/meminfo
+grep -E 'model name|processor' /proc/cpuinfo
+```
+
+U korenu `/proc` nalaze se direktorijumi procesa, često imenovani njihovim PID brojevima:
+
+```bash
+ls /proc
+```
+
+Ako je PID procesa `1234`, njegove informacije mogu biti dostupne pod `/proc/1234/`:
+
+```bash
+ls /proc/1234
+cat /proc/1234/status
+```
+
+PID procesa može da se pronađe komandom `pgrep`:
+
+```bash
+pgrep -a firefox
+```
+
+Neki fajlovi u `/proc` mogu da se menjaju upisivanjem, ali takve promene utiču na ponašanje kernela. Upisivanje u te fajlove zahteva poznavanje njihove namene.
+
+## `/dev`: uređaji i specijalni fajlovi
+
+U `/dev` se nalaze specijalni fajlovi koje programi koriste za pristup uređajima ili određenim sistemskim funkcijama. To nisu uobičajeni fajlovi čiji se sadržaj jednostavno čita sa diska. Dostupni uređaji i nazivi zavise od računara.
+
+| Putanja | Uobičajena namena |
+|---|---|
+| `/dev/null` | Odbacuje sve što se u njega upiše; čitanje odmah daje kraj ulaza. |
+| `/dev/zero` | Daje niz bajtova čija je vrednost nula. |
+| `/dev/random` | Interfejs za dobijanje nasumičnih bajtova. |
+| `/dev/urandom` | Interfejs za dobijanje kriptografski sigurnih nasumičnih bajtova. |
+| `/dev/tty` | Terminal povezan sa trenutnom sesijom, ako postoji. |
+| `/dev/pts/` | Virtuelni terminali, na primer oni koje koriste terminalski emulatori i SSH sesije. |
+| `/dev/sda`, `/dev/nvme0n1` | Mogući nazivi diskova; stvarni nazivi zavise od uređaja i sistema. |
+| `/dev/loop0` | Virtuelni blok-uređaj koji može da predstavlja fajl kao disk. |
+
+Primeri:
+
+```bash
+printf 'Ova poruka se ne prikazuje\n' > /dev/null
+head -c 16 /dev/urandom | od -An -tx1
+```
+
+Pisanje u pogrešan uređaj pod `/dev` može da uništi podatke. Pre rada sa diskovima potrebno je proveriti uređaj i komandu.
+
+## `/tmp`: privremeni fajlovi
+
+`/tmp` služi za fajlove koji su programima potrebni privremeno. Sadržaj može biti obrisan pri ponovnom pokretanju ili automatskim čišćenjem. Zbog toga `/tmp` nije prikladno mesto za jedinu kopiju važnih podataka.
+
+Privremeni direktorijum može da se napravi komandom `mktemp -d`:
+
+```bash
+tmpdir=$(mktemp -d)
+printf 'Privremeni fajl\n' > "$tmpdir/beleška.txt"
+cat "$tmpdir/beleška.txt"
+rm -r -- "$tmpdir"
+```
+
+Za pojedinačni privremeni fajl koristi se `mktemp`:
+
+```bash
+tmpfile=$(mktemp)
+printf 'rezultat\n' > "$tmpfile"
+cat "$tmpfile"
+rm -- "$tmpfile"
+```
+
+Na mnogim sistemima `/tmp` ima dozvole `1777`: svi korisnici mogu da prave fajlove, dok „sticky bit” ograničava brisanje fajlova drugih korisnika. Dozvole se mogu pregledati ovako:
+
+```bash
+ls -ld /tmp
+```
+
+## Tipovi fajlova
+
+Linux fajlovi mogu da predstavljaju obične podatke, direktorijume, veze, uređaje i druge objekte. Tip se može proveriti komandom `file`:
+
+```bash
+file /etc/passwd /dev/null /proc/cpuinfo
+```
+
+| Tip | Opis | Oznaka u `ls -l` |
+|---|---|---|
+| Običan fajl | Tekst, program, slika, arhiva ili drugi podaci. | `-` |
+| Direktorijum | Sadrži imena drugih fajlova i direktorijuma. | `d` |
+| Simbolička veza | Pokazuje na drugi fajl ili putanju. | `l` |
+| Blok-uređaj | Uređaj koji prenosi podatke u blokovima, često disk ili particija. | `b` |
+| Znakovni uređaj | Uređaj koji prenosi podatke kao tok znakova, često terminal ili drugi uređaj. | `c` |
+| FIFO, odnosno imenovana cev | Mehanizam za prenos podataka između procesa. | `p` |
+| Unix domen socket | Lokalna komunikaciona tačka koju mogu da koriste procesi. | `s` |
+
+Primer pregleda tipova i dozvola:
+
+```bash
+ls -l /etc/passwd /dev/null /dev/tty
+```
+
+Prvi znak u izlazu komande `ls -l` označava tip fajla:
+
+```text
+-rw-r--r--  običan fajl
+drwxr-xr-x  direktorijum
+lrwxrwxrwx  simbolička veza
+crw-rw-rw-  znakovni uređaj
+```
+
+Ostali znakovi prikazuju dozvole vlasnika, grupe i ostalih korisnika.
+
+## Korisne komande za istraživanje
+
+```bash
+ls -lah /                         # detaljan pregled korena
+find / -maxdepth 1 -type d 2>/dev/null  # direktorijumi neposredno ispod /
+df -h                             # priključeni sistemi fajlova i zauzeće
+mount                             # priključeni sistemi fajlova
+stat /tmp                         # detalji o putanji
+readlink -f /bin                  # konačna putanja, ako je /bin simbolička veza
+```
+
+Pri pregledu celog sistema mogu da se pojave poruke o nedostatku dozvola. `sudo` treba koristiti samo kada su potrebna administratorska prava i kada je namena komande jasna.

@@ -1,0 +1,154 @@
+# eBPF {#sec-ebpf}
+
+[eBPF](https://ebpf.io/) je mehanizam u Linux kernelu koji omogućava da se mali programi bezbedno učitaju u kernel i izvršavaju na definisanim tačkama: mrežni događaji, sistemski pozivi, funkcije kernela, tracepoint-i, perf događaji i druge lokacije. U ovom poglavlju eBPF tretiramo kao alat za posmatranje sistema i profajliranje, a ne kao zaseban projekat za pisanje kernel ekstenzija.
+
+Za razliku od prethodnih laboratorijskih vežbi, primeri u ovom poglavlju su komandni obrasci i očekivani oblici izlaza. Ne oslanjaju se na lokalne build skripte, jer eBPF zavisi od verzije kernela, BTF informacija, capability-ja, distribucije i ograničenja kontejnera.
+
+## Model izvršavanja {#sec-ebpf-model}
+
+Tipičan eBPF tok ima dva dela:
+
+- **Kernel program**: mali program koji se izvršava kada se dogodi određeni događaj.
+
+- **Korisnički program**: alat koji učitava eBPF program, čita mape, prikazuje rezultate i gasi merenje.
+
+Pre učitavanja, kernel proverava eBPF program verifier-om. Verifier odbija programe koji mogu da pristupe nevažećoj memoriji, imaju neograničene petlje, koriste nedozvoljene helper funkcije ili ne mogu da dokažu bezbednost pristupa. Zbog toga je eBPF moćan, ali nije proizvoljno izvršavanje koda u kernelu.
+
+Podaci se najčešće razmenjuju kroz *mape*. Mapa može biti brojač, histogram, tabela po PID-u, tabela po steku ili ring buffer za događaje. Ovaj model je važan za tumačenje rezultata: eBPF program obično radi minimalan posao na događaju, a korisnički alat kasnije prikazuje agregirani rezultat.
+
+## bpftrace {#sec-ebpf-bpftrace}
+
+[bpftrace](https://bpftrace.org/) je visok nivo za brze eBPF skripte i jednolinijske provere. Dobar je kada pitanje može da se izrazi kao: kada se dogodi ovaj događaj, uvećaj brojač, zabeleži argument, napravi histogram ili ispiši proces.
+
+Brojanje poziva sistemskog poziva `openat` po procesu:
+
+``` bash
+$ sudo bpftrace -e 'tracepoint:syscalls:sys_enter_openat { @[comm] = count(); }'
+```
+
+Očekivani oblik izlaza posle prekida kombinacijom `Ctrl-C`:
+
+``` text
+@[bash]: 3
+@[python3]: 18
+@[java]: 42
+```
+
+Histogram veličina pročitanih blokova:
+
+``` bash
+$ sudo bpftrace -e 'tracepoint:syscalls:sys_exit_read /args->ret > 0/ { @bytes = hist(args->ret); }'
+```
+
+Praćenje ulaza u funkciju kernela:
+
+``` bash
+$ sudo bpftrace -e 'kprobe:vfs_read { @[comm] = count(); }'
+```
+
+Praćenje korisničke funkcije preko uprobe-a zahteva putanju do biblioteke ili izvršne datoteke. Primer za `malloc` iz `libc`:
+
+``` bash
+$ sudo bpftrace -e 'uprobe:/lib/x86_64-linux-gnu/libc.so.6:malloc { @[ustack] = count(); }'
+```
+
+Putanja do `libc` zavisi od distribucije. Pre upotrebe proveriti je komandom `ldd` ili `ldconfig -p`.
+
+## BCC {#sec-ebpf-bcc}
+
+[BCC](https://github.com/iovisor/bcc) je skup alata i biblioteka za pisanje eBPF programa iz Python-a i C-sličnog eBPF koda. U nastavi je koristan iz dva razloga: već dolazi sa praktičnim alatima, a zatim se može pokazati kako izgleda mali prilagođeni tracer.
+
+Primeri gotovih alata:
+
+``` bash
+$ sudo execsnoop
+$ sudo opensnoop
+$ sudo biolatency
+$ sudo runqlat
+```
+
+`execsnoop` prikazuje pokretanje procesa, `opensnoop` otvaranje datoteka, `biolatency` latenciju blok uređaja, a `runqlat` čekanje zadataka u scheduler redu.
+
+Minimalni oblik BCC skripte je:
+
+``` python
+from bcc import BPF
+
+program = r"""
+int trace_exec(void *ctx) {
+    bpf_trace_printk("exec event\n");
+    return 0;
+}
+"""
+
+b = BPF(text=program)
+b.attach_kprobe(event="do_execveat_common", fn_name="trace_exec")
+b.trace_print()
+```
+
+Ovaj primer je namerno pojednostavljen. U realnom materijalu treba koristiti stabilne tracepoint-e kada postoje, jer se imena internih kernel funkcija mogu menjati između verzija kernela.
+
+## Profajliranje pomoću eBPF-a {#sec-ebpf-profajliranje}
+
+eBPF se često koristi za sistemsko profajliranje, naročito kada treba povezati korisničke i kernel stekove, off-CPU čekanje ili događaje koji nisu dobro pokriveni običnim aplikativnim profajlerom.
+
+CPU profil preko `profile` probe u `bpftrace`-u:
+
+``` bash
+$ sudo bpftrace -e 'profile:hz:99 { @[ustack] = count(); }'
+```
+
+Ovakav profil uzorkuje korisničke stekove oko 99 puta u sekundi. Za kernel stekove koristi se `kstack`, a za kombinovanje oba pogleda često se koriste gotovi alati koji izvoz pretvaraju u flame graph.
+
+Odnos prema `perf`-u je praktičan:
+
+- `perf` je prvi izbor za lokalni CPU profil, hardverske događaje i standardni Linux tok rada.
+
+- eBPF je jači kada pitanje zahteva dinamičko filtriranje događaja, histograme u kernelu, povezivanje sa PID-ovima, datotekama, mrežom ili scheduler događajima.
+
+- Flame graph je format prikaza, ne konkretan alat. Može nastati iz `perf`, async-profiler-a, eBPF alata ili drugih izvora stekova.
+
+## Dozvole i zamke {#sec-ebpf-dozvole-zamke}
+
+eBPF vežbe često ne rade iz prve na studentskim mašinama. To nije nužno greška u skripti. Proveriti sledeće:
+
+- Kernel mora podržavati potrebne eBPF mogućnosti i BTF informacije za neke alate.
+
+- Potrebne su privilegije: često `root`, `CAP_BPF`, `CAP_PERFMON` ili slična podešavanja, u zavisnosti od kernela.
+
+- `perf_event_paranoid`, `kptr_restrict` i slična podešavanja mogu sakriti događaje ili simbole.
+
+- Kontejneri često nemaju potrebne capability-je ili pristup '/sys/kernel'.
+
+- Kprobe na internu kernel funkciju je manje stabilan od tracepoint-a.
+
+- Uprobe zavisi od putanje biblioteke, simbola i optimizacija korisničkog programa.
+
+Kada eBPF program ne može da se učita, prvo pročitati poruku verifier-a. Ona često pokazuje da pristup memoriji nije dokazan kao bezbedan, da helper nije dozvoljen za taj tip programa ili da je tip podataka pogrešan za izabrani događaj.
+
+## Instalacija
+
+### eBPF alati {#sec-instalacija-ebpf}
+
+Za osnovne eBPF vežbe korisni su `bpftrace`, BCC alati, simboli za debagovanje i kernel zaglavlja koja odgovaraju pokrenutom kernelu. Nazivi paketa zavise od distribucije.
+
+Primer za Ubuntu/Debian sisteme:
+
+``` bash
+$ sudo apt-get install bpftrace bpfcc-tools linux-headers-$(uname -r)
+```
+
+Primer za Arch Linux:
+
+``` bash
+$ sudo pacman -S bpftrace bcc
+```
+
+Provera osnovne instalacije:
+
+``` bash
+$ bpftrace --version
+$ sudo bpftrace -l 'tracepoint:syscalls:sys_enter_*' | head
+```
+
+Ako alati prijavljuju greške sa dozvolama, proveriti capability-je, `perf_event_paranoid`, `kptr_restrict`, dostupnost BTF-a i to da li se vežba pokreće unutar kontejnera.

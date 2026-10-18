@@ -1,0 +1,106 @@
+# LLVM XRay {#sec-llvm-xray}
+
+[LLVM XRay](https://llvm.org/docs/XRay.html) je instrumentacija koju Clang može da ubaci u funkcije programa. Za razliku od `gprof`-a, XRay je projektovan za selektivno uključivanje i detaljnije tragove ulaska i izlaska iz funkcija. Koristan je kada želimo da vidimo vremenski trag poziva, latencije funkcija ili kada želimo da izdvojimo skupe putanje kroz program.
+
+Primer ima tri tipa posla: CPU petlju, sortiranje i povremeno čekanje:
+
+``` cpp
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <numeric>
+#include <thread>
+#include <vector>
+
+[[clang::xray_always_instrument]] static long busy_work(int rounds) {
+    long value = 0;
+    for (int i = 0; i < rounds; i++) {
+        value += (i * 17) % 31;
+    }
+    return value;
+}
+
+[[clang::xray_always_instrument]] static long sort_work() {
+    std::vector<int> values(2000);
+    std::iota(values.rbegin(), values.rend(), 1);
+    std::sort(values.begin(), values.end());
+    return values[values.size() / 2];
+}
+
+[[clang::xray_always_instrument]] static void wait_work() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+}
+
+[[clang::xray_always_instrument]] static long handle_request(int id) {
+    long result = busy_work(20000 + id * 100);
+    result += sort_work();
+    if (id % 5 == 0) {
+        wait_work();
+    }
+    return result;
+}
+
+int main() {
+    long total = 0;
+    for (int i = 0; i < 30; i++) {
+        total += handle_request(i);
+    }
+
+    std::cout << "total=" << total << "\n";
+    return 0;
+}
+```
+
+Prevodimo ga Clang-om sa XRay instrumentacijom:
+
+``` bash
+$ make
+```
+
+XRay se uključuje pri pokretanju kroz promenljivu okruženja:
+
+``` bash
+$ XRAY_OPTIONS="patch_premain=true xray_mode=xray-basic verbosity=1" ./xray_workload
+```
+
+Pokretanje pravi datoteku oblika `xray-log.xray_workload.<pid>`. Tekstualni sažetak se može dobiti alatom `llvm-xray`:
+
+``` bash
+$ llvm-xray account xray-log.xray_workload.* > xray-account.txt
+$ less xray-account.txt
+```
+
+U sažetku tražimo funkcije sa najvećim ukupnim ili prosečnim vremenom. U ovom primeru `wait_work` ima veliko zidno vreme po pozivu, dok `busy_work` i `sort_work` pokazuju aktivan rad programa.
+
+Za trag poziva možemo koristiti `stack` analizu:
+
+``` bash
+$ llvm-xray stack xray-log.xray_workload.* > xray-stacks.txt
+```
+
+## Kada koristiti XRay {#sec-xray-kada}
+
+XRay je dobar kada je pitanje vezano za funkcijske pozive i latenciju putanja kroz program: koji handler je spor, koliko traje određena faza, koliko često se ulazi u skupu funkciju. Pošto je instrumentacija deo binarne verzije, treba praviti posebnu konfiguraciju za merenje i jasno je odvojiti od produkcione verzije.
+
+## Ograničenja {#sec-xray-ogranicenja}
+
+- Potrebni su Clang, XRay runtime i `llvm-xray`; dostupnost zavisi od distribucije i arhitekture.
+
+- Instrumentacija menja binarnu datoteku i uvodi dodatni trošak.
+
+- Veoma česte male funkcije mogu napraviti veliki log. U praksi treba ograničiti šta se instrumentira ili koristiti pragove.
+
+- XRay meri funkcijske događaje; za hardverske događaje, keš i mikroarhitekturu treba koristiti alate kao što su `perf` ili VTune.
+
+## Instalacija
+
+### LLVM XRay {#sec-instalacija-llvm-xray}
+
+Za LLVM XRay potrebni su Clang, XRay runtime i alat `llvm-xray`. Nazivi paketa zavise od distribucije i verzije LLVM-a.
+
+``` bash
+$ clang++ --version
+$ llvm-xray --version
+```
+
+Na Debian/Ubuntu sistemima paketi su obično vezani za verziju LLVM-a, na primer `clang`, `llvm` i `compiler-rt`. Ako linkovanje primera prijavi da XRay runtime nije dostupan, instalirati odgovarajući `compiler-rt` paket za istu LLVM verziju.

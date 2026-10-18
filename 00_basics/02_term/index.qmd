@@ -1,0 +1,240 @@
+## Efikasno korišćenje terminala {#sec-koriscenje-terminala}
+
+## Osnovne komande
+
+| Komanda | Namena | Primer |
+|---|---|---|
+| `pwd` | Prikazuje trenutni direktorijum | `pwd` |
+| `ls` | Prikazuje sadržaj direktorijuma | `ls -lah` |
+| `cd` | Menja direktorijum | `cd ~/Projekti` |
+| `mkdir` | Pravi direktorijum | `mkdir -p projekat/src` |
+| `touch` | Pravi prazan fajl ili menja vreme izmene | `touch beleške.txt` |
+| `cp` | Kopira fajl ili direktorijum | `cp izvor.txt kopija.txt` |
+| `mv` | Premešta ili preimenuje | `mv staro.txt novo.txt` |
+| `rm` | Briše fajlove | `rm fajl.txt` |
+| `rmdir` | Briše prazan direktorijum | `rmdir prazan_direktorijum` |
+| `file` | Prikazuje tip fajla | `file slika.png` |
+| `stat` | Prikazuje detalje o fajlu | `stat fajl.txt` |
+| `du` | Prikazuje zauzeće prostora | `du -sh *` |
+| `df` | Prikazuje slobodan prostor na diskovima | `df -h` |
+| `tree` | Prikazuje stablo direktorijuma; možda treba instalirati | `tree -L 2` |
+
+> Pažnja: `rm` trajno briše fajlove u uobičajenoj konfiguraciji. Proveri putanju pre upotrebe, naročito uz opcije `-r` i `-f`.
+
+## Pregledanje i obrada teksta
+
+| Komanda | Namena | Primer |
+|---|---|---|
+| `cat` | Ispisuje ceo fajl | `cat config.txt` |
+| `less` | Pregledanje fajla stranicu po stranicu | `less veliki.log` |
+| `head` | Prikazuje početak fajla | `head -n 20 podaci.csv` |
+| `tail` | Prikazuje kraj fajla | `tail -n 20 aplikacija.log` |
+| `tail -f` | Prati nove redove u fajlu uživo | `tail -f aplikacija.log` |
+| `wc` | Broji redove, reči ili bajtove | `wc -l *.log` |
+| `sort` | Sortira redove | `sort imena.txt` |
+| `uniq` | Sažima susedne ponovljene redove | `sort imena.txt \| uniq -c` |
+| `cut` | Izdvaja kolone ili delove redova | `cut -d, -f1 podaci.csv` |
+| `tr` | Menja ili uklanja znakove | `tr '[:lower:]' '[:upper:]' < ulaz.txt` |
+| `sed` | Pronalazi i menja tekst | `sed 's/staro/novo/g' fajl.txt` |
+| `awk` | Obrađuje tekst po kolonama i pravilima | `awk '{print $1}' access.log` |
+| `grep` | Traži tekst ili obrazac | `grep -n 'ERROR' aplikacija.log` |
+| `tee` | Prikazuje izlaz i upisuje ga u fajl | `komanda \| tee izlaz.txt` |
+
+```bash
+grep 'tekst' fajl.txt
+grep -in 'greška' *.log       # bez razlikovanja velikih i malih slova, sa brojem reda
+grep -RIn 'TODO' src/         # rekurzivno, sa brojem reda, ignoriše binarne fajlove
+grep -E 'warn|error' app.log  # prošireni regularni izrazi
+```
+
+## Pronalaženje fajlova: `find`
+
+`find` traži fajlove i direktorijume po putanji, imenu, tipu, veličini i drugim svojstvima.
+
+```bash
+find . -name '*.png'                  # PNG fajlovi ispod trenutnog direktorijuma
+find . -type d -name 'build'          # direktorijumi imena build
+find . -type f -iname '*.jpg'         # fajlovi, bez razlikovanja veličine slova
+find . -type f -mtime -7              # fajlovi menjani u poslednjih 7 dana
+find . -type f -size +100M            # fajlovi veći od 100 MB
+```
+
+Pokretanje komande nad pronađenim fajlovima:
+
+```bash
+find . -type f -name '*.tmp' -delete
+find . -type f -name '*.png' -exec file {} \;
+find . -type f -name '*.png' -exec cp -t /tmp/slike {} +
+```
+
+`-delete` briše pronađene fajlove. Pre brisanja prvo proveri šta će biti obuhvaćeno:
+
+```bash
+find . -type f -name '*.tmp' -print
+```
+
+Za imena koja sadrže razmake ili neobične znakove, bezbednije je koristiti `-print0` i `xargs -0`:
+
+```bash
+find . -type f -name '*.png' -print0 | xargs -0 -r file
+```
+
+## Procesi i periodično izvršavanje
+
+| Komanda | Namena | Primer |
+|---|---|---|
+| `ps` | Prikazuje procese | `ps aux` |
+| `top` | Prikazuje procese i opterećenje uživo | `top` |
+| `pgrep` | Traži procese po imenu | `pgrep -a firefox` |
+| `kill` | Šalje signal procesu | `kill 1234` |
+| `jobs` | Prikazuje poslove pokrenute iz trenutnog terminala | `jobs` |
+| `bg` | Nastavlja zaustavljen posao u pozadini | `bg %1` |
+| `fg` | Vraća posao u prednji plan | `fg %1` |
+| `watch` | Periodično ponavlja komandu i prikazuje rezultat | `watch -n 2 'date; df -h'` |
+| `sleep` | Čeka zadati broj sekundi | `sleep 5` |
+| `timeout` | Prekida komandu posle zadatog vremena | `timeout 10s neka_komanda` |
+
+`watch` ponavlja komandu podrazumevano na svakih nekoliko sekundi; `-n` menja razmak. Za izlaz pritisni `Ctrl+C`.
+
+```bash
+watch -n 1 'grep MemAvailable /proc/meminfo'
+watch -d -n 2 'ls -l output/'  # ističe razlike između prikaza
+```
+
+## Pozadinski procesi
+
+```bash
+du -sh ~/Downloads &
+jobs
+```
+
+`&` pokreće komandu u pozadini. U terminalu:
+
+- `Ctrl+C` prekida komandu u prednjem planu.
+- `Ctrl+Z` privremeno zaustavlja komandu; zatim `bg` može da je nastavi u pozadini.
+- `fg` vraća pozadinski ili zaustavljeni posao u prednji plan.
+
+## Direktorijumi i stek putanja: `pushd` / `popd`
+
+`pushd` menja direktorijum i pamti prethodni na steku. `popd` uklanja vrh steka i vraća se na tu putanju.
+
+```bash
+pushd ~/Projekti/aplikacija
+# radi u tom direktorijumu
+popd
+```
+
+Pregled steka:
+
+```bash
+dirs -v
+```
+
+Na mnogim Bash instalacijama `pushd` bez argumenata menja mesta između tekuće i prethodne putanje.
+
+## Preusmeravanje i povezivanje komandi
+
+| Zapis | Značenje |
+|---|---|
+| `>` | Upisuje izlaz u fajl, prepisujući ga |
+| `>>` | Dodaje izlaz na kraj fajla |
+| `<` | Prosleđuje fajl kao ulaz |
+| `2>` | Preusmerava standardni izlaz za greške |
+| `&>` | Preusmerava standardni izlaz i greške u Bash-u |
+| `\|` | Prosleđuje izlaz jedne komande kao ulaz drugoj |
+| `&&` | Pokreće sledeću komandu samo ako je prethodna uspela |
+| `\|\|` | Pokreće sledeću komandu samo ako je prethodna pala |
+| `;` | Pokreće komande redom, bez obzira na uspeh prethodne |
+
+```bash
+ls -lah > spisak.txt
+echo 'dodatni red' >> spisak.txt
+grep 'ERROR' app.log 2> greske.txt
+komanda > sve.txt 2>&1
+printf '%s\n' *.txt | sort
+```
+
+`&&` je koristan za niz koraka u kom se svaki sledeći izvršava samo ako je prethodni uspeo:
+
+```bash
+gcc foo.c -o test && ./test && ./package
+```
+
+Uzastopne komande mogu da se grupišu i vitičastim zagradama; razmaci su obavezni:
+
+```bash
+{ echo 'Početak'; date; } > izvestaj.txt
+```
+
+## Skraćenice i posebne promenljive (Bash)
+
+| Zapis | Značenje |
+|---|---|
+| `$$` | PID trenutne Bash ljuske |
+| `$!` | PID poslednjeg procesa pokrenutog u pozadini |
+| `$?` | Izlazni status poslednje komande (`0` obično znači uspeh) |
+| `$#` | Broj argumenata prosleđenih skripti ili funkciji |
+| `$0` | Ime skripte ili ljuske |
+| `$1`, `$2`, … | Prvi, drugi i sledeći argument |
+| `"$@"` | Svi argumenti, svaki kao poseban element; uglavnom najbolji izbor za prosleđivanje argumenata |
+| `"$*"` | Svi argumenti spojeni u jedan niz |
+| `$_` | Poslednji argument prethodne komande u Bash-u |
+| `!!` | Prethodna komanda, proširuje se pre izvršavanja |
+| `!$` | Poslednji argument prethodne komande, proširuje se pre izvršavanja |
+
+Primer skripte koja koristi argumente:
+
+```bash
+#!/usr/bin/env bash
+printf 'Skripta: %s\n' "$0"
+printf 'Broj argumenata: %s\n' "$#"
+printf 'Prvi argument: %s\n' "${1:-nije prosleđen}"
+printf 'Svi argumenti:\n'
+printf ' - %s\n' "$@"
+```
+
+Bezbednije je obično koristiti `"$@"` umesto `$@` ili `$*`, jer navodnici čuvaju argumente koji sadrže razmake.
+
+## Bash prečice sa tastature
+
+| Prečica | Radnja |
+|---|---|
+| `Ctrl+C` | Prekida komandu |
+| `Ctrl+Z` | Zaustavlja komandu i vraća prompt |
+| `Ctrl+D` | Šalje EOF; u praznom promptu obično zatvara ljusku |
+| `Ctrl+L` | Čisti prikaz terminala |
+| `Ctrl+A` | Prelazi na početak reda |
+| `Ctrl+E` | Prelazi na kraj reda |
+| `Alt+B` / `Alt+F` | Pomeranje unazad / unapred za reč |
+| `Ctrl+R` | Pretražuje istoriju komandi |
+| `Tab` | Dopunjava ime komande, fajla ili putanje |
+| `↑` / `↓` | Kreće se kroz istoriju komandi |
+
+## Mreža, arhive i pomoćne komande
+
+| Komanda | Namena | Primer |
+|---|---|---|
+| `curl` | Preuzima podatke ili šalje HTTP zahteve | `curl -L -o arhiva.zip 'https://primer.test/a.zip'` |
+| `wget` | Preuzima fajlove | `wget 'https://primer.test/fajl.tar.gz'` |
+| `ssh` | Povezuje se na udaljeni računar | `ssh korisnik@server` |
+| `scp` | Kopira fajlove preko SSH-a | `scp fajl.txt korisnik@server:/tmp/` |
+| `tar` | Pravi ili raspakuje arhive | `tar -xf arhiva.tar.gz` |
+| `zip` / `unzip` | Kreira ili raspakuje ZIP arhive | `unzip arhiva.zip` |
+| `man` | Otvara priručnik komande | `man find` |
+| `command -v` | Prikazuje putanju komande ako je dostupna | `command -v python3` |
+| `history` | Prikazuje istoriju komandi | `history` |
+| `clear` | Čisti prikaz terminala | `clear` |
+
+## Niz komandi
+
+Kompajliranje C programa, pokretanje testa i pakovanje rezultata:
+
+```bash
+gcc foo.c -o test &&
+./test &&
+mkdir -p package &&
+tar -czf package/test.tar.gz test
+```
+
+Ako kompilacija ili test ne uspeju, sledeći koraci se neće izvršiti zbog `&&`.
+

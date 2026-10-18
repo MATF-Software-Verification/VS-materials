@@ -1,0 +1,81 @@
+# Zaglavljene niti i deadlock {#sec-gdb-deadlock}
+
+Kod višedretvenih programa simptom često nije pad, već proces koji ne završava. `gdb` je tada koristan jer možemo zaustaviti proces i pogledati gde čeka svaka nit.
+
+Primer namerno zaključava dva muteksa u različitom redosledu:
+
+``` c
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+
+static pthread_mutex_t left = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t right = PTHREAD_MUTEX_INITIALIZER;
+
+static void *worker_a(void *arg) {
+    (void)arg;
+    pthread_mutex_lock(&left);
+    sleep(1);
+    pthread_mutex_lock(&right);
+    puts("worker_a entered critical section");
+    pthread_mutex_unlock(&right);
+    pthread_mutex_unlock(&left);
+    return NULL;
+}
+
+static void *worker_b(void *arg) {
+    (void)arg;
+    pthread_mutex_lock(&right);
+    sleep(1);
+    pthread_mutex_lock(&left);
+    puts("worker_b entered critical section");
+    pthread_mutex_unlock(&left);
+    pthread_mutex_unlock(&right);
+    return NULL;
+}
+
+int main(void) {
+    pthread_t a;
+    pthread_t b;
+
+    pthread_create(&a, NULL, worker_a, NULL);
+    pthread_create(&b, NULL, worker_b, NULL);
+
+    pthread_join(a, NULL);
+    pthread_join(b, NULL);
+    return 0;
+}
+```
+
+Pokrenimo program iz `gdb`-a:
+
+``` bash
+$ make
+$ gdb ./deadlock
+```
+
+Program će se najčešće zaglaviti posle kratkog čekanja. U `gdb`-u ga prekidamo kombinacijom `Ctrl-C`, zatim pregledamo niti:
+
+``` text
+(gdb) run
+^C
+(gdb) info threads
+(gdb) thread apply all bt
+```
+
+Komanda `thread apply all bt` prikazuje stek svake niti. U ovom primeru jedna nit čeka zaključavanje `right`, a druga čeka zaključavanje `left`. Pošto svaka već drži drugi muteks, nijedna ne može da nastavi.
+
+Za detaljniju analizu biramo konkretne niti:
+
+``` text
+(gdb) thread 2
+(gdb) bt
+(gdb) frame 1
+(gdb) info locals
+(gdb) thread 3
+(gdb) bt
+```
+
+Kod realnih programa stekovi obično vode do viših funkcija aplikacije, ne samo do `pthread_mutex_lock`. Zato se zaključak izvodi iz kombinacije: koji resurs se čeka, koja nit ga drži i kojim redosledom se resursi zaključavaju.
+
+Popravka je dizajnersko pravilo, ne samo promena u debageru: svi delovi programa moraju zaključavati deljene resurse u istom globalnom redosledu ili koristiti viši mehanizam koji taj redosled nameće.

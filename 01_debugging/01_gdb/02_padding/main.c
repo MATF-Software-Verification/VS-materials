@@ -32,7 +32,10 @@ int main() {
 
         // 6 byte padding
     };
+    struct A a = {.x = 10, .z = 20.5, .y = 30};
     printf("Size of A: %ld\n", sizeof(struct A));
+    printf("A layout: &a=%p &a.x=%p &a.z=%p &a.y=%p\n", (void *)&a,
+           (void *)&a.x, (void *)&a.z, (void *)&a.y);
 
     struct B {
         double z; // sizeof(double) = 8
@@ -42,7 +45,10 @@ int main() {
         short int y; // sizeof(short int) = 2
                      // 2 byte padding
     };
+    struct B b = {.z = 20.5, .x = 10, .y = 30};
     printf("Size of B: %ld\n", sizeof(struct B));
+    printf("B layout: &b=%p &b.z=%p &b.x=%p &b.y=%p\n", (void *)&b,
+           (void *)&b.z, (void *)&b.x, (void *)&b.y);
 
     struct C {
         double z; // sizeof(double) = 8
@@ -51,7 +57,10 @@ int main() {
                      // 2 byte padding
         int x;       // sizeof(int) = 4
     };
+    struct C c = {.z = 20.5, .y = 30, .x = 10};
     printf("Size of C: %ld\n", sizeof(struct C));
+    printf("C layout: &c=%p &c.z=%p &c.y=%p &c.x=%p\n", (void *)&c,
+           (void *)&c.z, (void *)&c.y, (void *)&c.x);
 
     // Note: It is possible to disable padding, via
     // a process called "packing", which has to be

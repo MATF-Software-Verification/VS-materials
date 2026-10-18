@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Signal handling with trap
+
+tmp_file=$(mktemp)
+
+cleanup() {
+    printf '\nCleaning up %s\n' "$tmp_file" >&2
+    rm -f -- "$tmp_file"
+}
+
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+printf 'Working; press Ctrl-C to interrupt.\n' > "$tmp_file"
+
+while :; do
+    sleep 1
+    printf '.'
+done

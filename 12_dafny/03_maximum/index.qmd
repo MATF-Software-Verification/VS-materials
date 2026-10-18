@@ -1,0 +1,45 @@
+# Primer: Maksimum sekvence {#sec-primer-maksimum-sekvence}
+
+Primer `maximum.dfy` prikazuje metod koji pronalazi najveći element neprazne sekvence. Preduslov `requires values != []` isključuje prazan ulaz, jer za praznu sekvencu ne postoji element koji bi mogao da bude maksimum.
+
+``` text
+method Maximum(values: seq<int>) returns (max: int)
+    requires values != []
+    ensures max in values
+    ensures forall i | 0 <= i < |values| :: values[i] <= max
+{
+    max := values[0];
+    for idx := 0 to |values|
+        invariant max in values
+        invariant forall j | 0 <= j < idx :: values[j] <= max
+    {
+        if max < values[idx] {
+            max := values[idx];
+        }
+    }
+}
+
+lemma MaximumIsUnique(values: seq<int>, m1: int, m2: int)
+    requires m1 in values && forall i | 0 <= i < |values| :: values[i] <= m1
+    requires m2 in values && forall i | 0 <= i < |values| :: values[i] <= m2
+    ensures m1 == m2 
+{
+    // This lemma does not need a body: Dafny is able to automatically prove its correctness.
+}
+```
+
+Postuslovi opisuju rezultat bez oslanjanja na konkretnu implementaciju:
+
+- `max in values` zahteva da rezultat bude jedan od elemenata ulazne sekvence;
+
+- kvantifikator `forall` zahteva da nijedan element sekvence nije veći od rezultata.
+
+Petlja održava iste dve ideje kroz invarijante. Prva invarijanta kaže da trenutni kandidat za maksimum i dalje dolazi iz ulazne sekvence. Druga kaže da su svi do sada obrađeni elementi manji ili jednaki kandidatu. Na kraju petlje obrađeni su svi elementi, pa invarijante postaju dovoljne za dokaz postuslova.
+
+Lema `MaximumIsUnique` formalizuje da dva broja koja zadovoljavaju uslove maksimuma nad istom sekvencom moraju biti jednaka. Takve leme se koriste kada je pomoćno svojstvo jasno matematički, ali ga je korisno imenovati da bi se koristilo u drugim dokazima.
+
+Primer se proverava komandom:
+
+``` bash
+$ dafny verify maximum.dfy
+```

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Arithmetic expansion for integer expressions
+
+count=7
+next=$((count + 1))
+
+((count += 3))
+
+printf 'count=%d, next=%d\n' "$count" "$next"

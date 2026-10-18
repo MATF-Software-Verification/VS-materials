@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Functions and return values
+
+is_readable_file() {
+    local path=$1
+    [ -f "$path" ] && [ -r "$path" ]
+}
+
+if is_readable_file "${1:-}"; then
+    printf 'File is readable\n'
+else
+    printf 'Provide a readable file path\n' >&2
+    exit 1
+fi

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Temporary directory with cleanup trap
+
+tmp_dir=$(mktemp -d)
+
+cleanup() {
+    rm -rf -- "$tmp_dir"
+}
+
+trap cleanup EXIT
+
+printf 'Intermediate data\n' > "$tmp_dir/data.txt"

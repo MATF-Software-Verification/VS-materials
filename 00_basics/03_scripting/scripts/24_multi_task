@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Running multiple tasks and checking status
+
+task() {
+    local label=$1
+    local seconds=$2
+
+    printf '%s: starting\n' "$label"
+    sleep "$seconds"
+    printf '%s: finished\n' "$label"
+}
+
+task alpha 2 &
+pid_alpha=$!
+
+task beta 1 &
+pid_beta=$!
+
+status=0
+
+wait "$pid_alpha" || status=1
+wait "$pid_beta" || status=1
+
+if [ $status -eq 0 ]; then
+    printf 'All tasks succeeded\n'
+else
+    printf 'At least one task failed\n' >&2
+    exit 1
+fi

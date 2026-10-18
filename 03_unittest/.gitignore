@@ -105,6 +105,8 @@ build-*/
 
 # Project configuration settings like predefined Macros
 *.config
+!03_dotnet_xunit_nunit/04_dotnet_coverage/.config/
+!03_dotnet_xunit_nunit/04_dotnet_coverage/.config/dotnet-tools.json
 
 # Qt Creator settings
 *.creator
@@ -118,5 +120,4 @@ build-*/
 # Flags for Clang Code Model
 *.cxxflags
 *.cflags
-
 

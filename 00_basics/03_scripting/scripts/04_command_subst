@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Command substitution and arithmetic expansion
+
+    today=$(date +%F)
+    file_count=$(find . -maxdepth 1 -type f | wc -l)
+
+    printf 'Today: %s\n' "$today"
+    printf 'Files in current directory: %s\n' "$file_count"
+
+    count=7
+    next=$((count + 1))
+
+    ((count += 3))
+
+    printf 'count=%d, next=%d\n' "$count" "$next"

@@ -1,0 +1,370 @@
+# Dodatni Memcheck primeri {#sec-memcheck-dodatni-primeri}
+
+Ovaj direktorijum sadrži dodatne parove programa za kratke laboratorijske vežbe. Svaki par ima lošu verziju i popravljenu verziju. Cilj je da se isti test ponovi nad obe verzije i da se razlikuju stvarne greške od poruka koje su posledica ranije greške.
+
+``` bash
+$ make
+$ valgrind --leak-check=full ./01_invalid_read.out
+$ valgrind --leak-check=full ./01_invalid_read_fixed.out
+```
+
+- `01_invalid_read.c`: čitanje jednog bajta van alociranog bloka; očekuje se `Invalid read`.
+
+- `02_invalid_write.c`: upis nul karaktera van alociranog bloka; očekuje se `Invalid write`.
+
+- `03_watch_your_pointers.c`: izgubljen rezultat `realloc`; očekuju se greške pri oslobađanju i curenje.
+
+- `04_test01.cpp`: prekoračenje niza i pogrešno oslobađanje; očekuju se `Invalid write` i `Mismatched free/delete`.
+
+- `05_test02.cpp`: neinicijalizovani elementi niza; očekuje se prijava za `uninitialised`.
+
+# Neispravno čitanje {#sec-memcheck-invalid-read-misc}
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+int main() {
+    char *destination = calloc(27, sizeof(char));
+    char *source = malloc(26 * sizeof(char));
+
+    for (int i = 0; i < 27; i++) {
+        *(destination + i) = *(source + i);
+    }
+
+    free(destination);
+    free(source);
+    return 0;
+}
+```
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+int main() {
+    char *destination = calloc(27, sizeof(char));
+    char *source = malloc(27 * sizeof(char));
+
+    for (int i = 0; i < 27; i++) {
+        *(destination + i) = *(source + i);
+    }
+
+    free(destination);
+    free(source);
+    return 0;
+}
+```
+
+# Neispravan upis {#sec-memcheck-invalid-write-misc}
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+int main() {
+    char *alphabet = calloc(26, sizeof(char));
+
+    for (int i = 0; i < 26; i++) {
+        *(alphabet + i) = 'A' + i;
+    }
+    *(alphabet + 26) = '\0';
+
+    free(alphabet);
+    return 0;
+}
+```
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+int main() {
+    char *alphabet = calloc(27, sizeof(char));
+
+    for (int i = 0; i < 26; i++) {
+        *(alphabet + i) = 'A' + i;
+    }
+    *(alphabet + 26) = '\0';
+
+    free(alphabet);
+    return 0;
+}
+```
+
+# Sačuvati rezultat realokacije {#sec-memcheck-realloc-misc}
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+struct _List {
+    int *data;
+    int length;
+};
+typedef struct _List List;
+
+List *resizeArray(List *array) {
+    int *dPtr = array->data;
+    dPtr = realloc(dPtr, 15 * sizeof(int));
+    return array;
+}
+
+int main() {
+    List *array = calloc(1, sizeof(List));
+    array->data = calloc(10, sizeof(int));
+    array = resizeArray(array);
+
+    free(array->data);
+    free(array);
+    return 0;
+}
+```
+
+``` c
+#include <stdint.h>
+#include <stdlib.h>
+
+struct _List {
+    int *data;
+    int length;
+};
+typedef struct _List List;
+
+List *resizeArray(List *array) {
+    int *dPtr = array->data;
+    dPtr = realloc(dPtr, 15 * sizeof(int));
+    array->data = dPtr;
+    return array;
+}
+
+int main() {
+    List *array = calloc(1, sizeof(List));
+    array->data = calloc(10, sizeof(int));
+    array = resizeArray(array);
+
+    free(array->data);
+    free(array);
+    return 0;
+}
+```
+
+# C++ niz i oslobađanje memorije {#sec-memcheck-cpp-array-misc}
+
+``` cpp
+#include <cstdlib>
+#include <iostream>
+
+using namespace std;
+
+int main();
+void f(int n);
+
+int main()
+{
+    int n = 10;
+
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  C++ version.\n";
+    cout << "  A sample code for analysis by VALGRIND.\n";
+
+    f(n);
+    //
+    //  Terminate.
+    //
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  Normal end of execution.\n";
+
+    return 0;
+}
+
+void f(int n)
+{
+    int i;
+    int *x;
+
+    x = (int *)malloc(n * sizeof(int));
+
+    x[0] = 1;
+    cout << "  " << 0 << "  " << x[0] << "\n";
+
+    x[1] = 1;
+    cout << "  " << 1 << "  " << x[1] << "\n";
+
+    for (i = 2; i <= n; i++) {
+        x[i] = x[i - 1] + x[i - 2];
+        cout << "  " << i << "  " << x[i] << "\n";
+    }
+
+    delete[] x;
+
+    return;
+}
+```
+
+``` cpp
+#include <cstdlib>
+#include <iostream>
+
+using namespace std;
+
+int main();
+void f(int n);
+
+int main()
+{
+    int n = 10;
+
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  C++ version.\n";
+    cout << "  A sample code for analysis by VALGRIND.\n";
+
+    f(n);
+    //
+    //  Terminate.
+    //
+    cout << "\n";
+    cout << "TEST01\n";
+    cout << "  Normal end of execution.\n";
+
+    return 0;
+}
+
+void f(int n)
+{
+    int i;
+    int *x;
+
+    x = (int *)malloc(n * sizeof(int));
+
+    x[0] = 1;
+    cout << "  " << 0 << "  " << x[0] << "\n";
+
+    x[1] = 1;
+    cout << "  " << 1 << "  " << x[1] << "\n";
+
+    for (i = 2; i < n; i++) {
+        x[i] = x[i - 1] + x[i - 2];
+        cout << "  " << i << "  " << x[i] << "\n";
+    }
+
+    free(x);
+
+    return;
+}
+```
+
+# Neinicijalizovani elementi niza {#sec-memcheck-uninitialized-array-misc}
+
+``` cpp
+#include <cstdlib>
+#include <iostream>
+
+using namespace std;
+
+void junk_data();
+int main();
+
+int main()
+{
+    cout << "\n";
+    cout << "TEST02:\n";
+    cout << "  C++ version\n";
+    cout << "  A sample code for analysis by VALGRIND.\n";
+
+    junk_data();
+    //
+    //  Terminate.
+    //
+    cout << "\n";
+    cout << "TEST02\n";
+    cout << "  Normal end of execution.\n";
+
+    return 0;
+}
+
+void junk_data()
+{
+    int i;
+    int *x;
+
+    x = new int[10];
+
+    for (i = 0; i < 5; i++) {
+        x[i] = i;
+    }
+
+    x[2] = x[7];
+    x[5] = x[6];
+
+    for (i = 0; i < 10; i++) {
+        x[i] = 2 * x[i];
+    }
+
+    for (i = 0; i < 10; i++) {
+        cout << "  " << i << "  " << x[i] << "\n";
+    }
+
+    delete[] x;
+
+    return;
+}
+```
+
+``` cpp
+#include <cstdlib>
+#include <iostream>
+
+using namespace std;
+
+void junk_data();
+int main();
+
+int main()
+{
+    cout << "\n";
+    cout << "TEST02:\n";
+    cout << "  C++ version\n";
+    cout << "  A sample code for analysis by VALGRIND.\n";
+
+    junk_data();
+    //
+    //  Terminate.
+    //
+    cout << "\n";
+    cout << "TEST02\n";
+    cout << "  Normal end of execution.\n";
+
+    return 0;
+}
+
+void junk_data()
+{
+    int i;
+    int *x;
+
+    x = new int[10];
+
+    for (i = 0; i < 5; i++) {
+        x[i] = i;
+    }
+
+    x[2] = x[7];
+    x[5] = x[6];
+
+    for (i = 0; i < 10; i++) {
+        x[i] = 2 * x[i / 2];
+    }
+
+    for (i = 0; i < 10; i++) {
+        cout << "  " << i << "  " << x[i] << "\n";
+    }
+
+    delete[] x;
+
+    return;
+}
+```
