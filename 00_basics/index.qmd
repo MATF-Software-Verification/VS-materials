@@ -1,6 +1,6 @@
 ## Okruženje izvršavanja {#sec-okruzenje}
 
-Pre izbora debagerskog pristupa treba znati kako program nastaje i gde se izvršava.
+Pre izbora alata i tehnika za verifikaciju softvera treba znati kako program nastaje i gde se izvršava.
 Na osnovu toga, možemo odlučiti koje tehnike i alate možemo primeniti i koje informacije možemo dobiti.
 Na primer, C program kompiliran unapred možda ne sadrži simbole za debagovanje dok JVM koji izvršava Java program već ima sve neophodne informacije 
 
