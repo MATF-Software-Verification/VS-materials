@@ -1,97 +1,14 @@
-# Memorijski mapovan uređaj i optimizacije {#sec-gdb-mmap-volatile}
+### Primer: Memorijski-mapiran uređaj i optimizacije {#sec-gdb-mmap-volatile}
 
 Neke greške se vide tek kada program komunicira sa memorijom čiju vrednost može da promeni neko van običnog toka C programa: hardver, kernel, drugi proces ili signal handler. Primer ispod simulira uređaj kroz datoteku `dev.bin` mapiranu u memoriju.
 
 ``` c
-#include <assert.h>
-#include <fcntl.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <sys/mman.h>
-
-typedef struct {
-    int32_t command;
-    int32_t data;
-    int8_t isBusy;
-} MyHardwareGadget;
-
-void SendCommand(MyHardwareGadget *gadget, int command, int data) {
-    // wait while the gadget is busy:
-    while (gadget->isBusy) {
-    }
-
-    // set data first before starting the action
-    gadget->data = data;
-
-    // writing the command starts the action
-    gadget->command = command;
-}
-
-int main() {
-    int fd = open("dev.bin", O_RDWR);
-    assert(fd >= 0);
-
-    MyHardwareGadget *gadget =
-        (MyHardwareGadget *)mmap(NULL, sizeof(MyHardwareGadget),
-                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    assert(gadget != MAP_FAILED);
-
-    printf("dev->cmd : %d\ndev->data: %d\ndev->busy: %d\n", gadget->command,
-           gadget->data, gadget->isBusy);
-
-    SendCommand(gadget, 0x41, 0x42);
-
-    munmap(gadget, sizeof(MyHardwareGadget));
-}
+{{< include ./03_dev/main.c >}}
 ```
 
-Program čeka da uređaj više nije zauzet, zatim upisuje podatak i komandu. Ako kompajler zaključi da se polje `isBusy` ne menja unutar petlje, optimizovana verzija može da ukloni ponovno čitanje tog polja. Popravljena verzija označava pokazivač kao `volatile`:
+Program čeka da uređaj više nije zauzet, zatim upisuje podatak i komandu. Ako kompajler zaključi da se polje `isBusy` ne menja unutar petlje, optimizovana verzija može da ukloni ponovno čitanje tog polja. 
 
-``` c
-#include <assert.h>
-#include <fcntl.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <sys/mman.h>
-
-typedef struct {
-    int32_t command;
-    int32_t data;
-    int8_t isBusy;
-} MyHardwareGadget;
-
-// declare `gadget` as volatile
-void SendCommand(volatile MyHardwareGadget *gadget, int command, int data) {
-    // now this loop will not be optimized-out!
-    while (gadget->isBusy) {
-    }
-
-    // the order of these statements is guaranteed!
-    gadget->data = data;
-    gadget->command = command;
-}
-
-int main() {
-    int fd = open("dev.bin", O_RDWR);
-    assert(fd >= 0);
-
-    MyHardwareGadget *gadget =
-        (MyHardwareGadget *)mmap(NULL, sizeof(MyHardwareGadget),
-                                 PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    assert(gadget != MAP_FAILED);
-
-    printf("dev->cmd : %d\ndev->data: %d\ndev->busy: %d\n", gadget->command,
-           gadget->data, gadget->isBusy);
-
-    SendCommand(gadget, 0x41, 0x42);
-
-    munmap(gadget, sizeof(MyHardwareGadget));
-}
-```
-
-Prevedimo obe verzije:
+U trenutnom direktorijumu se nalaze dve verzije programa, jedna sa greškom a druga sa ispravkom. Prevedimo obe verzije:
 
 ``` bash
 $ make
@@ -127,3 +44,10 @@ Zatim uporedimo popravljenu verziju:
 U popravljanoj verziji očekujemo da se polje `isBusy` ponovo čita iz memorije tokom petlje. To ne znači da `volatile` rešava sinhronizaciju između niti. Ovde se koristi za komunikaciju sa memorijom čija promena nije vidljiva kroz obična pravila optimizacije C programa.
 
 Realna upotreba ovog obrasca je debagovanje drajvera u korisničkom prostoru, rada sa `mmap` interfejsom, deljene memorije i grešaka koje se pojavljuju samo u optimizovanim buildovima. U takvim slučajevima treba gledati i C promenljive i generisane instrukcije.
+
+Popravljena verzija označava pokazivač kao `volatile`:
+
+``` c
+{{< include ./03_dev/main-fixed.c >}}
+```
+

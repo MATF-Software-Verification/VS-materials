@@ -1,4 +1,4 @@
-## Buffer Overflow primer (gdb) {#sec-buffer-overflow-primer-gdb}
+### Primer: Prekoračenje bafera {#sec-gdb-buffer-overflow}
 
 Program od korisnika očekuje lozinku i, ukoliko je ona ispravna, daje privilegije korisniku i pristup podacima. Bez gledanja u izvorni kod programa, probajmo da \"pogodimo\" šifru, ili, još gore, da dobijemo privilegije bez pogađanja šifre.
 
@@ -184,46 +184,3 @@ Da bismo sprečili napade prekoračenjem bafera savet je da se primenjuju dobre 
 
 - upotrebljava `strncmp()` umesto `strcmp()`, `strncpy()` umesto `strcpy()`, itd.
 
-# QtCreator debager {#sec-qtcreator-debugger}
-
-QtCreator dolazi sa debagerom koji predstavlja interfejs između QtCreator-a i native debagera (gdb, CDB, LLDB, \...). Moguće je debagovati Qt aplikacije, native C/C++ aplikacije, kačiti se na već pokrenute procese i formirati sesije za debagovanje.
-
-Više informacija je moguće pronaći u [Qt dokumentaciji](https://doc.qt.io/qtcreator/creator-debugging.html).
-
-## Debagovanje spoljašnje aplikacije kroz QtCreator {#sec-debagovanje-spoljaux161nje-aplikacije-kroz-qtcreator}
-
-Ukoliko pokrenemo prethodni primer izvan QtCreator-a, to ne znači da ne možemo debagovati taj program. Moguće je QtCreator debager zakačiti za bilo koji program koji se izvršava ili će se tek izvršiti. Iz menija `Debug` biramo `Start Debugging`. Na raspolaganju su nam opcije:
-
-- *Attach debugger to started application* - da bismo debagovali aplikaciju koja je već pokrenuta.
-
-- *Attach debugger to unstarted application* - da bismo debagovali aplikaciju koja će biti pokrenuta. Zadaje se putanja do izvršne verzije programa. Debager će se aktivirati kada aplikacija bude pokrenuta.
-
-- *Start and Debug External Application* - slično kao prethodno samo što će se program pokrenuti odmah. Možemo čekirati opciju da se doda tačka prekida na početak `main` funkcije.
-
-*Napomena:* Ako QtCreator ne uspe da se poveže na proces, moguće je da treba dozvoliti povezivanje na procese tako što se upiše `0` u datoteku `/proc/sys/kernel/yama/ptrace_scope`.
-
-Da bismo imali informacije o linijama izvornog koda koji odgovara programu koji se debaguje, potrebno je da taj program bude preveden sa simbolima za debagovanje (za `gcc` to je opcija `-g`). Inače, debager će nam prikazivati memoriju kojoj pristupa program.
-
-## Buffer Overflow primer (QtCreator) {#sec-buffer-overflow-primer-qtcreator}
-
-Ukoliko debagujemo Qt aplikacije, dovoljno je pokrenuti aplikaciju u Debug modu. Pokrenuti QtCreator i otvoriti `BufferOverflow.pro` projekat. Prilikom otvaranja projekta, QtCreator će otvoriti konfiguracioni dijalog - konfigurisati projekat sa podrazumevanim podešavanjima.
-
-*Napomena:* QtCreator podrazumevano uključuje `clang` statički analizator ukoliko je on dostupan. Iako nije neophodno, ukoliko želite da sami pronađete probleme u izvornom kodu a tek potom proverite svoje pronalaske koristeći `clang`, isključite `clang` analizator u podešavanjima (`Edit -> Preferences -> Analyzer`).
-
-Unutar QtCreator-a vidimo nekoliko pogleda (`Edit`, `Design`, `Debug` itd.). Trebalo bi da je `Edit` pogled već selektovan. Otvoriti datoteku `main.c` i prodiskutovati o logici programa i njegovim slabim tačkama.
-
-Unutar `Project` prozora možemo dodavati ili menjati postojeće konfiguracije za kompilaciju i pokretanje programa. To uključuje i dodavanje argumenata komandne linije (`Run` odeljak).
-
-Pokrenuti sesiju za debagovanje. Isprobati akcije za kontrolisanje izvršavanja programa (`Debug` meni u glavnom meniju):
-
-- `Interrupt`
-
-- `Continue`
-
-- `Step over`
-
-- `Step into`
-
-- `Step out`
-
-- `Set/Remove breakpoint`

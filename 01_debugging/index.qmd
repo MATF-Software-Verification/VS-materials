@@ -1,7 +1,6 @@
-# Debagovanje {#sec-debagovanje}
+# Osnovni principi debagovanja {#sec-debagovanje}
 
 Debager se koristi kada treba posmatrati konkretno izvršavanje programa: vrednosti promenljivih, stek poziva, registre, niti, memoriju i tačku na kojoj se ponašanje odvaja od očekivanog. Pre debagovanja treba imati reprodukciju problema i, ako je moguće, izvršivu verziju prevedenu sa simbolima za debagovanje.
-
 
 
 ## Kada koristiti debager {#sec-kada-koristiti-debager}
