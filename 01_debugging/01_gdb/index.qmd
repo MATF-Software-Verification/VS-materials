@@ -1,0 +1,35 @@
+## gdb {#sec-gdb}
+
+*GNU Debugger* (gdb) je debager koji se koristi za debagovanje (najčešće) programa prevedenih unapred u objektne module ili izvršive fajlove. Preko gdb je moguće pokrenuti program sa proizvoljnim argumentima komandne linije, posmatrati stanje promenljivih ili registara procesora, pratiti izvršavanje kroz naredbe originalnog ili asembliranog koda, postavljanje bezuslovnih ili uslovnih tačaka prekida i sl.
+
+Više informacija o gdb debageru se može pročitati [na ovom linku](https://www.sourceware.org/gdb/).
+
+Iako se gdb-om najčešće debaguju C/C++ programi, nije nemoguće gdb koristiti i u druge svrhe. Moguće je gdb prikačiti na bilo koji pokrenuti proces ili debagovati proizvoljne programe. To uključuje debagovanje `native` funkcija Java virtualne mašine, ili unapred (ahead-of-time) prevedenih Java/C# programa. Korisno debagovanje zahteva dostupne simbole za debagovanje (npr. opcija `-g` je prosleđena `gcc` kompilatoru prilikom kompilacije).
+
+Za većinu Linux distribucija je dostupan paket `gdb`. `gdb` je za neke distribucije deo paketa za razvoj (npr. `build-essential` za Ubuntu).
+
+Za vežbe sa core dump-ovima proveriti i sistemsku konfiguraciju za čuvanje core datoteka. Na distribucijama sa `systemd-coredump` koristi se komanda `coredumpctl`; na drugim sistemima može biti dovoljno `ulimit -c unlimited`.
+
+Za prikačivanje na postojeći proces mogu biti potrebna podešavanja vezana za `ptrace`, naročito '/proc/sys/kernel/yama/ptrace_scope'.
+
+Popularne modifikacije i front-end prikazi informacija koje gdb pruža:
+
+- [gdb-dashboard](https://github.com/cyrus-and/gdb-dashboard)
+
+- [gdb-frontend](https://debugme.dev/) ([repozitorijum](https://github.com/rohanrhu/gdb-frontend))
+
+{{< include ./01_gdb/01_buffer_overflow/index.qmd >}}
+{{< include ./01_gdb/02_padding/index.qmd >}}
+{{< include ./01_gdb/03_dev/index.qmd >}}
+{{< include ./01_gdb/04_core_dump/index.qmd >}}
+{{< include ./01_gdb/05_watchpoints/index.qmd >}}
+{{< include ./01_gdb/06_threads_deadlock/index.qmd >}}
+{{< include ./01_gdb/07_attach_process/index.qmd >}}
+
+## QtCreator debager {#sec-qtcreator-debugger}
+
+Instalirati QtCreator sa [zvanične stranice](https://www.qt.io/download). Alternativno, moguće je i instalirati ceo Qt radni okvir koji uključuje i QtCreator.
+
+Za neke Linux distribucije je dostupan paket `qt<VERZIJA>-creator`.
+
+{{< include ./01_gdb/01_buffer_overflow/qtcreator.qmd >}}
