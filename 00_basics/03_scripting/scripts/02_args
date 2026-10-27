@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Positional parameters: $0 is script name, $1 $2 are arguments, $# is count
 
-    printf 'Script: %s\n' "$0"
-    printf 'Argument count: %d\n' "$#"
+printf 'Script: %s\n' "$0"
+printf 'Argument count: %d\n' "$#"
 
-    for arg in "$@"; do
-        printf 'Argument: <%s>\n' "$arg"
-    done
+for arg in "$@"; do
+    printf 'Argument: <%s>\n' "$arg"
+done

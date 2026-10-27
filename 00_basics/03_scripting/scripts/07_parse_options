@@ -1,62 +1,62 @@
 #!/usr/bin/env bash
 # Parse both short and long options using getopt
 
-    usage() {
-        printf 'Usage: %s [-v] [-o FILE] [--verbose] [--output FILE] INPUT\n' "$0"
-    }
+usage() {
+    printf 'Usage: %s [-v] [-o FILE] [--verbose] [--output FILE] INPUT\n' "$0"
+}
 
-    verbose=false
-    output_file=''
-    positional=()
+verbose=false
+output_file=''
+positional=()
 
-    # getopt with both short and long options
-    parse_args() {
-        getopt -o vo: --long verbose,output: -n "$0" -- "$@"
-    }
+# getopt with both short and long options
+parse_args() {
+    getopt -o vo: --long verbose,output: -n "$0" -- "$@"
+}
 
-    # Validate and parse
-    if ! parsed=$(parse_args "$@"); then
-        usage >&2
-        exit 2
-    fi
+# Validate and parse
+if ! parsed=$(parse_args "$@"); then
+    usage >&2
+    exit 2
+fi
 
-    # Set positional parameters from parsed output
-    eval set -- "$parsed"
+# Set positional parameters from parsed output
+eval set -- "$parsed"
 
-    while [ $# -gt 0 ]; do
-        case $1 in
-            -v|--verbose)
-                verbose=true
-                shift
-                ;;
-            -o|--output)
-                output_file=$2
-                shift 2
-                ;;
-            --output=*)
-                output_file=${1#*=}
-                shift
-                ;;
-            --)
-                shift
-                positional+=("$@")
-                break
-                ;;
-            *)
-                positional+=("$1")
-                shift
-                ;;
-        esac
-    done
+while [ $# -gt 0 ]; do
+    case $1 in
+        -v|--verbose)
+            verbose=true
+            shift
+            ;;
+        -o|--output)
+            output_file=$2
+            shift 2
+            ;;
+        --output=*)
+            output_file=${1#*=}
+            shift
+            ;;
+        --)
+            shift
+            positional+=("$@")
+            break
+            ;;
+        *)
+            positional+=("$1")
+            shift
+            ;;
+    esac
+done
 
-    if [ ${#positional[@]} -ne 1 ]; then
-        usage >&2
-        exit 2
-    fi
+if [ ${#positional[@]} -ne 1 ]; then
+    usage >&2
+    exit 2
+fi
 
-    input_file=${positional[0]}
+input_file=${positional[0]}
 
-    if [ "$verbose" = "true" ]; then
-        printf 'Input: %s\n' "$input_file"
-        printf 'Output: %s\n' "${output_file:-stdout}"
-    fi
+if [ "$verbose" = "true" ]; then
+    printf 'Input: %s\n' "$input_file"
+    printf 'Output: %s\n' "${output_file:-stdout}"
+fi
