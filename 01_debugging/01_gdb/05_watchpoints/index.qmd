@@ -5,7 +5,7 @@ Tačka prekida zaustavlja program kada izvršavanje dođe do određene linije il
 Primer ima ručno napisano kopiranje niske bez provere dužine:
 
 ``` c
-{{< include ./05_watchpoints/watchpoint_demo.c >}}
+{{< include ./01_gdb/05_watchpoints/watchpoint_demo.c >}}
 ```
 
 Prevedimo program:

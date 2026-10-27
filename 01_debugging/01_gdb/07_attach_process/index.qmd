@@ -5,7 +5,7 @@ U realnom radu problem se često pojavi u procesu koji je već pokrenut. `gdb` m
 Primer simulira mali servis koji periodično obrađuje zahteve:
 
 ``` c
-{{< include ./07_attach_process/service.c >}}
+{{< include ./01_gdb/07_attach_process/service.c >}}
 ```
 
 U prvom terminalu pokrenemo servis:

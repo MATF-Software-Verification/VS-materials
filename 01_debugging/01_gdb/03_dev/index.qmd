@@ -3,7 +3,7 @@
 Neke greške se vide tek kada program komunicira sa memorijom čiju vrednost može da promeni neko van običnog toka C programa: hardver, kernel, drugi proces ili signal handler. Primer ispod simulira uređaj kroz datoteku `dev.bin` mapiranu u memoriju.
 
 ``` c
-{{< include ./03_dev/main.c >}}
+{{< include ./01_gdb/03_dev/main.c >}}
 ```
 
 Program čeka da uređaj više nije zauzet, zatim upisuje podatak i komandu. Ako kompajler zaključi da se polje `isBusy` ne menja unutar petlje, optimizovana verzija može da ukloni ponovno čitanje tog polja. 
@@ -48,6 +48,6 @@ Realna upotreba ovog obrasca je debagovanje drajvera u korisničkom prostoru, ra
 Popravljena verzija označava pokazivač kao `volatile`:
 
 ``` c
-{{< include ./03_dev/main-fixed.c >}}
+{{< include ./01_gdb/03_dev/main-fixed.c >}}
 ```
 

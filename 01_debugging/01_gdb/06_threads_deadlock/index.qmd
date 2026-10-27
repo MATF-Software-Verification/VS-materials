@@ -5,7 +5,7 @@ Kod višedretvenih programa simptom često nije pad, već proces koji ne završa
 Primer namerno zaključava dva muteksa u različitom redosledu:
 
 ``` c
-{{< include ./06_threads_deadlock/deadlock.c >}}
+{{< include ./01_gdb/06_threads_deadlock/deadlock.c >}}
 ```
 
 Pokrenimo program iz `gdb`-a:

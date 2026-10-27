@@ -5,7 +5,7 @@ Kada program prestane sa radom van debagera, nije uvek moguće reprodukovati pro
 Primer ima namernu grešku: funkcija `find_user` može da vrati `NULL`, ali pozivalac to ne proverava.
 
 ``` c
-{{< include ./04_core_dump/crash.c >}}
+{{< include ./01_gdb/04_core_dump/crash.c >}}
 ```
 
 Prevodimo program sa simbolima za debagovanje:

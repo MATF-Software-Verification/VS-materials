@@ -5,7 +5,7 @@ C kompajler ne mora da smesti polja strukture jedno za drugim bez praznog prosto
 Primer prikazuje tri strukture sa istim poljima u različitom redosledu:
 
 ``` c
-{{< include ./02_padding/main.c >}}
+{{< include ./01_gdb/02_padding/main.c >}}
 ```
 
 Prevedimo i pokrenimo program:
