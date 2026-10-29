@@ -1,4 +1,4 @@
-## Debagovanje bajtkoda i JDWP {#sec-java-debagovanje-bajtkoda}
+### Debagovanje bajtkoda i JDWP {#sec-java-debagovanje-bajtkoda}
 
 Ovaj primer prikazuje ispisivanje i analizu Java bajtkoda pomoću `javap` alata (koji je dostupan uz JDK), kao i udaljeno debagovanje putem JDWP (*Java Debug Wire Protocol*).
 
@@ -27,7 +27,7 @@ Argument `server` nam dozvoljava da odaberemo klijent/server ponašanje: aplikac
 Argument `suspend` govori da li će se aplikacija pauzirati dok se debager ne priključi, ili kreće sa radom odmah po pokretanju.
 Na pokrenuti server se možemo povezati preko IDE-a (IntelliJ/Eclipse) ili `jdb` (konzolnog debagera koji dolazi uz JDK). 
 
-### Postupak debagovanja
+#### Postupak debagovanja
 
 1. Pokrenuti aplikaciju sa JDWP podrškom pomoću komande opisane iznad. JVM blokira dok ne uspostavi vezu debagera.
 2. U IDE-u kreirati *Remote debug Configuration* na port `8000` i povezati se.

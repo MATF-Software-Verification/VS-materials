@@ -1,0 +1,4 @@
+# Debagovanje nižeg nivoa {#sec-debugging-ll}
+
+{{< include ./01_gdb/index.qmd >}}
+

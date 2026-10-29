@@ -21,6 +21,8 @@ book:
     - part: "Debagovanje"
       chapters:
         - "01_debugging/index.qmd"
+        - "01_debugging/01_low/index.qmd"
+        - "01_debugging/02_high/index.qmd"
         # - "01_debugging/02_java/01_debug/index.qmd"
         # - "01_debugging/02_java/01_debug/Sudoku-Game-1.0/index.qmd"
         # - "01_debugging/02_java/03_agent/index.qmd"

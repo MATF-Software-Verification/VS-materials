@@ -1,4 +1,4 @@
-# .NET
+## .NET
 
 Za pokretanje primera su potrebni [.NET SDK](https://dotnet.microsoft.com/download). Na primer, za Ubuntu OS je moguće instalirati .NET SDK preko paketa:
 

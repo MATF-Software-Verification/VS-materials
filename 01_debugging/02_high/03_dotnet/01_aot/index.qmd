@@ -1,11 +1,11 @@
-## Debagovanje unapred prevedenih nativnih .NET aplikacija {#sec-dotnet-debagovanje-aot}
+### Debagovanje unapred prevedenih nativnih .NET aplikacija {#sec-dotnet-debagovanje-aot}
 
 Uobičajena .NET aplikacija izvršava se unutar .NET okruženja za izvršavanje. 
 Objavljivanje aplikacije kao samostalne (`self-contained`) omogućava uključivanje komponenti okruženja i spoljnih zavisnosti u artifakt izgradnje. 
 Objavljivanje aplikacije kao jednu datoteku (`single-file`) sve pomenute komponente i zavisnosi pakuje u jedan fajl. 
 To ne znači samo po sebi da je aplikacija kompilirana unapred, za to je potrebno uključiti Native AOT tehnologiju .NET okruženja opcijom `PublishAot=true`.
 
-### Primer
+#### Primer
 
 Program `Program.cs` definiše tip `MyRecord` i poziva jednostavnu metodu. 
 Za objavljivanje samostalne aplikacije u jednoj datoteci dovoljno je pokrenuti:
@@ -22,14 +22,11 @@ $ dotnet publish -r linux-x64 -p:PublishAot=true
 
 U datoteci `.csproj` podesiti ciljnu platformu i svojstva `SelfContained`, `PublishSingleFile` i, kada je potrebna AOT kompilacija, `PublishAot`.
 
-
-### Debagovanje
-
 Nakon objavljivanja pronaći izlaznu datoteku u direktorijumu `bin/Release/.../linux-x64/publish/`.
 
 Za debagovanje upravljanog C# koda koristiti IDE, kao što su Visual Studio ili Visual Studio Code sa C# ekstenzijom. Postaviti tačke prekida i pokrenuti aplikaciju u režimu za debagovanje.
 
-Za niskonivoučno debagovanje nativnog procesa koristiti `gdb`. Na primer:
+Za debagovanje nativnog procesa se može koristiti `gdb`. Na primer:
 
 ```text
 $ gdb /putanja/do/objavljene/aplikacije
@@ -46,7 +43,7 @@ $ gdb --args dotnet /putanja/do/aplikacije.dll
 `gdb` je namenjen prvenstveno debagovanju nativnog koda i sam po sebi nije zamena za debager C# koda, ali može dati uvid u neke detalje.
 Za C# koristiti IDE ili odgovarajuće .NET alate za debagovanje.
 
-### Postupak debagovanja
+#### Postupak debagovanja
 
 1. Objaviti aplikaciju pomoću `dotnet publish`, uz uključivanje `-p:PublishAot=true` ako je potrebna Native AOT kompilacija.
 2. Za debagovanje C# koda otvoriti projekat u IDE-u i postaviti tačke prekida u `Program.cs`, na primer u metodi koja koristi `MyRecord`.

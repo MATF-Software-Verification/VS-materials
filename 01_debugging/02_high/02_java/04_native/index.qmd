@@ -1,4 +1,4 @@
-## Debagovanje JNI nativnog koda kroz gdb {#sec-java-debagovanje-jni-gdb}
+### Debagovanje JNI nativnog koda kroz gdb {#sec-java-debagovanje-jni-gdb}
 
 JNI (Java Native Interface) je mehanizam koji omogućava Java kodu da poziva funkcije napisane u nativnim jezicima, kao što su C i C++. 
 JNI definiše pravila za povezivanje Java metoda sa nativnim funkcijama, prosleđivanje argumenata i vraćanje rezultata. 
@@ -22,7 +22,7 @@ Kod statičke metode, taj argument bi bio instanca klase nad kojom je pozvana, t
 U ovom primeru funkcija ne koristi ni `env` ni `obj`; njen jedini zadatak je da ispiše tekst na standardni izlaz pomoću `printf`. 
 Pošto je povratni tip `void`, završni `return;` može da se izostavi. 
 
-### Primer
+#### Primer
 
 1. U Java klasi deklarisati nativnu metodu i učitati `HelloWorld` biblioteku:
 
@@ -56,7 +56,7 @@ $ java -Djava.library.path=. HelloWorld
 Pri uspešnoj izgradnji i pokretanju, program ispisuje `Hello native world!`. 
 Naziv biblioteke u `System.loadLibrary("HelloWorld")` odgovara datoteci `libHelloWorld.so` na Linuxu; na drugim platformama naziv datoteke je drugačiji.
 
-### Važne napomene o JNI-ju
+#### Važne napomene o JNI-ju
 
 `JNIEnv*` je vezan za trenutnu nit i ne treba ga sačuvati za korišćenje iz druge niti. JNI objekte i reference treba koristiti u skladu sa JNI pravilima.
 Na primer, pri dužem čuvanju reference treba proveriti da li je potrebno napraviti globalnu referencu. 
@@ -65,7 +65,7 @@ Ako JNI poziv izazove Java izuzetak, nativni kod treba da proveri i obradi to st
 Ime C funkcije može da sadrži i kodiranje paketa ili potpisa metode, naročito ako metoda ima preopterećene verzije. 
 Zato je najpouzdanije koristiti zaglavlje generisano komandom `javac -h`, umesto ručno pisati ime JNI funkcije.
 
-### Debagovanje
+#### Debagovanje
 
 Za debagovanje nativne funkcije pokrenuti JVM u okviru `gdb`-a i postaviti tačku prekida na njeno ime:
 

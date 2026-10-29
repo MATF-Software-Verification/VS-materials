@@ -22,11 +22,3 @@ Debager se koristi kada treba posmatrati konkretno izvršavanje programa: vredno
 Tipičan tok rada je: pokrenuti program sa istim ulazom, zaustaviti se pre sumnjivog mesta, proveriti pretpostavke o stanju, izvršiti sledećih nekoliko koraka i uporediti očekivano stanje sa stvarnim. Debager ne dokazuje da greška ne postoji; on objašnjava jedno konkretno izvršavanje.
 
 
-# Debagovanje nižeg nivoa {#sec-debugging-ll}
-
-{{< include ./01_gdb/index.qmd >}}
-
-# Debagovanje višeg nivoa {#sec-debugging-hl}
-
-{{< include ./02_java/index.qmd >}}
-{{< include ./03_dotnet/index.qmd >}}

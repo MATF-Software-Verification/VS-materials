@@ -1,4 +1,4 @@
-## Instrumentovanje Java bajtkoda (Java agenti) {#sec-debagovanje-java-agenti}
+### Instrumentovanje Java bajtkoda (Java agenti) {#sec-debagovanje-java-agenti}
 
 Java agenti su posebna vrsta klasa koje koriste Java Instrumentation API za modifikovanje bajtkoda aplikacija koje rade na JVM-u. 
 Dostupni su još od Java 5. 
@@ -28,7 +28,7 @@ public static void agentmain(String agentArgs)
 Metod `agentmain` poziva se nakon inicijalizacije JVM-a, odnosno nakon pokretanja aplikacije. 
 Agent može da sadrži i `premain` i `agentmain`, ali će se pri pokretanju aplikacije na ovaj način pozvati samo `premain`.
 
-### Prepisivanje bajtkoda metoda {#sec-primer}
+#### Prepisivanje bajtkoda metoda {#sec-primer}
 
 Kao primer, uzmimo jednostavnu Maven aplikaciju i pokrenimo je:
 
