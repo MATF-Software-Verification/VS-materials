@@ -1,0 +1,34 @@
+## Debagovanje bajtkoda i JDWP {#sec-java-debagovanje-bajtkoda}
+
+Ovaj primer prikazuje ispisivanje i analizu Java bajtkoda pomoću `javap` alata (koji je dostupan uz JDK), kao i udaljeno debagovanje putem JDWP (*Java Debug Wire Protocol*).
+
+Generisanje i čitanje bajtkoda je korisno kada treba razumeti kako kompilator prevodi izvorni kod. 
+Komanda `javap -p -v` prikazuje sve metode, polja i opis bajtkodova (u `Code` sekciji).
+
+Daljinsko debagovanje se povezuje na JVM putem JDWP protokola na zadatom portu.
+
+### Primer
+
+Klasa `Hello` u fajlu `Hello.java` se može prevesti u bajtkod pomoću `javac`. Zatim se može otvoriti pomoću `javap`:
+
+``` text
+$ javac Hello.java
+$ javap -p -v Hello
+```
+
+Debagonje programa iz terminala možemo pokrenuti na sledeći način:
+
+``` text
+$ java -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000 Hello
+```
+
+Ova komanda pokreće lokalni JDWP "server" za debagovanje i dozvoljava debagerima da se prikače na server.
+Argument `server` nam dozvoljava da odaberemo klijent/server ponašanje: aplikaciju koju debagujemo pokrećemo sa `server=y`, dok debager koristi `server=n`.
+Argument `suspend` govori da li će se aplikacija pauzirati dok se debager ne priključi, ili kreće sa radom odmah po pokretanju.
+Na pokrenuti server se možemo povezati preko IDE-a (IntelliJ/Eclipse) ili `jdb` (konzolnog debagera koji dolazi uz JDK). 
+
+### Postupak debagovanja
+
+1. Pokrenuti aplikaciju sa JDWP podrškom pomoću komande opisane iznad. JVM blokira dok ne uspostavi vezu debagera.
+2. U IDE-u kreirati *Remote debug Configuration* na port `8000` i povezati se.
+3. Postaviti tačke prekida u `Hello.main` i `Hello.Foo.use`, zatim `resume`/`step over` za praćenje toka izvršavanja.

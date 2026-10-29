@@ -1,0 +1,77 @@
+## Debagovanje JNI nativnog koda kroz gdb {#sec-java-debagovanje-jni-gdb}
+
+JNI (Java Native Interface) je mehanizam koji omogućava Java kodu da poziva funkcije napisane u nativnim jezicima, kao što su C i C++. 
+JNI definiše pravila za povezivanje Java metoda sa nativnim funkcijama, prosleđivanje argumenata i vraćanje rezultata. 
+Takođe obezbeđuje interfejs za rad sa JVM-om, uključujući Java objekte, stringove, nizove i izuzetke.
+
+U ovom primeru Java klasa definiše nativnu metodu `print`, a njena C implementacija ispisuje tekst. 
+Komanda `javac -h` može da generiše zaglavni fajl `HelloWorld.h` sa deklaracijom nativne funkcije. 
+C funkcija mora da se podudara sa deklaracijom po imenu, tipovima argumenata i povratnom tipu, kako bi JVM mogao da je pronađe i pozove.
+
+Primer jedne takve nativne implementacije:
+```c
+{{< include ./02_java/04_native/HelloWorld.c >}}
+```
+
+U potpisu funkcije, `JNIEXPORT` i `JNICALL` su makroi koje JNI koristi za izvoz funkcije i odgovarajuću konvenciju pozivanja. 
+Prvi argument, tipa `JNIEnv`, predstavlja interfejs za JNI funkcije. 
+Preko njega nativni kod može da pristupa Java objektima i da poziva JNI operacije. 
+Drugi argument, tipa `jobject`, predstavlja objekat nad kojim je pozvana instancna Java metoda.
+Kod statičke metode, taj argument bi bio instanca klase nad kojom je pozvana, tipa `jclass`.
+
+U ovom primeru funkcija ne koristi ni `env` ni `obj`; njen jedini zadatak je da ispiše tekst na standardni izlaz pomoću `printf`. 
+Pošto je povratni tip `void`, završni `return;` može da se izostavi. 
+
+### Primer
+
+1. U Java klasi deklarisati nativnu metodu i učitati `HelloWorld` biblioteku:
+
+```java
+{{< include ./02_java/04_native/HelloWorld.java >}}
+```
+
+2. Prevesti klasu i generisati JNI zaglavlje za nativnu metodu:
+
+```text
+$ javac -h . HelloWorld.java
+```
+
+3. Iskoristiti potpis u generisanom `HelloWorld.h` i implementirati funkciju u `HelloWorld.c`. 
+
+4. Izgraditi nativnu biblioteku `libHelloWorld.so`. Na Linux sistemu, pored putanje do JNI zaglavlja, obično je potrebna i putanja do platformskih zaglavlja:
+
+```text
+$ gcc -shared -fPIC -Wall -Werror -g \
+    -I"$JAVA_HOME/include" \
+    -I"$JAVA_HOME/include/linux" \
+    -o libHelloWorld.so HelloWorld.c
+```
+
+5. Pokrenuti Java program tako da JVM može da pronađe biblioteku:
+
+```text
+$ java -Djava.library.path=. HelloWorld
+```
+
+Pri uspešnoj izgradnji i pokretanju, program ispisuje `Hello native world!`. 
+Naziv biblioteke u `System.loadLibrary("HelloWorld")` odgovara datoteci `libHelloWorld.so` na Linuxu; na drugim platformama naziv datoteke je drugačiji.
+
+### Važne napomene o JNI-ju
+
+`JNIEnv*` je vezan za trenutnu nit i ne treba ga sačuvati za korišćenje iz druge niti. JNI objekte i reference treba koristiti u skladu sa JNI pravilima.
+Na primer, pri dužem čuvanju reference treba proveriti da li je potrebno napraviti globalnu referencu. 
+Ako JNI poziv izazove Java izuzetak, nativni kod treba da proveri i obradi to stanje pomoću JNI funkcija.
+
+Ime C funkcije može da sadrži i kodiranje paketa ili potpisa metode, naročito ako metoda ima preopterećene verzije. 
+Zato je najpouzdanije koristiti zaglavlje generisano komandom `javac -h`, umesto ručno pisati ime JNI funkcije.
+
+### Debagovanje
+
+Za debagovanje nativne funkcije pokrenuti JVM u okviru `gdb`-a i postaviti tačku prekida na njeno ime:
+
+```text
+$ gdb --args java -Djava.library.path=. HelloWorld
+(gdb) break Java_HelloWorld_print
+(gdb) run
+```
+

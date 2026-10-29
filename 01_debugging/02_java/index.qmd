@@ -25,3 +25,9 @@ $ which java
 /path/to/jdk/bin/java
 $ java -version
 ```
+
+{{< include ./02_java/01_debug/index.qmd >}}
+{{< include ./02_java/02_bytecodes/index.qmd >}}
+{{< include ./02_java/03_agent/index.qmd >}}
+{{< include ./02_java/04_native/index.qmd >}}
+{{< include ./02_java/05_aot/index.qmd >}}

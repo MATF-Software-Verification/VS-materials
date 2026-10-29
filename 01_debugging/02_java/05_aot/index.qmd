@@ -1,0 +1,35 @@
+## Debagovanje unapred prevedenih nativnih Java aplikacija {#sec-java-debagovanje-aot}
+
+Običan Java program izvršava se kao bajtkod na JVM-u. Međutim, pomoću GraalVM alata `native-image` program može unapred (ahead-of-time, skr. AOT) da se prevede u samostalni izvršni fajl. Tako se dobija nativni izvršni program čiji stek poziva i simboli mogu da se pregledaju pomoću `gdb`.
+
+### Primer
+
+Program `HelloWorld` ispisuje informacije o JVM-u, kao što su naziv, putanja i proizvođač. 
+Nakon izgradnje nativnog programa (*native image*), moguće je postaviti tačku prekida u izvornom Java kodu ako su uključeni simboli za debagovanje.
+
+Kompilacija:
+
+```text
+$ native-image -H:+UnlockExperimentalVMOptions -H:+SourceLevelDebug -H:-DeleteLocalSymbols -O0 -g -o HelloWorld.image HelloWorld
+```
+
+Opcije `-H:+SourceLevelDebug` i `-g` obezbeđuju informacije za debagovanje, dok `-O0` isključuje optimizacije koje mogu da otežaju praćenje promenljivih.
+
+### Debagovanje
+
+Pokrenuti dobijeni izvršni fajl pomoću `gdb`-a i debagovati ga kao bilo koji drugi nativni program:
+
+```text
+$ gdb ./HelloWorld.image
+(gdb) break HelloWorld::main
+(gdb) run -arg1 -arg2
+```
+
+Upozorenje: pri izgradnji u režimu za produkciju, optimizacije mogu da uklone neke delove koda ili promenljive. Zato ima smisla koristiti opciju `-O0` pri izgradnji sa simbolima za debagovanje.
+
+### Postupak debagovanja
+
+1. Generisati nativni program pomoću opcija `-g` i `-O0` da bi se uključili simboli za debagovanje i ugasile optimizacije.
+2. U `gdb`-u postaviti tačku prekida na `HelloWorld::main` i pokrenuti program.
+3. Koristiti `info args` i `print` za pregled argumenata i lokalnih promenljivih. GraalVM može da mapira Java promenljive na DWARF simbole.
+4. Ako `gdb` ne može da pronađe izvorni fajl, proveriti da li je opcija `--source` prosleđena komandi `native-image`.
