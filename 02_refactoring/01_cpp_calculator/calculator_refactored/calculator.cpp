@@ -37,7 +37,7 @@ void showChoices(std::ostream &ostr) {
 // }
 //
 // Operation op = OP_INVALID;
-// while ((op == readChoice(std::cin)) == OP_INVALID) {
+// while ((op = readChoice(std::cin)) == OP_INVALID) {
 //     cout << "Invalid input" << endl;
 // }
 

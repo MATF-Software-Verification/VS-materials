@@ -1,4 +1,4 @@
-# Java OOP primer - Game of Life {#sec-java-oop-primer---game-of-life}
+## Primer (OOP, Java) - Game of Life {#sec-java-oop-primer---game-of-life}
 
 Program predstavlja implementaciju poznate ćelijske automatizacije pod imenom [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life). Početna konfiguracija igre (početno stanje table kao i veličina mreže) su konfigurabilni. Stanje igre se ispisuje na standardni izlaz nakon svake iteracije.
 

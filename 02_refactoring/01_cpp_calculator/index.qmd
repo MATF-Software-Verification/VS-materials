@@ -1,4 +1,4 @@
-# C++ primer - kalkulator {#sec-c-primer---kalkulator}
+## Primer (C++) - kalkulator {#sec-c-primer---kalkulator}
 
 Naš kod za kalkulator je nepodesan za jedinično testiranje jer se mnogo posla zapravo obavlja u main funkciji. Da bismo sve delove testirali moramo kod izdeliti na funkcije koje obavljaju po jednu celinu. Već postoje funkcije za svaku pojedinačnu operaciju koje imaju dva argumenta, njih nećemo dirati.
 
