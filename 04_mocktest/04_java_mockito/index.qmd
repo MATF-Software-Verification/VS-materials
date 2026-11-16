@@ -1,8 +1,38 @@
 # Radni okvir Mockito za mock testiranje (JVM)
 
-Mockito je biblioteka za pravljenje **mock objekata** — zamenskih zavisnosti čije ponašanje možeš da podesiš i čije pozive možeš da proveriš u testu. Tako testiraš klasu izdvojeno, bez pozivanja stvarne baze, API-ja ili drugih spoljašnjih servisa. Mockito je mocking framework za Java testove. <citation src="1"></citation>
+[Mockito](https://site.mockito.org/) je biblioteka za pravljenje objekata imitatora u Javi. 
 
 ## Instalacija
+
+Primer za Maven, uz JUnit 4:
+```xml
+  <properties>
+    <junit.version>4.13.2</junit.version>
+    <assertj.version>3.27.3</assertj.version>
+    <mockito.version>4.11.0</mockito.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+```
 
 Primer za Gradle, uz JUnit 5:
 
@@ -10,9 +40,9 @@ Primer za Gradle, uz JUnit 5:
 testImplementation("org.mockito:mockito-junit-jupiter:5.+")
 ```
 
-U stvarnom projektu je bolje zameniti `5.+` konkretnom verzijom i koristiti `mockito-junit-jupiter` kada želiš Mockito integraciju sa JUnit 5.
+U stvarnom projektu je bolje zameniti `5.+` konkretnom verzijom i koristiti `mockito-junit-jupiter` kada je neophodna Mockito integraciju sa JUnit 5.
 
-## Primer
+## Pravljenje imitatora
 
 Zamislimo servis koji koristi repozitorijum:
 
@@ -35,7 +65,7 @@ class UserService {
 }
 ```
 
-U testu mockiramo repozitorijum, podesimo šta treba da vrati, pa proverimo rezultat:
+U testu inicijalizujemo repozitorijum-imitator, podesimo šta treba da vrati, pa proverimo rezultat:
 
 ```java
 import org.junit.jupiter.api.Test;
@@ -74,16 +104,22 @@ class UserServiceTest {
 - `verify(mock).metoda(...)` — proverava da li je metoda pozvana.
 - `any()` — koristi se kada argument može biti bilo koja vrednost odgovarajućeg tipa.
 
-Primer sa matcherom:
+Dohvatanje argumenata metoda (klasa `ArgumentMatchers`):
 
 ```java
 when(repository.findNameById(anyInt())).thenReturn("Nepoznato");
 ```
 
-Za `anyInt()` dodaj statički import:
+Za `anyInt()` dodati statički import:
 
 ```java
 import static org.mockito.ArgumentMatchers.anyInt;
 ```
 
-Mockiraj prvenstveno spoljašnje zavisnosti, a ne samu klasu koju testiraš. Tako test ostaje usmeren na ponašanje klase, umesto na detalje njene implementacije. <citation src="2"></citation>
+## Primer: Bankovne transakcije
+
+```java
+{{< include ./mockito.example/src/test/java/com/example/EmployeeManagerTest.java >}}
+```
+
+

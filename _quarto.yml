@@ -24,7 +24,7 @@ book:
         - "01_debugging/01_low/index.qmd"
         - "01_debugging/02_high/index.qmd"
 
-    - part: "Pisanje testabilnog koda"
+    - part: "Pisanje kvalitetnog koda"
       chapters:
         - "02_refactoring/index.qmd"
         - "02_refactoring/01_cpp_calculator/index.qmd"
