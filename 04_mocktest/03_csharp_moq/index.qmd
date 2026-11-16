@@ -1,4 +1,4 @@
-# Radni okvir Moq za mock testiranje (.NET) {#sec-c---moq}
+## Radni okvir Moq za mock testiranje (.NET) {#sec-c---moq}
 
 [Moq](https://github.com/moq/) (izgovara se *Mock-you* ili jednostavno *Mok*) je vodeći radni okvir za pisanje objekata imitatora u .NET ekosistemu. Dizajniran je da bude veoma praktičan i bezbedan. Neke od osobina:
 

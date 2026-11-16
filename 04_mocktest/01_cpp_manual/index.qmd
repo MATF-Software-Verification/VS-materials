@@ -1,4 +1,4 @@
-# Ručno pisanje objekata imitatora {#sec-c---ruux10dno-kreiranje-objekata-imitatora}
+## Ručno pisanje objekata imitatora {#sec-c---ruux10dno-kreiranje-objekata-imitatora}
 
 Dobili smo zadatak da u igru koju razvijamo dodamo novu funkcionalnost koja meri koliko je igrač aktivno igrao igru. Vreme provedeno u glavnom meniju i pauze ne treba da se uključe u vreme igranja. U tu svrhu kreiramo jednostavnu klasu `play_time` koja ima metode za pokretanje i zaustavljanje sesije i vraća ukupno vreme igranja.
 
