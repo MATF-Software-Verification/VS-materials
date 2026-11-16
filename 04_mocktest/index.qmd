@@ -35,3 +35,9 @@ Rad sa objektima imitatorima obično obuhvata sledeće korake:
 - pisanje testa koji će koristiti objekat imitator umesto stvarnog objekta
 
 Unutar testa je potrebno: -- kreirati instancu objekta klase imitatora -- podesiti ponašanje i očekivanja od objekta imitatora -- pokrenuti kod koji će koristiti objekat imitator -- po izvršavanju, porediti dobijene i očekivane vrednosti (ovaj korak obično izvršava radni okvir prilikom uništavanja objekta imitatora)
+
+{{< include ./01_cpp_manual/index.qmd >}}
+{{< include ./02_csharp_dbtest/index.qmd/ >}}
+{{< include ./03_csharp_moq/index.qmd >}}
+{{< include ./04_java_mockito/index.qmd >}}
+

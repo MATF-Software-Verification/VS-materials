@@ -12,6 +12,12 @@
 
 - Presretanje događaja nad imitatorima
 
+`Moq` se jednostavno instalira sa [NuGet repozitorijuma](https://www.nuget.org/packages/Moq) ili uz pomoć IDE-a, ili kroz komandu:
+
+``` bash
+$ dotnet add package Moq --version 4.18.2
+```
+
 U datoteci `MockExamples.cs` imamo definicije nekoliko interfejsa i klasa:
 
 - `IBookService` - predstavlja interfejs servisa koji koristimo da dovučemo informacije o knjigama na osnovu kategorije ili ISBN
@@ -60,9 +66,10 @@ public void SendEmail_sends_email_with_correct_content()
 
     // 2
     var accountService = new AccountService(null, emailSenderMock.Object);
-    // 3
 
+    // 3
     accountService.SendEmail("test@gmail.com", "Test - Driven Development");
+
     // 4
     emailSenderMock.Verify(
         x => x.SendEmail(
@@ -99,12 +106,3 @@ httpClientMock
     .ReturnsAsync(true);
 ```
 
-## Instalacija
-
-### Moq {#sec-moq}
-
-`Moq` se jednostavno instalira sa [NuGet repozitorijuma](https://www.nuget.org/packages/Moq) ili uz pomoć IDE-a, ili kroz komandu:
-
-``` bash
-$ dotnet add package Moq --version 4.18.2
-```

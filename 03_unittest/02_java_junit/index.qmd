@@ -1,8 +1,22 @@
-# Primer: Java (JUnit, JaCoCo) {#sec-java---junit-jacoco}
+## Primer: GameOfLife (Java, JUnit, JaCoCo) {#sec-java---junit-jacoco}
 
 [JUnit](https://junit.org/) je jedan od najpopularnijih radnih okvira za testiranje jedinica koda u programskom jeziku Java. Neke od osobina JUnit radnog okvira su jednostavnost pisanja testova uz bogat skup anotacija koje opisuju testove, kao i veoma velika podrška za najčešće situacije u procesu pisanja testova kao što su uslovno uključivanje/isključivanje testova na osnovu promenljivih iz okruženja, operativnog sistema, proizvoljnih predikata itd.
 
 JUnit svoje artefakte isporučuje na [Maven Central](https://search.maven.org/) i moguće ga je uključiti u Maven (i Maven-kompatibilne) alate za prevođenje. U ovom primeru ćemo koristiti drugi popularni alat za prevođenje pod imenom [Gradle](https://gradle.org/). Gradle koristi datoteku `build.gradle` (slično kao što Maven koristi `pom.xml`) za definiciju projekta, zavisnosti i podešavanja dodataka.
+
+Da bi se Gradle instalirao, neophodno je na sistemu imati verziju JDK-a veću od 8. Gradle se potom instalira kroz paket `gradle` za većinu popularnih Linux distribucija. Alternativno, moguće je preuzeti [unapred spremne Gradle artefakte](https://gradle.org/releases) i ručno instalirati Gradle. Primeri pretpostavljaju da je izvršiva datoteka (ili alias) `gradle` dostupna na `PATH`-u i pokreće Gradle alat.
+
+Neobavezno za ovaj primer, za laku organizaciju u okruženju sa više različitih JDK verzija, može se koristiti alat [SDKMAN](https://sdkman.io/). Gradle se može instalirati korišćenjem SDKMAN-a:
+
+``` bash
+$ sdk install gradle <verzija>
+```
+
+Na primer:
+
+``` bash
+$ sdk install gradle 7.5.1
+```
 
 Kreirajmo novi projekat:
 
@@ -49,6 +63,14 @@ Nakon ovoga možemo iskoristiti sledeće komande:
 - `gradle jacocoTestReport` - kreiranje izveštaja o pokrivenosti
 
 Izveštaji o pokrenutim testovima i statusu izvršavanja mogu se naći u direktorijumu `build/reports/tests/test` u HTML formatu. JaCoCo izveštaj o pokrivenosti može se naći u direktorijumu koji smo naveli u datoteci `build.gradle` - `build/jacocoHtml`, takođe u HTML formatu.
+
+### Primer: Game of Life
+
+```java
+{{< include ./02_java_junit/02_gol/src/test/java/tests/GameOfLifeTests.java >}}
+```
+
+### Pregled JUnit radnog okvira
 
 Pregled nekih od korisnih anotacija JUnit radnog okvira:
 
@@ -232,20 +254,4 @@ public void onlyIfMyPropertyStartsWithProd() {
 }
 ```
 
-## Instalacija
 
-### Gradle {#sec-gradle}
-
-Da bi se Gradle instalirao, neophodno je na sistemu imati verziju JDK-a veću od 8. Gradle se potom instalira kroz paket `gradle` za većinu popularnih Linux distribucija. Alternativno, moguće je preuzeti [unapred spremne Gradle artefakte](https://gradle.org/releases) i ručno instalirati Gradle. Primeri pretpostavljaju da je izvršiva datoteka (ili alias) `gradle` dostupna na `PATH`-u i pokreće Gradle alat.
-
-Neobavezno za ovaj primer, za laku organizaciju u okruženju sa više različitih JDK verzija, može se koristiti alat [SDKMAN](https://sdkman.io/). Gradle se može instalirati korišćenjem SDKMAN-a:
-
-``` bash
-$ sdk install gradle <verzija>
-```
-
-Na primer:
-
-``` bash
-$ sdk install gradle 7.5.1
-```

@@ -24,36 +24,19 @@ book:
         - "01_debugging/01_low/index.qmd"
         - "01_debugging/02_high/index.qmd"
 
-    - part: "Pisanje kvalitetnog koda"
-      chapters:
-        - "02_refactoring/index.qmd"
-        - "02_refactoring/01_cpp_calculator/index.qmd"
-        - "02_refactoring/02_java_gol/index.qmd"
-        - "02_refactoring/03_csharp_service/index.qmd"
-
     - part: "Testiranje jedinica koda metodom bele kutije"
       chapters:
+        - "02_refactoring/index.qmd"
         - "03_unittest/index.qmd"
-        - "03_unittest/01_cpp_qttest/index.qmd"
-        - "03_unittest/02_java_junit/index.qmd"
-        - "03_unittest/03_dotnet_xunit_nunit/index.qmd"
-        - "03_unittest/03_dotnet_xunit_nunit/04_dotnet_coverage/index.qmd"
-
-    - part: "Testiranje pomoću objekata imitatora (engl. Mock testing)"
-      chapters:
         - "04_mocktest/index.qmd"
-        - "04_mocktest/01_cpp_manual/index.qmd"
-        - "04_mocktest/02_csharp_dbtest/index.qmd"
-        - "04_mocktest/03_csharp_moq/index.qmd"
-        - "04_mocktest/04_java_mockito/index.qmd"
 
-    - part: "\"Fuzz\" testiranje"
-      chapters:
-        - "05_fuzztest/index.qmd"
-        - "05_fuzztest/01_libFuzzer/index.qmd"
-        - "05_fuzztest/02_tmux_fuzz/index.qmd"
-        - "05_fuzztest/03_jazzer/index.qmd"
-        - "05_fuzztest/04_afl++/index.qmd"
+    # - part: "Testiranje jedinica koda metodom crne kutije"
+    #   chapters:
+    #     - "05_fuzztest/index.qmd"
+    #     - "05_fuzztest/01_libFuzzer/index.qmd"
+    #     - "05_fuzztest/02_tmux_fuzz/index.qmd"
+    #     - "05_fuzztest/03_jazzer/index.qmd"
+    #     - "05_fuzztest/04_afl++/index.qmd"
 
     # - part: "Profajliranje instrumentacijom"
     #   chapters:

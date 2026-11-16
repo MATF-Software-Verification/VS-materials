@@ -1,4 +1,4 @@
-# `dotnet-coverage` {#sec-dotnet-coverage}
+### `dotnet-coverage` {#sec-dotnet-coverage}
 
 Pokrivenost koda meri koji delovi programa su izvršeni tokom pokretanja testova. To nije dokaz ispravnosti programa. Korisna je kao povratna informacija: pokazuje grane koje testovi ne dodiruju i pomaže da se razgovor o nedostajućim testovima veže za konkretan kod.
 

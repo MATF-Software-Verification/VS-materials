@@ -129,9 +129,10 @@ public class SampleAccountServiceTests
         
         // 2
         var accountService = new AccountService(null, emailSenderMock.Object);
+
         // 3
-        
         accountService.SendEmail("test@gmail.com", "Test - Driven Development");
+        
         // 4
         emailSenderMock.Verify(
             x => x.SendEmail(

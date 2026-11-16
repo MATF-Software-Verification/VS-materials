@@ -1,6 +1,6 @@
-# Primer: Kalkulator (C++, QtTest, gcov, lcov) {#sec-c---qttest-gcov-lcov}
+## Primer: Kalkulator (C++, QtTest, gcov, lcov) {#sec-c---qttest-gcov-lcov}
 
-## Pisanje testova jedinica koda pomoću QtTest radnog okvira {#sec-pisanje-testova-jedinica-koda-pomoux107u-qttest-radnog-okvira}
+### Pisanje testova jedinica koda pomoću QtTest radnog okvira {#sec-pisanje-testova-jedinica-koda-pomoux107u-qttest-radnog-okvira}
 
 QtCreator kao razvojno okruženje pruža mogućnost pisanja jediničnih testova. To je moguće učiniti pisanjem projekta tipa `Qt Unit Test` na više načina, u zavisnosti od toga kako želimo da organizujemo stvarni i test projekat.
 
@@ -28,11 +28,11 @@ Dodatno, postoje i četiri privatne metode koje se ne tretiraju kao test funkcij
 
 Ukoliko se `initTestCase()` ne izvrši uspešno, nijedna test funkcija neće biti izvršavana. Ako `init()` funkcija ne prođe, njena prateća test funkcija se neće izvršiti, ali će se nastaviti sa sledećom.
 
-### Qt Subdirs projekat {#sec-qt-subdirs-projekat}
+#### Qt Subdirs projekat {#sec-qt-subdirs-projekat}
 
 Drugi način da testiramo projekat je da kreiramo nov `Qt Subdirs` projekat u koji ćemo uključiti postojeći i novi `Qt Unit Test` projekat. Ovaj način organizacije je koristan ukoliko pišemo projekat od nule i želimo da usput pišemo i testove.
 
-## Pisanje testova {#sec-pisanje-testova}
+### Pisanje testova {#sec-pisanje-testova}
 
 QtTest radni okvir pruža makroe za testiranje, i neke od njih ćemo koristiti da testiramo naš kalkulator:
 
@@ -42,11 +42,11 @@ QtTest radni okvir pruža makroe za testiranje, i neke od njih ćemo koristiti d
 
 - `QVERIFY_EXCEPTION_THROWN`
 
-## Analiza pokrivenosti {#sec-analiza-pokrivenosti}
+### Analiza pokrivenosti {#sec-analiza-pokrivenosti}
 
 Uz `gcc` kompajler dolazi i `gcov` alat za određivanje pokrivenosti koda prilikom izvršavanja programa (engl. *code coverage*). Koristi se zajedno sa `gcc` kompajlerom da bi se analizirao program i utvrdilo kako se može kreirati efikasniji, brži kod i da bi se testovima pokrili delovi programa.
 
-Alat `gcov` se može koristiti kao alat za profajliranje u cilju otkrivanja dela koda čija bi optimizacija najviše doprinela efikasnosti programa. Korišćenjem `gcov`-a možemo saznati koje su naredbe, linije, grane, funkcije itd. izvršene i koliko puta. Zarad lepše reprezentacije rezultata detekcije pokrivenosti koda izvršavanjem test primera, koristimo alat `lcov`.
+Alat `gcov` se može koristiti kao alat za profajliranje u cilju otkrivanja dela koda čija bi optimizacija najviše doprinela efikasnosti programa. Korišćenjem `gcov`-a možemo saznati koje su naredbe, linije, grane, funkcije itd. izvršene i koliko puta. Zarad lepše reprezentacije rezultata detekcije pokrivenosti koda izvršavanjem test primera, koristimo alat `lcov`. Alat `lcov` je obično dostupan u okviru paketa sa istim imenom.
 
 Prilikom kompilacije neophodno je koristiti dodatne opcije kompajlera koje omogućavaju snimanje koliko je puta koja linija, grana i funkcija izvršena. Ti podaci se čuvaju u datotekama ekstenzije `.gcno` za svaku datoteku sa izvornim kodom. One će kasnije biti korišćene za kreiranje izveštaja o pokrivenosti koda.
 
@@ -102,7 +102,7 @@ $ firefox Reports/index.html
 
 Ukoliko ne obrišemo `.gcda` datoteke od prethodnih pokretanja programa, prikaz pokrivenosti će uključiti sve, zbirno.
 
-## Kreiranje izveštaja uz pomoć skripte {#sec-kreiranje-izveux161taja-uz-pomoux107-skripte}
+### Kreiranje izveštaja uz pomoć skripte {#sec-kreiranje-izveux161taja-uz-pomoux107-skripte}
 
 Postupak kreiranja izveštaja nakon kompilacije programa može se automatizovati pokretanjem bash skripte `generateCodeCoverageReport.sh`:
 
@@ -120,7 +120,7 @@ Argumenti:
 
 Skript briše `.gcda` datoteke od prethodnih pokretanja programa. Prikazana pokrivenost je samo za poslednje pokretanje programa.
 
-## Integracija pokrivenosti u QtCreator {#sec-integracija-pokrivenosti-u-qtcreator}
+### Integracija pokrivenosti u QtCreator {#sec-integracija-pokrivenosti-u-qtcreator}
 
 Ukoliko želimo da kreiramo pokrivenost koda prilikom izvršavanja postojećeg Qt projekta, potrebno je da definiciji projekta (datoteci tipa `.pro`) dopišemo:
 
@@ -134,8 +134,3 @@ LIBS += \
 
 Opcija kompajlera `--coverage` menja opcije `-fprofile-arcs -ftest-coverage` i linkovanje sa `-lgcov`. Nakon pokretanja projekta, `.gcda` i `.gcno` datoteke i izvršivi program biće u direktorijumu gde se nalaze ostali artefakti prevođenja (podrazumevano u direktorijumu sa prefiksom `build_`). Izveštaj možemo potom napraviti prema ranije prikazanom postupku.
 
-## Instalacija
-
-### gcov, lcov {#sec-gcov-lcov}
-
-`gcov` dolazi podrazumevano uz `gcc` kompajler. Alat `lcov` je obično dostupan u okviru paketa sa istim imenom. Instalacija na Ubuntu distribuciji bi, na primer, izgledala ovako: `sudo apt-get install lcov`
