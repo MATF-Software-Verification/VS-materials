@@ -1,4 +1,4 @@
-# Java - JUnit, JaCoCo {#sec-java---junit-jacoco}
+# Primer: Java (JUnit, JaCoCo) {#sec-java---junit-jacoco}
 
 [JUnit](https://junit.org/) je jedan od najpopularnijih radnih okvira za testiranje jedinica koda u programskom jeziku Java. Neke od osobina JUnit radnog okvira su jednostavnost pisanja testova uz bogat skup anotacija koje opisuju testove, kao i veoma velika podrška za najčešće situacije u procesu pisanja testova kao što su uslovno uključivanje/isključivanje testova na osnovu promenljivih iz okruženja, operativnog sistema, proizvoljnih predikata itd.
 

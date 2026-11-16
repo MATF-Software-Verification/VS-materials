@@ -1,4 +1,4 @@
-# C++ - QtTest, gcov, lcov {#sec-c---qttest-gcov-lcov}
+# Primer: Kalkulator (C++, QtTest, gcov, lcov) {#sec-c---qttest-gcov-lcov}
 
 ## Pisanje testova jedinica koda pomoću QtTest radnog okvira {#sec-pisanje-testova-jedinica-koda-pomoux107u-qttest-radnog-okvira}
 

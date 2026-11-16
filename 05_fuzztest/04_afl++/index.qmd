@@ -1,4 +1,4 @@
-# Korišćenje AFL++ fuzzer-a nad libxml2 {#sec-afl-fuzzer-libxml2}
+# AFL++ primer: libxml2 {#sec-afl-fuzzer-libxml2}
 
 AFL++ je fuzzer vođen pokrivenošću koda. Za C i C++ projekte najčešći tok rada je da se program prevede AFL++ kompajlerskim omotačima, pripremi početni korpus ulaza i zatim pokrene `afl-fuzz` nad instrumentovanom izvršnom datotekom.
 

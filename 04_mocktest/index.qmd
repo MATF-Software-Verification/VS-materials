@@ -1,4 +1,4 @@
-# Testiranje pomoću objekata imitatora (engl. Mock testing) {#sec-testiranje-pomoux107u-objekata-imitatora-engl-mock-testing}
+# Testiranje pomoću objekata imitatora (engl. mock testing) {#sec-testiranje-pomoux107u-objekata-imitatora-engl-mock-testing}
 
 Prilikom pisanja jediničnih testova fokusiramo se samo na jednu funkciju i ispitujemo njeno ponašanje u kontrolisanom okruženju. Sadržaj testa je uvek skup inicijalizacija okruženja, pokretanje funkcije koju testiramo i zatim poređenje dobijenog i očekivanog rezultata. Nekada je kod takav da je nemoguće napraviti kontrolisano okruženje za testiranje, npr. korišćenje sistemskih poziva, podataka iz baze podataka, mrežna komunikacija i sl. U tim situacijama pribegava se pisanju klasa koje imitiraju realne objekte u svrhu testiranja.
 

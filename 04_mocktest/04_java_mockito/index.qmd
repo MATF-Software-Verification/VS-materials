@@ -1,0 +1,89 @@
+# Radni okvir Mockito za mock testiranje (JVM)
+
+Mockito je biblioteka za pravljenje **mock objekata** — zamenskih zavisnosti čije ponašanje možeš da podesiš i čije pozive možeš da proveriš u testu. Tako testiraš klasu izdvojeno, bez pozivanja stvarne baze, API-ja ili drugih spoljašnjih servisa. Mockito je mocking framework za Java testove. <citation src="1"></citation>
+
+## Instalacija
+
+Primer za Gradle, uz JUnit 5:
+
+```gradle
+testImplementation("org.mockito:mockito-junit-jupiter:5.+")
+```
+
+U stvarnom projektu je bolje zameniti `5.+` konkretnom verzijom i koristiti `mockito-junit-jupiter` kada želiš Mockito integraciju sa JUnit 5.
+
+## Primer
+
+Zamislimo servis koji koristi repozitorijum:
+
+```java
+interface UserRepository {
+    String findNameById(int id);
+}
+
+class UserService {
+    private final UserRepository repository;
+
+    UserService(UserRepository repository) {
+        this.repository = repository;
+    }
+
+    String greeting(int id) {
+        String name = repository.findNameById(id);
+        return "Zdravo, " + name + "!";
+    }
+}
+```
+
+U testu mockiramo repozitorijum, podesimo šta treba da vrati, pa proverimo rezultat:
+
+```java
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+
+    @Mock
+    UserRepository repository;
+
+    @Test
+    void vracaPozdravSaImenom() {
+        when(repository.findNameById(7)).thenReturn("Mila");
+
+        UserService service = new UserService(repository);
+
+        String result = service.greeting(7);
+
+        assertEquals("Zdravo, Mila!", result);
+        verify(repository).findNameById(7);
+    }
+}
+```
+
+## Najčešće metode
+
+- `@Mock` ili `mock(Tip.class)` — pravi mock objekat.
+- `when(...).thenReturn(...)` — podešava vrednost koju mock vraća.
+- `verify(mock).metoda(...)` — proverava da li je metoda pozvana.
+- `any()` — koristi se kada argument može biti bilo koja vrednost odgovarajućeg tipa.
+
+Primer sa matcherom:
+
+```java
+when(repository.findNameById(anyInt())).thenReturn("Nepoznato");
+```
+
+Za `anyInt()` dodaj statički import:
+
+```java
+import static org.mockito.ArgumentMatchers.anyInt;
+```
+
+Mockiraj prvenstveno spoljašnje zavisnosti, a ne samu klasu koju testiraš. Tako test ostaje usmeren na ponašanje klase, umesto na detalje njene implementacije. <citation src="2"></citation>

@@ -1,4 +1,4 @@
-# Primer rada libFuzzer-a {#sec-primer-rada-libfuzzer-a}
+# LLVM libFuzzer {#sec-primer-rada-libfuzzer-a}
 
 Primer `fuzz_me.cpp` prevodimo korišćenjem *clang*-a:
 

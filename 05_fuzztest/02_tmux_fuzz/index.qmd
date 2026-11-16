@@ -1,4 +1,4 @@
-# tmux fuzz testiranje {#sec-tmux-fuzz-testiranje}
+# Primer: tmux {#sec-tmux-fuzz-testiranje}
 
 Projekat `tmux` je dobar primer primene fuzz testiranja nad programom koji obrađuje dosta tekstualnih protokola i terminalskih sekvenci. Fuzz testovi su smešteni u direktorijumu [`fuzz`](https://github.com/tmux/tmux/tree/master/fuzz) u uzvodnom repozitorijumu.
 

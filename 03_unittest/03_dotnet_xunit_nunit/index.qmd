@@ -1,4 +1,4 @@
-# C# (.NET) - xUnit, NUnit {#sec-c-net---xunit-nunit}
+# Primer (.NET, xUnit, NUnit) {#sec-c-net---xunit-nunit}
 
 U okviru [.NET ekosistema](https://dotnet.microsoft.com/) postoji bogat skup radnih okvira za testiranje jedinica koda. Neki od njih olakšavaju repetitivno pisanje testova ubrizgavanjem vrednosti u šablone testova (tzv. *teorije*), ili pružaju interfejs za pisanje testova navođenjem ograničenja. Primeri ovakvih radnih okvira koje ćemo razmatrati su [xUnit](https://xunit.net/) i [NUnit](https://nunit.org/). Oba radna okvira podržavaju sve jezike u okviru .NET ekosistema (C#, F#, VB.NET, \...).
 

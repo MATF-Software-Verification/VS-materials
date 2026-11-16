@@ -1,3 +1,17 @@
-# Testiranje jedinica koda metodom bele kutije {#sec-testiranje-jedinica-koda-metodom-bele-kutije}
+# Jedinično testiranje i praćenje pokrivenosti koda {#sec-testiranje-jedinica-koda-metodom-bele-kutije}
 
 Jedinični testovi (engl. *Unit tests*) treba da budu kreirani za sve **javne** metode klasa, uključujući konstruktore i operatore. Trebalo bi da pokriju sve glavne putanje kroz funkcije, uključujuču različite grane uslova, petlji itd. Jedinični testovi bi trebali da pokriju i trivijalne i granične slučajeve, kao i situacije izvršavanja metoda nad pogrešnim podacima da bi se testiralo i reagovanje na greške.
+
+Praćenje pokrivenosti koda pokazuje koji su delovi aplikacije izvršeni tokom testiranja. Ovi podaci pomažu timu da prepozna neproverene funkcije, grane i putanje kroz program i da usmeri dodatne testove tamo gde su najpotrebniji.
+
+Pokrivenost se obično meri na nekoliko načina:
+- **Pokrivenost naredbi** — procenat programskih naredbi koje su izvršene.
+- **Pokrivenost grana** — procenat mogućih ishoda uslovnih izraza koji su provereni.
+- **Pokrivenost funkcija** — procenat funkcija koje su pozvane tokom testiranja.
+- **Pokrivenost linija** — procenat linija koda koje su izvršene.
+
+Rezultate je korisno pratiti tokom vremena, a ne samo proveravati nakon pojedinačnog pokretanja testova. Kontinuirana integracija može automatski da generiše izveštaj pri svakoj izmeni koda i upozori tim ako pokrivenost značajno opadne. Prag pokrivenosti može da posluži kao zaštitna mera, ali treba ga postaviti razumno: zahtev za visokim procentom bez procene kvaliteta testova može podstaći pisanje testova koji izvršavaju kod, ali ne proveravaju njegovo ponašanje.
+
+Pokrivenost nije isto što i kvalitet testiranja. Visok procenat ne garantuje da su važni slučajevi ispravno provereni, dok niži procenat ne mora da znači da je sistem loše testiran. Posebnu pažnju treba posvetiti kritičnim funkcijama, graničnim vrednostima, obradi grešaka i različitim ishodima uslova.
+
+Najkorisnije je tretirati izveštaje o pokrivenosti kao smernicu za planiranje testova, a ne kao jedini pokazatelj kvaliteta. U kombinaciji s pregledom testova, analizom rizika i redovnim povratnim informacijama, praćenje pokrivenosti pomaže timu da razvija pouzdaniji softver koji se lakše održava.
