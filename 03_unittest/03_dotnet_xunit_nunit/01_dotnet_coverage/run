@@ -1,0 +1,28 @@
+#!/bin/bash -xe
+
+dotnet tool restore
+dotnet restore CoverageLab.sln
+dotnet test --solution CoverageLab.sln --no-restore
+
+dotnet tool run dotnet-coverage -- collect \
+    "dotnet CoverageLab.Initial.Tests/bin/Debug/net10.0/CoverageLab.Initial.Tests.dll" \
+    -if CoverageLab.Initial.Tests/bin/Debug/net10.0/CoverageLab.dll \
+    -f cobertura \
+    -o coverage-initial.cobertura.xml
+
+dotnet tool run reportgenerator -- \
+    -reports:coverage-initial.cobertura.xml \
+    -targetdir:coverage-report/initial \
+    -reporttypes:Html
+
+dotnet tool run dotnet-coverage -- collect \
+    "dotnet CoverageLab.Complete.Tests/bin/Debug/net10.0/CoverageLab.Complete.Tests.dll" \
+    -if CoverageLab.Complete.Tests/bin/Debug/net10.0/CoverageLab.dll \
+    -f cobertura \
+    -o coverage-complete.cobertura.xml
+
+dotnet tool run reportgenerator -- \
+    -reports:coverage-complete.cobertura.xml \
+    -targetdir:coverage-report/complete \
+    -reporttypes:Html
+

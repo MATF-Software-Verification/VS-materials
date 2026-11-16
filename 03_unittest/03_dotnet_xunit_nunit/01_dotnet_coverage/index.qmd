@@ -1,175 +1,28 @@
 ### `dotnet-coverage` {#sec-dotnet-coverage}
 
-Pokrivenost koda meri koji delovi programa su izvršeni tokom pokretanja testova. To nije dokaz ispravnosti programa. Korisna je kao povratna informacija: pokazuje grane koje testovi ne dodiruju i pomaže da se razgovor o nedostajućim testovima veže za konkretan kod.
+Alat `dotnet-coverage` sakuplja pokrivenost za .NET proces. U ovoj vežbi ga koristimo kao lokalni .NET alat i izvozimo rezultat u Cobertura XML format. Cobertura format je pogodan za pregled u alatima za izveštavanje i CI sistemima.
 
-Alat `dotnet-coverage` sakuplja pokrivenost za .NET proces koji pokreće zadatu komandu. U ovoj vežbi ga koristimo kao lokalni .NET alat i izvozimo rezultat u Cobertura XML format. Cobertura je pogodan za pregled u alatima za izveštavanje i CI sistemima, ali u ovoj vežbi ne postavljamo prag koji ruši proveru.
-
-Manifest alata je deo direktorijuma vežbe:
+Alat instaliramo dodavanjem odgovarajućeg manifesta u `.config/dotnet-tools.json`:
 
 ``` json
-{
-  "version": 1,
-  "isRoot": true,
-  "tools": {
-    "dotnet-coverage": {
-      "version": "18.6.2",
-      "commands": [
-        "dotnet-coverage"
-      ]
-    }
-  }
-}
+{{< include ./03_dotnet_xunit_nunit/01_dotnet_coverage/.config/dotnet-tools.json >}}
 ```
 
-Primer koristi malu biblioteku sa granama u logici popusta. Cilj nije domen prodaje, već kratak kod nad kojim se jasno vidi razlika između prolaznih testova i dobrih testova.
+Primer koristi malu biblioteku sa granama u logici popusta. Cilj nije domen prodaje, već kratak kod nad kojim se jasno vidi razlika između nepotpunih i dobrih testova.
 
-``` xml
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>default</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-</Project>
-```
+Inicijalni skup testova proverava deo ponašanja. Svi testovi prolaze, ali pokrivenost pokazuje da nisu provereni partnerski popust i obrada neispravnog međuzbira.
 
 ``` csharp
-namespace CoverageLab;
-
-public enum CustomerKind
-{
-    Regular,
-    Student,
-    Partner
-}
+{{< include ./03_dotnet_xunit_nunit/01_dotnet_coverage/CoverageLab.Initial.Tests/DiscountPolicyTests.cs >}}
 ```
+
+Kompletni skup testova dodaje propuštene slučajeve. On ne menja produkcioni kod, već pokazuje kako ista biblioteka dobija bolju pokrivenost kada testovi eksplicitno pokriju odluke u metodi.
 
 ``` csharp
-namespace CoverageLab;
-
-public static class DiscountPolicy
-{
-    public static decimal Calculate(decimal subtotal, CustomerKind kind)
-    {
-        if (subtotal < 0m)
-        {
-            throw new ArgumentOutOfRangeException(nameof(subtotal), "Subtotal must be non-negative.");
-        }
-
-        decimal discountRate = kind switch
-        {
-            CustomerKind.Student => 0.10m,
-            CustomerKind.Partner => 0.15m,
-            _ => 0m
-        };
-
-        if (subtotal >= 200m)
-        {
-            discountRate += 0.05m;
-        }
-
-        decimal discount = decimal.Round(subtotal * discountRate, 2, MidpointRounding.AwayFromZero);
-        return subtotal - discount;
-    }
-}
+{{< include ./03_dotnet_xunit_nunit/01_dotnet_coverage/CoverageLab.Complete.Tests/DiscountPolicyTests.cs >}}
 ```
 
-Prvi skup testova proverava deo ponašanja. Svi testovi prolaze, ali pokrivenost pokazuje da nisu provereni partnerski popust i obrada neispravnog međuzbira.
-
-``` xml
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>default</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CoverageLab\CoverageLab.csproj" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-  </ItemGroup>
-
-</Project>
-```
-
-``` csharp
-using Xunit;
-
-namespace CoverageLab.Initial.Tests;
-
-public sealed class DiscountPolicyTests
-{
-    [Theory]
-    [InlineData(100, CustomerKind.Regular, 100)]
-    [InlineData(100, CustomerKind.Student, 90)]
-    [InlineData(250, CustomerKind.Student, 212.50)]
-    public void Calculate_returns_discounted_total(decimal subtotal, CustomerKind kind, decimal expected)
-    {
-        decimal actual = DiscountPolicy.Calculate(subtotal, kind);
-
-        Assert.Equal(expected, actual);
-    }
-}
-```
-
-Drugi skup testova dodaje propuštene slučajeve. On ne menja produkcioni kod, već pokazuje kako ista biblioteka dobija bolju pokrivenost kada testovi eksplicitno pokriju odluke u metodi.
-
-``` xml
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>default</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CoverageLab\CoverageLab.csproj" />
-    <PackageReference Include="xunit.v3" Version="3.2.2" />
-  </ItemGroup>
-
-</Project>
-```
-
-``` csharp
-using Xunit;
-
-namespace CoverageLab.Complete.Tests;
-
-public sealed class DiscountPolicyTests
-{
-    [Theory]
-    [InlineData(100, CustomerKind.Regular, 100)]
-    [InlineData(100, CustomerKind.Student, 90)]
-    [InlineData(100, CustomerKind.Partner, 85)]
-    [InlineData(250, CustomerKind.Regular, 237.50)]
-    [InlineData(250, CustomerKind.Student, 212.50)]
-    [InlineData(250, CustomerKind.Partner, 200)]
-    public void Calculate_returns_discounted_total(decimal subtotal, CustomerKind kind, decimal expected)
-    {
-        decimal actual = DiscountPolicy.Calculate(subtotal, kind);
-
-        Assert.Equal(expected, actual);
-    }
-
-    [Fact]
-    public void Calculate_rejects_negative_subtotal()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            DiscountPolicy.Calculate(-1m, CustomerKind.Regular));
-    }
-}
-```
-
-Vežba se pokreće iz direktorijuma `04_dotnet_coverage`:
+Projekat se pokreće iz korenog direktorijuma u kom se nalazi rešenje (`.sln` fajl):
 
 ``` bash
 $ dotnet tool restore
